@@ -22,7 +22,7 @@ export class SubscriptionAreaPost {
   @CreateDateColumn()
   createdAt: Date
 
-  @ManyToOne(() => Customer, (customer) => customer.subscriptions)
+  @ManyToOne(() => Customer, (customer) => customer.subscriptionAreas)
   @JoinColumn({ name: 'customerId' })
   customer: Customer
 }
