@@ -1,19 +1,22 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from "typeorm"
-import { Customer } from "./customer.entity"
-import { Post } from "./post.entity"
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm'
+import { Customer } from './customer.entity'
+import { Post } from './post.entity'
 
 @Entity('PostViewHistory')
 export class PostViewHistory {
   @PrimaryGeneratedColumn()
   historyId: number
 
-  @Column({ type: 'int' })
+  @Column({ type: 'int', nullable: false })
   customerId: number
 
-  @Column({ type: 'int' })
+  @Column({ type: 'int', nullable: false })
   postId: number
 
-  @CreateDateColumn()
+  @Column({
+    type: 'datetime',
+    default: () => 'CURRENT_TIMESTAMP'
+  })
   viewedAt: Date
 
   @ManyToOne(() => Customer, (customer) => customer.viewHistories)

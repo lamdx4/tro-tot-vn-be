@@ -1,20 +1,16 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm"
-import { MultimediaFile } from "./multimedia-file.entity"
-import { Post } from "./post.entity"
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm'
+import { MultimediaFile } from './multimedia-file.entity'
+import { Post } from './post.entity'
 
 @Entity('PostMultimediaFile')
 export class PostMultimediaFile {
-  
-  @Column({ type: 'int' })
+  @PrimaryColumn({ type: 'int', nullable: false })
   fileId: number
 
-  @Column({ type: 'int' })
+  @PrimaryColumn({ type: 'int', nullable: false })
   postId: number
 
-  @PrimaryGeneratedColumn()
-  id: number // Composite primary key can be handled differently
-
-  @ManyToOne(() => MultimediaFile, (file) => file.postMultimediaFiles)
+  @ManyToOne(() => MultimediaFile, (file) => file.postFiles)
   @JoinColumn({ name: 'fileId' })
   file: MultimediaFile
 
