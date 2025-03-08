@@ -1,68 +1,80 @@
-import { Entity, PrimaryGeneratedColumn, Column, Check, CreateDateColumn, ManyToOne, JoinColumn, OneToMany } from "typeorm"
-import { AccountPenalty } from "./account-penalty.entity"
-import { ActionTaken } from "./action-taken.entity"
-import { Customer } from "./customer.entity"
-import { Post } from "./post.entity"
-import { Rate } from "./rate.entity"
-import { Admin } from "./admin.entity"
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  Check,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  OneToMany
+} from 'typeorm'
+import { AccountPenalty } from './account-penalty.entity'
+import { ActionTaken } from './action-taken.entity'
+import { Customer } from './customer.entity'
+import { Admin } from './admin.entity'
+import { ReportTarget } from './report-tagert.entity'
+import { ReportStatus } from './enum/value-object'
 
 @Entity('Report')
+@Check(`status IN ('Pending', 'Done')`)
+@Check(`(status = 'Done' AND handlerId IS NOT NULL AND resolutionMessage IS NOT NULL) OR 
+        (status = 'Pending')`) // If report is done, handler and resolution must be provided
 export class Report {
   @PrimaryGeneratedColumn()
   reportId: number
 
-  @Column({ type: 'int' })
+  @Column({ type: 'int', nullable: false })
   senderId: number
 
-  @Column({ type: 'int' })
-  entityId: number
+  @Column({ type: 'int', nullable: false })
+  targetId: number
 
-  @Column({ type: 'varchar', length: 20 })
-  @Check(`"entityType" IN ('Post', 'Rate', 'User')`)
-  entityType: string
+  @Column({
+    type: "varchar",
+    length: 20,
+    nullable: false
+  })
+  status: string;
 
-  @Column({ type: 'varchar', length: 20 })
-  @Check(`"status" IN ('Pending', 'Done')`)
-  status: string
-
-  @Column({type : 'varchar', length: 255})
+  @Column({ type: 'varchar', length: 200, nullable: false })
   detail: string
 
-  @CreateDateColumn()
+  @Column({
+    type: 'datetime',
+    default: () => 'CURRENT_TIMESTAMP',
+    nullable: false
+  })
   createdAt: Date
 
-  @Column({ type : 'int', nullable: true })
+  @Column({ type: 'int', nullable: true })
   handlerId: number
 
-  @Column({ type: 'int' })
+  @Column({ type: 'int', nullable: false })
   actionTaken: number
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, default: null, nullable: true })
   resolutionMessage: string
 
-  @CreateDateColumn()
+  @Column({
+    type: 'datetime',
+    default: () => 'CURRENT_TIMESTAMP',
+    nullable: false
+  })
   resolvedAt: Date
 
-  @ManyToOne(() => Customer, (customer) => customer.reports)
+  @ManyToOne(() => Customer, (customer) => customer.sentReports)
   @JoinColumn({ name: 'senderId' })
   sender: Customer
 
-  @ManyToOne(() => Post, (post) => post.reports)
-  @JoinColumn({ name: 'entityId' })
-  post: Post
+  @ManyToOne(() => ReportTarget, (target) => target.reports)
+  @JoinColumn({ name: 'targetId' })
+  target: ReportTarget
 
-  @ManyToOne(() => Rate, (rate) => rate.reports)
-  @JoinColumn({ name: 'entityId' })
-  rate: Rate
+  @ManyToOne(() => Admin, (admin) => admin.handledReports)
+  @JoinColumn({ name: 'handlerId' })
+  handler: Admin
 
   @ManyToOne(() => ActionTaken, (action) => action.reports)
   @JoinColumn({ name: 'actionTaken' })
   action: ActionTaken
-
-  @ManyToOne(() => Admin, (admin) => admin.reports)
-  @JoinColumn({ name: 'handlerId' })
-  handler: Admin
-
-  @OneToMany(() => AccountPenalty, (penalty) => penalty.report)
-  penalties: AccountPenalty[]
 }

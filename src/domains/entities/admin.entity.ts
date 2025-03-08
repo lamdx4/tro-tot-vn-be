@@ -1,43 +1,47 @@
-import { Entity, PrimaryGeneratedColumn, Column, Check, ManyToOne, JoinColumn, OneToMany } from "typeorm"
-import { Account } from "./account.entity"
-import { Message } from "./message.entity"
-import { PostModerationHistory } from "./post-moderator-history.entity"
-import { Report } from "./report.entity"
+import { Entity, PrimaryGeneratedColumn, Column, Check, ManyToOne, JoinColumn, OneToMany, OneToOne } from 'typeorm'
+import { Account } from './account.entity'
+import { Message } from './message.entity'
+import { PostModerationHistory } from './post-moderator-history.entity'
+import { Report } from './report.entity'
+import { Participant } from './participant.entity'
+import { Gender } from './enum/value-object'
 
 @Entity('Admin')
+@Check(`gender IN ('Male', 'Female')`)
+@Check(`birthday < GETDATE()`) // Ensure birthday is in the past
 export class Admin {
   @PrimaryGeneratedColumn()
   adminId: number
 
-  @Column({ type: 'int' })
+  @Column({ type: 'int', nullable: false })
   accountId: number
 
-  @Column({ type: 'varchar', length: 20 })
-  @Check(`"gender" IN ('Female', 'Male')`)
-  gender: string
+  @Column({
+    type: "varchar",
+    length: 10,
+    nullable: false
+  })
+  gender: string;
 
-  @Column({ type: 'varchar', length: 30 })
+  @Column({ type: 'varchar', length: 30, nullable: false })
   firstName: string
 
-  @Column({ type: 'varchar', length: 30 })
+  @Column({ type: 'varchar', length: 30, nullable: false })
   lastName: string
 
-  @Column({ type: 'datetime' })
+  @Column({ type: 'datetime', nullable: false })
   birthday: Date
 
-  @ManyToOne(() => Account, (account) => account.admins)
+  @OneToOne(() => Account)
   @JoinColumn({ name: 'accountId' })
   account: Account
 
   @OneToMany(() => PostModerationHistory, (history) => history.admin)
   moderationHistories: PostModerationHistory[]
 
-  @OneToMany(() => Message, (message) => message.senderAdmin)
-  sentMessages: Message[]
-
-  @OneToMany(() => Message, (message) => message.receiverAdmin)
-  receivedMessages: Message[]
-
   @OneToMany(() => Report, (report) => report.handler)
-  reports: Report[]
+  handledReports: Report[]
+
+  @OneToOne(() => Participant, (participant) => participant.admin)
+  participant: Participant
 }

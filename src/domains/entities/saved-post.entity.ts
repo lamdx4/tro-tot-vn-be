@@ -1,26 +1,27 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from "typeorm"
-import { Customer } from "./customer.entity"
-import { Post } from "./post.entity"
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, PrimaryColumn } from 'typeorm'
+import { Customer } from './customer.entity'
+import { Post } from './post.entity'
 
 @Entity('SavedPost')
 export class SavedPost {
-  @PrimaryGeneratedColumn()
-  favoriteListId: number
-
-  @Column({ type: 'int' })
+  @PrimaryColumn({ type: 'int' })
   customerId: number
 
-  @Column({ type: 'int' })
+  @PrimaryColumn({ type: 'int' })
   postId: number
 
-  @CreateDateColumn()
+  @Column({
+    type: 'datetime',
+    default: () => 'CURRENT_TIMESTAMP',
+    nullable: false
+  })
   createdAt: Date
 
   @ManyToOne(() => Customer, (customer) => customer.savedPosts)
   @JoinColumn({ name: 'customerId' })
   customer: Customer
 
-  @ManyToOne(() => Post, (post) => post.savedPosts)
+  @ManyToOne(() => Post, (post) => post.savedBy)
   @JoinColumn({ name: 'postId' })
   post: Post
 }
