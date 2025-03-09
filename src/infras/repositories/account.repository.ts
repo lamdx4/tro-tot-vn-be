@@ -1,5 +1,5 @@
+import { Account } from '@/domains/entities/account.entity'
 import { DataSource, Repository } from 'typeorm'
-import { Account } from '../../domains'
 
 export class AccountRepository extends Repository<Account> {
   constructor(private datasource: DataSource) {
