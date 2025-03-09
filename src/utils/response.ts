@@ -1,10 +1,10 @@
-export default class Response {
+export default class ResponseData<T> {
   status: number;
   message: string[];
   error: string[];
-  data: any;
+  data: T | null;
 
-  constructor(status: number, message = [], error = [], data = {}) {
+  constructor(status: number, message : string[] = [], error : string[] = [], data : T | null = null) {
     this.status = status;
     this.message = message;
     this.error = error;

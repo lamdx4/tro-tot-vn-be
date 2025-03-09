@@ -29,7 +29,7 @@ export class Admin {
   @Column({ type: 'varchar', length: 30, nullable: false })
   lastName: string
 
-  @Column({ type: 'datetime', nullable: false })
+  @Column({ type: 'date', nullable: false })
   birthday: Date
 
   @OneToOne(() => Account)
