@@ -29,11 +29,12 @@ export class Customer {
   isVerified: number
 
   @Column({
-    type: "varchar",
+    type: 'varchar',
     length: 10,
-    nullable: false
+    nullable: false,
+    default: 'Male'
   })
-  gender: string;
+  gender: string
 
   @Column({ type: 'varchar', length: 150, default: '' })
   bio: string
@@ -44,7 +45,7 @@ export class Customer {
   @Column({ type: 'varchar', length: 30, nullable: false })
   lastName: string
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'date', nullable: true })
   birthday: Date
 
   @Column({ type: 'int', nullable: true })

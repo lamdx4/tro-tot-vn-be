@@ -10,6 +10,11 @@ import '@/web/routers/router-config'
 
 import AppDataSource from '@/infras/db/datasource'
 
+import seedData from '@/infras/db/seed-data'
+import compression from 'compression'
+import morgan from 'morgan'
+import { notFoundHandler, errorHandler } from '@/web/middlewares/error.middleware'
+
 async function startApp() {
   try {
     await AppDataSource.initialize()
@@ -19,14 +24,28 @@ async function startApp() {
     process.exit(1)
   }
 
+  try {
+    await seedData()
+  } catch (e) {
+    console.error(e)
+  }
+
   const app = express()
+
+  app.use(compression())
+
+  app.use(morgan('dev'))
 
   app.use(express.json())
 
-  app.use(routerConfig)
+  app.use('/api', routerConfig)
+
+  routerConfig.use('*', notFoundHandler)
+
+  routerConfig.use(errorHandler)
 
   app.listen(Number(process.env.PORT), '0.0.0.0', () => {
-    console.log(`Server is running on port ${process.env.PORT}`)
+    console.log(`Server is running on http://${process.env.HOST}:${process.env.PORT}`)
   })
 }
 startApp()
