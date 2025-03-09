@@ -10,23 +10,10 @@ const AppDataSource = new DataSource({
   database: process.env.DB_DATABASE,
   entities: [path.join(__dirname, '../../domains/**/*.entity.{js,ts}')],
   synchronize: true,
-  logging: true,
   options: {
     encrypt: true,
     trustServerCertificate: true
   }
 })
 
-AppDataSource.initialize()
-  .then((datasource) => {
-    console.log('Data Source has been initialized!')
-    datasource.getRepository('Account').count()
-      .then((count) => {
-        console.log('Account count:', count)
-      }
-    )
-  })
-  .catch((err) => {
-    console.error('Error during Data Source initialization', err)
-  })
 export default AppDataSource
