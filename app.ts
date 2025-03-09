@@ -1,21 +1,32 @@
-import "reflect-metadata"
+import 'reflect-metadata'
 
-import 'dotenv/config';
+import 'dotenv/config'
 
-import express from 'express';
+import express from 'express'
 
-import routerConfig from '@/web/routers/router-config.js';
+import routerConfig from '@/web/routers/router-config.js'
 
-import '@/web/routers/router-config';
+import '@/web/routers/router-config'
 
-import '@/infras';
+import AppDataSource from '@/infras/db/datasource'
 
-const app = express();
+async function startApp() {
+  try {
+    await AppDataSource.initialize()
+    console.log('Database connected')
+  } catch (e) {
+    console.error(e)
+    process.exit(1)
+  }
 
-app.use(express.json());
+  const app = express()
 
-app.use(routerConfig);
+  app.use(express.json())
 
-app.listen(Number(process.env.PORT), '0.0.0.0', () => {
-  console.log(`Server is running on port ${process.env.PORT}`);
-});
+  app.use(routerConfig)
+
+  app.listen(Number(process.env.PORT), '0.0.0.0', () => {
+    console.log(`Server is running on port ${process.env.PORT}`)
+  })
+}
+startApp()
