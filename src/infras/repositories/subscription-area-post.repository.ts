@@ -1,8 +1,8 @@
 import { SubscriptionAreaPost } from '@/domains/entities/subscription-area-post.entity'
-import { DataSource, Repository } from 'typeorm'
+import { BaseRepository } from './base.repository'
 
-export class SubscriptionAreaPostRepository extends Repository<SubscriptionAreaPost> {
-  constructor(private datasource: DataSource) {
-    super(SubscriptionAreaPost, datasource.manager)
+export class SubscriptionAreaPostRepository extends BaseRepository<SubscriptionAreaPost> {
+  constructor() {
+    super(SubscriptionAreaPost)
   }
 }

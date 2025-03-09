@@ -1,8 +1,8 @@
 import { AccountPenalty } from '@/domains/entities/account-penalty.entity'
-import { DataSource, Repository } from 'typeorm'
+import { BaseRepository } from './base.repository'
 
-export class AccountPenaltyRepository extends Repository<AccountPenalty> {
-  constructor(private datasource: DataSource) {
-    super(AccountPenalty, datasource.manager)
+export class AccountPenaltyRepository extends BaseRepository<AccountPenalty> {
+  constructor() {
+    super(AccountPenalty)
   }
 }

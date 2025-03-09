@@ -1,8 +1,8 @@
 import { ActionTaken } from '@/domains/entities/action-taken.entity'
-import { DataSource, Repository } from 'typeorm'
+import { BaseRepository } from './base.repository'
 
-export class ActionTakenRepository extends Repository<ActionTaken> {
-  constructor(private datasource: DataSource) {
-    super(ActionTaken, datasource.manager)
+export class ActionTakenRepository extends BaseRepository<ActionTaken> {
+  constructor() {
+    super(ActionTaken)
   }
 }

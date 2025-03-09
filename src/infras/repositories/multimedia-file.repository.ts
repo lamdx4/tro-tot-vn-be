@@ -1,8 +1,8 @@
 import { MultimediaFile } from '@/domains/entities/multimedia-file.entity'
-import { DataSource, Repository } from 'typeorm'
+import { BaseRepository } from './base.repository'
 
-export class MultimediaFileRepository extends Repository<MultimediaFile> {
-  constructor(private datasource: DataSource) {
-    super(MultimediaFile, datasource.manager)
+export class MultimediaFileRepository extends BaseRepository<MultimediaFile> {
+  constructor() {
+    super(MultimediaFile)
   }
 }

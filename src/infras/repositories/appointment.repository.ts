@@ -1,8 +1,8 @@
 import { Appointment } from '@/domains/entities/appointment.entity'
-import { DataSource, Repository } from 'typeorm'
+import { BaseRepository } from './base.repository'
 
-export class AppointmentRepository extends Repository<Appointment> {
-  constructor(private datasource: DataSource) {
-    super(Appointment, datasource.manager)
+export class AppointmentRepository extends BaseRepository<Appointment> {
+  constructor() {
+    super(Appointment)
   }
 }

@@ -1,8 +1,8 @@
 import { RolePermission } from '@/domains/entities/role-permission.entity'
-import { DataSource, Repository } from 'typeorm'
+import { BaseRepository } from './base.repository'
 
-export class RolePermissionRepository extends Repository<RolePermission> {
-  constructor(private datasource: DataSource) {
-    super(RolePermission, datasource.manager)
+export class RolePermissionRepository extends BaseRepository<RolePermission> {
+  constructor() {
+    super(RolePermission)
   }
 }
