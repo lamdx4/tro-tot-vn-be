@@ -1,8 +1,8 @@
 import { InfoEdition } from '@/domains/entities/info-edition.entity'
-import { DataSource, Repository } from 'typeorm'
+import { BaseRepository } from './base.repository'
 
-export class InfoEditionRepository extends Repository<InfoEdition> {
-  constructor(private datasource: DataSource) {
-    super(InfoEdition, datasource.manager)
+export class InfoEditionRepository extends BaseRepository<InfoEdition> {
+  constructor() {
+    super(InfoEdition)
   }
 }

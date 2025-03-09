@@ -1,8 +1,8 @@
 import { Message } from '@/domains/entities/message.entity'
-import { DataSource, Repository } from 'typeorm'
+import { BaseRepository } from './base.repository'
 
-export class MessageRepository extends Repository<Message> {
-  constructor(private datasource: DataSource) {
-    super(Message, datasource.manager)
+export class MessageRepository extends BaseRepository<Message> {
+  constructor() {
+    super(Message)
   }
 }

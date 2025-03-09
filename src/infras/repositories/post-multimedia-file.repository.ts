@@ -1,8 +1,8 @@
 import { PostMultimediaFile } from '@/domains/entities/post-multimedia-file.entity'
-import { DataSource, Repository } from 'typeorm'
+import { BaseRepository } from './base.repository'
 
-export class PostMultimediaFileRepository extends Repository<PostMultimediaFile> {
-  constructor(private datasource: DataSource) {
-    super(PostMultimediaFile, datasource.manager)
+export class PostMultimediaFileRepository extends BaseRepository<PostMultimediaFile> {
+  constructor() {
+    super(PostMultimediaFile)
   }
 }

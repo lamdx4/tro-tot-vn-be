@@ -1,8 +1,8 @@
 import { Admin } from '@/domains/entities/admin.entity'
-import { DataSource, Repository } from 'typeorm'
+import { BaseRepository } from './base.repository'
 
-export class AdminRepository extends Repository<Admin> {
-  constructor(private datasource: DataSource) {
-    super(Admin, datasource.manager)
+export class AdminRepository extends BaseRepository<Admin> {
+  constructor() {
+    super(Admin)
   }
 }

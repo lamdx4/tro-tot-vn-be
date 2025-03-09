@@ -1,8 +1,8 @@
 import { Post } from '@/domains/entities/post.entity'
-import { DataSource, Repository } from 'typeorm'
+import { BaseRepository } from './base.repository'
 
-export class PostRepository extends Repository<Post> {
-  constructor(private datasource: DataSource) {
-    super(Post, datasource.manager)
+export class PostRepository extends BaseRepository<Post> {
+  constructor() {
+    super(Post)
   }
 }

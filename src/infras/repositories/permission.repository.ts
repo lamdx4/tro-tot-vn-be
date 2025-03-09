@@ -1,8 +1,8 @@
 import { Permission } from '@/domains/entities/permission.entity'
-import { DataSource, Repository } from 'typeorm'
+import { BaseRepository } from './base.repository'
 
-export class PermissionRepository extends Repository<Permission> {
-  constructor(private datasource: DataSource) {
-    super(Permission, datasource.manager)
+export class PermissionRepository extends BaseRepository<Permission> {
+  constructor() {
+    super(Permission)
   }
 }

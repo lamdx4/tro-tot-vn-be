@@ -1,8 +1,8 @@
 import { Customer } from '@/domains/entities/customer.entity'
-import { DataSource, Repository } from 'typeorm'
+import { BaseRepository } from './base.repository'
 
-export class CustomerRepository extends Repository<Customer> {
-  constructor(private datasource: DataSource) {
-    super(Customer, datasource.manager)
+export class CustomerRepository extends BaseRepository<Customer> {
+  constructor() {
+    super(Customer)
   }
 }
