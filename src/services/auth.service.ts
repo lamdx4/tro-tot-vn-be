@@ -4,4 +4,5 @@ import { ConfigService } from "./config.service"
 import JWTService from "./jwt.service"
 
 export default class AuthService {
+  
 }
