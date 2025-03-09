@@ -1,80 +1,92 @@
-import { Entity, PrimaryGeneratedColumn, Column, Check, ManyToOne, JoinColumn, OneToMany } from "typeorm"
-import { AccountPenalty } from "./account-penalty.entity"
-import { Account } from "./account.entity"
-import { Appointment } from "./appointment.entity"
-import { InfoEdition } from "./info-edition.entity"
-import { Message } from "./message.entity"
-import { PostViewHistory } from "./post-view-history.entity"
-import { Post } from "./post.entity"
-import { Rate } from "./rate.entity"
-import { SavedPost } from "./saved-post.entity"
-import { SubscriptionAreaPost } from "./subscription-area-post.entity"
-import { Report } from "./report.entity"
+import { Entity, PrimaryGeneratedColumn, Column, Check, ManyToOne, JoinColumn, OneToMany, OneToOne } from 'typeorm'
+import { AccountPenalty } from './account-penalty.entity'
+import { Account } from './account.entity'
+import { Appointment } from './appointment.entity'
+import { InfoEdition } from './info-edition.entity'
+import { Message } from './message.entity'
+import { PostViewHistory } from './post-view-history.entity'
+import { Post } from './post.entity'
+import { Rate } from './rate.entity'
+import { SavedPost } from './saved-post.entity'
+import { SubscriptionAreaPost } from './subscription-area-post.entity'
+import { Report } from './report.entity'
+import { Participant } from './participant.entity'
+import { Gender } from './enum/value-object'
+import { ReportTarget } from './report-tagert.entity'
 
 @Entity('Customer')
+@Check(`gender IN ('Male', 'Female')`)
+@Check(`isVerified IN (0, 1)`)
+@Check(`birthday IS NULL OR birthday < GETDATE()`) // Ensure birthday is in the past if provided
 export class Customer {
   @PrimaryGeneratedColumn()
   customerId: number
 
-
-  @Column({ type: 'int' })
+  @Column({ type: 'int', nullable: false })
   accountId: number
 
   @Column({ type: 'tinyint', default: 0 })
-  isVerified: boolean
+  isVerified: number
 
-  @Column({ type: 'varchar', length: 20 })
-  @Check(`"gender" IN ('Female', 'Male')`)
+  @Column({
+    type: 'varchar',
+    length: 10,
+    nullable: false,
+    default: 'Male'
+  })
   gender: string
 
   @Column({ type: 'varchar', length: 150, default: '' })
   bio: string
 
-  @Column({ type: 'varchar', length: 30 })
+  @Column({ type: 'varchar', length: 30, nullable: false })
   firstName: string
 
-  @Column({ type: 'varchar', length: 30 })
+  @Column({ type: 'varchar', length: 30, nullable: false })
   lastName: string
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'date', nullable: true })
   birthday: Date
 
-  @ManyToOne(() => Account, (account) => account.customers)
+  @Column({ type: 'int', nullable: true })
+  participantId: number
+
+  @Column({ type: 'int', nullable: true, default: null })
+  reportTarget: number
+
+  @OneToOne(() => Account)
   @JoinColumn({ name: 'accountId' })
   account: Account
 
   @OneToMany(() => Post, (post) => post.owner)
   posts: Post[]
 
-  @OneToMany(() => InfoEdition, (infoEdition) => infoEdition.post)
-  infoEditions: InfoEdition[]
-
   @OneToMany(() => SavedPost, (savedPost) => savedPost.customer)
   savedPosts: SavedPost[]
-
-  @OneToMany(() => Appointment, (appointment) => appointment.requester)
-  appointments: Appointment[]
 
   @OneToMany(() => Rate, (rate) => rate.rater)
   rates: Rate[]
 
-
-  @OneToMany(() => PostViewHistory, (viewHistory) => viewHistory.customer)
+  @OneToMany(() => PostViewHistory, (history) => history.customer)
   viewHistories: PostViewHistory[]
+
+  @OneToMany(() => Appointment, (appointment) => appointment.requester)
+  appointments: Appointment[]
 
   @OneToMany(() => SubscriptionAreaPost, (subscription) => subscription.customer)
   subscriptions: SubscriptionAreaPost[]
 
-  @OneToMany(() => Message, (message) => message.senderCustomer)
-  sentMessages: Message[]
-
-  @OneToMany(() => Message, (message) => message.receiverCustomer)
-  receivedMessages: Message[]
-
   @OneToMany(() => Report, (report) => report.sender)
-  reports: Report[]
+  sentReports: Report[]
 
-  @OneToMany(() => AccountPenalty, (penalty) => penalty.penaltyAccount)
-  penalties: AccountPenalty[]
+  @OneToOne(() => ReportTarget, (reportTarget) => reportTarget.customer)
+  @JoinColumn({ name: 'reportTarget' })
+  customerReportTarget: ReportTarget
 
+  @ManyToOne(() => Participant)
+  @JoinColumn({ name: 'participantId' })
+  participant: Participant
+
+  @OneToOne(() => Participant, (participant) => participant.customer)
+  ownParticipant: Participant
 }

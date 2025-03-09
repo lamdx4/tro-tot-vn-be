@@ -1,22 +1,29 @@
 import { Entity, PrimaryGeneratedColumn, Column, Check, CreateDateColumn, OneToMany } from "typeorm"
 import { PostMultimediaFile } from "./post-multimedia-file.entity"
+import { MultimediaType } from "./enum/value-object";
 
 @Entity('MultimediaFile')
+@Check(`fileType IN ('Image', 'Video')`)
 export class MultimediaFile {
-  
   @PrimaryGeneratedColumn()
-  fileId: number
+  fileId: number;
 
-  @Column({ type: 'varchar', length: 150 })
-  fileUrl: string
+  @Column({ type: "char", length: 100, nullable: false })
+  fileUrl: string;
 
-  @Column({ type: 'varchar', length: 20 })
-  @Check(`"fileType" IN ('Video', 'Image')`)
-  fileType: string
+  @Column({
+    type: "varchar",
+    length: 20,
+    nullable: true
+  })
+  fileType: string;
 
-  @CreateDateColumn()
-  createdAt: Date
+  @Column({ 
+    type: "datetime", 
+    default: () => "CURRENT_TIMESTAMP" 
+  })
+  createdAt: Date;
 
-  @OneToMany(() => PostMultimediaFile, (postFile) => postFile.file)
-  postMultimediaFiles: PostMultimediaFile[]
+  @OneToMany(() => PostMultimediaFile, postFile => postFile.file)
+  postFiles: PostMultimediaFile[];
 }

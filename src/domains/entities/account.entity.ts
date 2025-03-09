@@ -1,41 +1,46 @@
-import { Entity, Column, Check, ManyToOne, JoinColumn, OneToMany, PrimaryGeneratedColumn } from "typeorm"
-import { AccountPenalty } from "./account-penalty.entity"
-import { Customer } from "./customer.entity"
-import { Role } from "./role.entity"
-import { Admin } from "./admin.entity"
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToOne, OneToMany, Check } from 'typeorm'
+import { AccountPenalty } from './account-penalty.entity'
+import { Customer } from './customer.entity'
+import { AccountStatus } from './enum/value-object'
+import { Role } from './role.entity'
+import { Admin } from './admin.entity'
 
 @Entity('Account')
+@Check(`status IN ('Active', 'InActive', 'Banned')`)
 export class Account {
   @PrimaryGeneratedColumn()
   accountId: number
 
-  @Column({ type: 'char', length: 12, unique: true })
+  @Column({ type: 'char', length: 12, unique: true, nullable: false })
   phone: string
 
-  @Column({ type: 'varchar', length: 60 })
+  @Column({ type: 'varchar', length: 60, nullable: false })
   password: string
 
-  @Column({ type: 'int' })
+  @Column({ type: 'int', nullable: false })
   roleId: number
 
-  @Column({ type: 'nvarchar', length: 255, default: 'Active' })
-  @Check(`"status" IN ('InActive', 'Active', 'Banned')`)
-  status: string
+  @Column({
+    type: "varchar",
+    length: 20,
+    default: "Active",
+    nullable: false
+  })
+  status: string;
 
-  @Column({ type: 'varchar', length: 60, unique: true })
+  @Column({ type: 'varchar', length: 60, unique: true, nullable: false })
   email: string
 
   @ManyToOne(() => Role, (role) => role.accounts)
   @JoinColumn({ name: 'roleId' })
   role: Role
 
-  @OneToMany(() => Admin, (admin) => admin.account)
-  admins: Admin[]
+  @OneToOne(() => Admin, (admin) => admin.account)
+  admin: Admin
 
-  @OneToMany(() => Customer, (customer) => customer.account)
-  customers: Customer[]
+  @OneToOne(() => Customer, (customer) => customer.account)
+  customer: Customer
 
   @OneToMany(() => AccountPenalty, (penalty) => penalty.penaltyAccount)
   penalties: AccountPenalty[]
 }
-

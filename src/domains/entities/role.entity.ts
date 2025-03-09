@@ -5,14 +5,14 @@ import { RolePermission } from "./role-permission.entity"
 @Entity('Role')
 export class Role {
   @PrimaryGeneratedColumn()
-  roleId: number
+  roleId: number;
 
-  @Column({ type: 'varchar', length: 20 })
-  roleName: string
+  @Column({ type: "char", length: 20, unique: true, nullable: false })
+  roleName: string;
 
-  @OneToMany(() => Account, (account) => account.role)
-  accounts: Account[]
+  @OneToMany(() => Account, account => account.role)
+  accounts: Account[];
 
-  @OneToMany(() => RolePermission, (rolePermission) => rolePermission.role)
-  rolePermissions: RolePermission[]
+  @OneToMany(() => RolePermission, rolePermission => rolePermission.role)
+  rolePermissions: RolePermission[];
 }

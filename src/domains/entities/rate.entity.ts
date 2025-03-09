@@ -1,7 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, OneToMany, Check } from "typeorm"
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, OneToMany, Check, OneToOne } from "typeorm"
 import { Customer } from "./customer.entity"
 import { Post } from "./post.entity"
 import { Report } from "./report.entity"
+import { ReportTarget } from "./report-tagert.entity"
 
 @Entity('Rate')
 export class Rate {
@@ -32,6 +33,7 @@ export class Rate {
   @JoinColumn({ name: 'postId' })
   post: Post
 
-  @OneToMany(() => Report, (report) => report.rate)
-  reports: Report[]
+  @OneToOne(() => ReportTarget, (reportTarget) => reportTarget.rate)
+  reportTarget: ReportTarget
+
 }

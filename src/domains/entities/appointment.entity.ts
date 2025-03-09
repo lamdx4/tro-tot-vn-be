@@ -1,27 +1,36 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Check, ManyToOne, JoinColumn } from "typeorm"
-import { Customer } from "./customer.entity"
-import { Post } from "./post.entity"
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Check, ManyToOne, JoinColumn } from 'typeorm'
+import { Customer } from './customer.entity'
+import { Post } from './post.entity'
+import { AppointmentStatus } from './enum/value-object'
 
 @Entity('Appointment')
+@Check(`status IN ('Pending', 'Reject', 'Accept')`)
+@Check(`appointment > createdAt`) // Ensure appointment time is in the future relative to creation time
 export class Appointment {
   @PrimaryGeneratedColumn()
   appointmentId: number
 
-  @Column({ type: 'int' })
+  @Column({ type: 'int', nullable: false })
   requesterId: number
 
-  @Column({ type: 'int' })
+  @Column({ type: 'int', nullable: false })
   postId: number
 
-  @CreateDateColumn()
+  @Column({
+    type: 'datetime',
+    default: () => 'CURRENT_TIMESTAMP'
+  })
   createdAt: Date
 
-  @Column({ type: 'datetime' })
+  @Column({ type: 'datetime', nullable: false })
   appointment: Date
 
-  @Column({ type: 'varchar', length: 20 })
-  @Check(`"status" IN ('Pending', 'Reject', 'Accept')`)
-  status: string
+  @Column({
+    type: "varchar",
+    length: 20,
+    nullable: false
+  })
+  status: string;
 
   @ManyToOne(() => Customer, (customer) => customer.appointments)
   @JoinColumn({ name: 'requesterId' })
