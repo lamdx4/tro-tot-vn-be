@@ -30,6 +30,8 @@ async function startApp() {
     console.error(e)
   }
 
+  import('@/infras/redis/redis');
+
   const app = express()
 
   app.use(compression())
@@ -38,14 +40,14 @@ async function startApp() {
 
   app.use(express.json())
 
+  app.use('*', notFoundHandler)
+
+  app.use(errorHandler)
+
   app.use('/api', routerConfig)
 
-  routerConfig.use('*', notFoundHandler)
-
-  routerConfig.use(errorHandler)
-
   app.listen(Number(process.env.PORT), '0.0.0.0', () => {
-    console.log(`Server is running on http://${process.env.HOST}:${process.env.PORT}`)
+    console.log(`Server is running on http://localhost:${process.env.PORT}`)
   })
 }
 startApp()
