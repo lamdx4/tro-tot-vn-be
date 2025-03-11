@@ -33,6 +33,8 @@ async function startApp() {
     console.error(e)
   }
 
+  import('@/infras/redis/redis');
+
   const app = express()
 
   const allowedOrigins = process.env.FRONTEND_ORIGIN?.split(',') || ['http://localhost:3000'];
@@ -51,12 +53,12 @@ app.use(cors({
 
   app.use('/api', routerConfig)
 
-  routerConfig.use('*', notFoundHandler)
+  app.use('*', notFoundHandler)
 
-  routerConfig.use(errorHandler)
+  app.use(errorHandler)
 
   app.listen(Number(process.env.PORT), '0.0.0.0', () => {
-    console.log(`Server is running on http://${process.env.HOST}:${process.env.PORT}`)
+    console.log(`Server is running on http://localhost:${process.env.PORT}`)
   })
 }
 startApp()
