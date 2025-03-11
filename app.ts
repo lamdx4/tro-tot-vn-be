@@ -2,6 +2,8 @@ import 'reflect-metadata'
 
 import 'dotenv/config'
 
+import cors from 'cors'
+
 import express from 'express'
 
 import routerConfig from '@/web/routers/router-config.js'
@@ -9,6 +11,7 @@ import routerConfig from '@/web/routers/router-config.js'
 import '@/web/routers/router-config'
 
 import AppDataSource from '@/infras/db/datasource'
+
 
 import seedData from '@/infras/db/seed-data'
 import compression from 'compression'
@@ -31,6 +34,14 @@ async function startApp() {
   }
 
   const app = express()
+
+  const allowedOrigins = process.env.FRONTEND_ORIGIN?.split(',') || ['http://localhost:3000'];
+
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true 
+}));
+
 
   app.use(compression())
 
