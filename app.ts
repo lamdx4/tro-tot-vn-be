@@ -40,11 +40,11 @@ async function startApp() {
 
   app.use(express.json())
 
+  app.use('/api', routerConfig)
+
   app.use('*', notFoundHandler)
 
   app.use(errorHandler)
-
-  app.use('/api', routerConfig)
 
   app.listen(Number(process.env.PORT), '0.0.0.0', () => {
     console.log(`Server is running on http://localhost:${process.env.PORT}`)
