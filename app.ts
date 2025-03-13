@@ -2,6 +2,8 @@ import 'reflect-metadata'
 
 import 'dotenv/config'
 
+import cors from 'cors'
+
 import express from 'express'
 
 import routerConfig from '@/web/routers/router-config.js'
@@ -34,6 +36,8 @@ async function startApp() {
 
   const app = express()
 
+  app.use(cors())
+
   app.use(compression())
 
   app.use(morgan('dev'))
@@ -51,3 +55,4 @@ async function startApp() {
   })
 }
 startApp()
+
