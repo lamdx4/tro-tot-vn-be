@@ -11,5 +11,11 @@ export default class AuthService {
   async isEmail(email: string) {
     const isEmail = await this.accountRepository.findOne({ where: { email: email } });
     return isEmail;
-}
+  }
+
+  async updatePassword(email: string, password: string) {
+    const isPassword = await this.accountRepository.update({ email: email }, { password: password });
+    return isPassword;
+  }
+ 
 }

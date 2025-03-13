@@ -4,6 +4,7 @@ import Mail from "nodemailer/lib/mailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { ConfigService } from "./config.service";
 
+
 export class MailService {
   private transporter: Transporter<SMTPTransport.SentMessageInfo>;
   constructor() {}
