@@ -8,40 +8,32 @@ export default class AuthService {
   private customerRepository: CustomerRepository
   private adminRepository: AdminRepository
   private jwtService: JWTService
-  private configService: ConfigService
 
   constructor() {
     this.accountRepository = new AccountRepository()
     this.customerRepository = new CustomerRepository()
     this.adminRepository = new AdminRepository()
     this.jwtService = new JWTService()
-    this.configService = ConfigService.gI()
   }
 
-  async login(phone: string, password: string) {
-    const account = await this.accountRepository.findOneBy({
-      phone: phone
+  async login(identifier: string, password: string) {
+    const account = await this.accountRepository.findOne({
+      where: [{ phone: identifier }, { email: identifier }],
+      relations: ['role', 'customer', 'admin']
     })
     if (!account) {
       throw new Error('Account not found')
     }
-
     if (account.password !== password) {
       throw new Error('Invalid password')
     }
-
-    const payload = {
-      accountId: account.accountId,
-      phone: account.phone,
-      roleId: account.roleId
-    }
-
-    const accessToken = this.jwtService.generateAccessToken(payload)
-    const refreshToken = this.jwtService.generateRefreshToken(payload)
-
+    account.password = ''
     return {
-      accessToken,
-      refreshToken
+      account: account,
+      token: {
+        accessToken: this.jwtService.generateAccessToken(Object.assign({}, account)),
+        refreshToken: this.jwtService.generateRefreshToken(Object.assign({}, account))
+      }
     }
   }
 }
