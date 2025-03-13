@@ -1,13 +1,15 @@
 import express from 'express'
 import authController from '../controllers/auth.controller'
 import { body } from 'express-validator'
-import { email } from 'envalid'
+import validateExpressRequest from '../middlewares/validate.middleware'
 
 const authRouter = express.Router()
 
 authRouter.post(
   '/login',
-  body('identifier').exists().notEmpty(),
+  body('identifier').notEmpty(),
+  body('password').notEmpty(),
+  validateExpressRequest,
   authController.login.bind(authController)
 )
 
