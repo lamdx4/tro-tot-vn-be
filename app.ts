@@ -12,6 +12,7 @@ import '@/web/routers/router-config'
 
 import AppDataSource from '@/infras/db/datasource'
 
+
 import seedData from '@/infras/db/seed-data'
 import compression from 'compression'
 import morgan from 'morgan'
@@ -36,7 +37,9 @@ async function startApp() {
 
   const app = express()
 
+
   app.use(cors())
+
 
   app.use(compression())
 
