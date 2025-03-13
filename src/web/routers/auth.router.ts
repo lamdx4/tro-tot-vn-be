@@ -5,6 +5,8 @@ import validateExpressRequest from '../middlewares/validate.middleware'
 
 const authRouter = express.Router()
 
+authRouter.post('/forgot-password', authController.forgotPassword.bind(authController))
+
 authRouter.post(
   '/login',
   body('identifier').notEmpty(),
