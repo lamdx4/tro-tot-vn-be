@@ -6,9 +6,6 @@ import { generateRandomNumber } from '@/utils/config/generate.helper'
 class AuthController {
     private authService = new AuthService()
   
-  /**
-   * Get all examples
-   */
   async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
         // Your code here
@@ -24,7 +21,15 @@ class AuthController {
       next(e)
     }
   }
+  async login(req: Request, res: Response, next : NextFunction) {
+    const { identifier, password } = req.body
+    try {
+      const result = await this.authService.login(identifier, password)
+      res.status(200).json(ResponseData.success(result))
+    } catch (error) {
+      next(error)
+    }
+  }
 }
 
-// Create and export controller instance
 export default new AuthController()
