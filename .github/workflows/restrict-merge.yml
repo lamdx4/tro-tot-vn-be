@@ -1,0 +1,17 @@
+name: Restrict Merging into Main
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Source Branch
+        run: |
+          if [[ "${{ github.event.pull_request.base.ref }}" == "main" && "${{ github.event.pull_request.head.ref }}" != "dev" ]]; then
+            echo "❌ Chỉ nhánh 'dev' mới được merge vào 'main'!";
+            exit 1;
+          fi
