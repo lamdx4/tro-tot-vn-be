@@ -1,7 +1,7 @@
-import { AccountRepository, CustomerRepository, AdminRepository } from "@/infras/repositories"
-import { DataSource } from "typeorm"
-import { ConfigService } from "./config.service"
-import JWTService from "./jwt.service"
+import { AccountRepository, CustomerRepository, AdminRepository } from '@/infras/repositories'
+import { ConfigService } from './config.service'
+import JWTService from './jwt.service'
+import { Result } from '@/utils/result'
 
 export default class AuthService {
   private accountRepository: AccountRepository
@@ -14,6 +14,24 @@ export default class AuthService {
     this.customerRepository = new CustomerRepository()
     this.adminRepository = new AdminRepository()
     this.jwtService = new JWTService()
+  }
+
+  async registerAccount(phone: string, email: string, firstName: string, lastName: string, birthday: Date, gender: string, password: string) {
+    const existAccount = await this.accountRepository.findOne({
+      where: [{ phone: phone }, { email: email }]
+    })
+    if (existAccount) {
+      return Result.fail(409, "User already exists")
+    }
+
+    const createUser = this.accountRepository.createAccount(phone, email, firstName, lastName, birthday, gender, password)
+    
+    if((await createUser).isSuccess){
+      return Result.ok(true)
+    } else {
+      return Result.fail(402, "Roll Back Transaction")
+    }
+    
   }
 
   async login(identifier: string, password: string) {
@@ -36,9 +54,9 @@ export default class AuthService {
       }
     }
   }
-  
+
   async isEmail(email: string) {
-    const isEmail = await this.accountRepository.findOne({ where: { email: email } });
-    return isEmail;
-}
+    const isEmail = await this.accountRepository.findOne({ where: { email: email } })
+    return isEmail
+  }
 }
