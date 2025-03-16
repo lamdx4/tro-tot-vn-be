@@ -7,7 +7,7 @@ const authRouter = express.Router()
 
 const validateRegister = [
   body('phone').isMobilePhone('vi-VN').withMessage('Invalid phone number'),
-  body('mail').isEmail().withMessage('Invalid email'),
+  body('email').isEmail().withMessage('Invalid email'),
   body('firstName').matches(/^[a-zA-Z]+$/).withMessage('First name must not contain special characters'),
   body('lastName').matches(/^[a-zA-Z]+$/).withMessage('Last name must not contain special characters'),
   body('birthday').isISO8601().withMessage('Invalid date of birth'),
