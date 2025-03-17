@@ -22,11 +22,12 @@ export class AccountRepository extends BaseRepository<Account> {
       const saveAccount = await queryRunner.manager.save(newAccount)
 
       const newCustomer = queryRunner.manager.create(Customer, {gender, firstName, lastName, birthday, accountId: saveAccount.accountId})
-      const saveCustomer = await queryRunner.manager.save(newCustomer)
+      await queryRunner.manager.save(newCustomer)
 
       await queryRunner.commitTransaction()
       return Result.ok(true)
     } catch (err) {
+      console.log(err)
       await queryRunner.rollbackTransaction()
       return Result.fail(402, "Roll Back Transaction")
     } finally {
