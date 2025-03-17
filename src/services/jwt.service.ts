@@ -10,7 +10,7 @@ export default class JWTService {
 
   generateAccessToken(payload: object): string {
     return jwt.sign(payload, this.configService.getOrThrow('JWT_ACCESS_TOKEN_SECRET'), {
-      expiresIn: parseInt(this.configService.getOrThrow('JWT_ACCESS_TOKEN_EXPIRES_IN'), 10),
+      expiresIn: parseInt(this.configService.getOrThrow('JWT_ACCESS_TOKEN_EXPIRES_IN'), 10)
     });
   }
 
