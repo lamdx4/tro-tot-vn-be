@@ -37,19 +37,14 @@ async function startApp() {
 
   const app = express()
 
-  const allowedOrigins = process.env.FRONTEND_ORIGIN?.split(',') || ['http://localhost:3000'];
-
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true 
-}));
-
+  app.use(cors())
 
   app.use(compression())
 
   app.use(morgan('dev'))
 
   app.use(express.json())
+  app.use(express.urlencoded({extended:true})) //*******
 
   app.use('/api', routerConfig)
 
@@ -62,3 +57,4 @@ app.use(cors({
   })
 }
 startApp()
+

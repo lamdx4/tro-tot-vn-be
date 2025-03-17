@@ -5,6 +5,20 @@ import AuthService from "@/services/auth.service";
 class AuthController {
   private authService = new AuthService();
 
+  async registerAccount(req: Request, res: Response, next: NextFunction){
+    const {phone, email, firstName, lastName, birthday, gender, password} = req.body
+    const newUser = await this.authService.registerAccount(phone, email, firstName, lastName, birthday, gender, password)
+    if(newUser.isSuccess){
+      res.status(201).json(ResponseData.success("User registered successfully"))
+    }
+    else{
+      if(newUser.code == 409){
+        res.status(409).json(ResponseData.error(409, "USER_ALREADY_EXISTS", "User already exists"))
+      } else {
+        res.status(402).json(ResponseData.error(402, "ROLL_BACK_TRANSACTION", "Roll Back Transaction"))
+      }
+    }
+  }
   async forgotPassword(req: Request, res: Response, next: NextFunction) {
     try {
       const { email } = req.body;
@@ -40,6 +54,15 @@ class AuthController {
       res.status(200).json(ResponseData.success(result));
     } catch (e: any) {
       res.status(400).json(ResponseData.error(400, e.message, e.message));
+    }
+  }
+  async login(req: Request, res: Response, next: NextFunction) {
+    const { identifier, password } = req.body
+    try {
+      const result = await this.authService.login(identifier, password)
+      res.status(200).json(ResponseData.success(result))
+    } catch (error) {
+      next(error)
     }
   }
 }
