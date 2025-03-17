@@ -2,8 +2,6 @@ import 'reflect-metadata'
 
 import 'dotenv/config'
 
-import cors from 'cors'
-
 import express from 'express'
 
 import routerConfig from '@/web/routers/router-config.js'
@@ -11,7 +9,6 @@ import routerConfig from '@/web/routers/router-config.js'
 import '@/web/routers/router-config'
 
 import AppDataSource from '@/infras/db/datasource'
-
 
 import seedData from '@/infras/db/seed-data'
 import compression from 'compression'
@@ -33,8 +30,6 @@ async function startApp() {
     console.error(e)
   }
 
-  import('@/infras/redis/redis');
-
   const app = express()
 
   app.use(cors())
@@ -44,17 +39,15 @@ async function startApp() {
   app.use(morgan('dev'))
 
   app.use(express.json())
-  app.use(express.urlencoded({extended:true})) //*******
 
   app.use('/api', routerConfig)
 
-  app.use('*', notFoundHandler)
+  routerConfig.use('*', notFoundHandler)
 
-  app.use(errorHandler)
+  routerConfig.use(errorHandler)
 
   app.listen(Number(process.env.PORT), '0.0.0.0', () => {
-    console.log(`Server is running on http://localhost:${process.env.PORT}`)
+    console.log(`Server is running on http://${process.env.HOST}:${process.env.PORT}`)
   })
 }
 startApp()
-

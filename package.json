@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "app.js",
   "scripts": {
-    "dev": "nodemon app.ts",
+    "start:dev": "nodemon app.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "lint": "eslint"
@@ -15,7 +15,6 @@
     "@eslint/js": "^9.21.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/compression": "^1.7.5",
-    "@types/cors": "^2.8.17",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/morgan": "^1.9.9",
     "eslint": "^9.21.0",
@@ -34,15 +33,12 @@
   "dependencies": {
     "@types/express": "^5.0.0",
     "@types/nodemailer": "^6.4.17",
-    "bcryptjs": "^3.0.2",
     "compression": "^1.8.0",
-    "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "envalid": "^8.0.0",
     "express": "^4.21.2",
     "express-validator": "^7.2.1",
     "googleapis": "^146.0.0",
-    "ioredis": "^5.6.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "mssql": "^11.0.1",
