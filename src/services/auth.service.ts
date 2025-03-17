@@ -3,6 +3,7 @@ import redis from "@/infras/redis/redis";
 import { MailService } from "@/services/mail.service";
 import JWTService from "./jwt.service";
 import { generateRandomNumber } from "@/utils/config/generate.helper";
+import bcrypt from "bcryptjs";
 
 export default class AuthService {
   private accountRepository: AccountRepository;
@@ -53,7 +54,8 @@ export default class AuthService {
 
     await redis.del(`otp-forgot-password:${email}`);
 
-    const resetToken = this.jwtService.generateAccessToken({ email });
+    // const resetToken = this.jwtService.generateAccessToken({ email });
+    const resetToken = await bcrypt.hash(email, 10);
     await redis.set(`reset_token:${resetToken}`, email, "EX", 600);
 
     return { message: "OTP verified", resetToken };
@@ -77,3 +79,4 @@ export default class AuthService {
     return "Password reset successfully";
   }
 }
+
