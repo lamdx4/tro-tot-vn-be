@@ -1,11 +1,9 @@
-import ResponseData from '@/utils/response'
-import { Request, Response, NextFunction } from 'express'
-import AuthService from '@/services/auth.service'
-import { generateRandomNumber } from '@/utils/config/generate.helper'
+import ResponseData from "@/utils/response";
+import { Request, Response, NextFunction } from "express";
+import AuthService from "@/services/auth.service";
 
 class AuthController {
-
-  private authService = new AuthService()
+  private authService = new AuthService();
 
   async registerAccount(req: Request, res: Response, next: NextFunction){
     const {phone, email, firstName, lastName, birthday, gender, password} = req.body
@@ -21,20 +19,41 @@ class AuthController {
       }
     }
   }
-  
-  async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+  async forgotPassword(req: Request, res: Response, next: NextFunction) {
     try {
-      // Your code here
-      const email = req.body.email
-      const isEmail = await this.authService.isEmail(email)
-      if (!isEmail) {
-        res.status(400).json(ResponseData.error(400, 'EMAIL_NOT_FOUND', 'Email not found'))
-        return
+      const { email } = req.body;
+      const result = await this.authService.sendOtp(email);
+      res.status(200).json(ResponseData.success(result));
+    } catch (e: any) {
+      res.status(400).json(ResponseData.error(400, e.message, e.message));
+    }
+  }
+
+  async verifyOtp(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email, otp } = req.body;
+      const result = await this.authService.verifyOtp(email, otp);
+      res.status(200).json(ResponseData.success(result));
+    } catch (e: any) {
+      res.status(400).json(ResponseData.error(400, e.message, e.message));
+    }
+  }
+
+  async resetPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const password = req.body.password;
+      console.log(req.body);
+      // const resetToken = req.headers.authorization?.split(" ")[1];
+      const resetToken = req.body.token;
+
+      if (!resetToken) {
+        throw new Error("TOKEN_REQUIRED");
       }
-      const otp = generateRandomNumber(6)
-      res.status(200).json(ResponseData.success(email))
-    } catch (e) {
-      next(e)
+
+      const result = await this.authService.resetPassword(resetToken, password);
+      res.status(200).json(ResponseData.success(result));
+    } catch (e: any) {
+      res.status(400).json(ResponseData.error(400, e.message, e.message));
     }
   }
   async login(req: Request, res: Response, next: NextFunction) {
@@ -48,4 +67,4 @@ class AuthController {
   }
 }
 
-export default new AuthController()
+export default new AuthController();
