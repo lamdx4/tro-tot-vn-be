@@ -28,7 +28,9 @@ class AuthController {
   async resetPassword(req: Request, res: Response, next: NextFunction) {
     try {
       const password = req.body.password;
-      const resetToken = req.headers.authorization?.split(" ")[1];
+      console.log(req.body);
+      // const resetToken = req.headers.authorization?.split(" ")[1];
+      const resetToken = req.body.token;
 
       if (!resetToken) {
         throw new Error("TOKEN_REQUIRED");
