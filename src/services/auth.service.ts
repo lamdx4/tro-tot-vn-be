@@ -3,7 +3,7 @@ import { ConfigService } from './config.service'
 import JWTService from './jwt.service'
 import { Result } from '@/utils/result'
 import redis from '@/infras/redis/redis'
-import bcrypt from 'bcryptjs/umd/types'
+import bcrypt from 'bcryptjs'
 import { generateRandomNumber } from '@/utils/config/generate.helper'
 import { MailService } from './mail.service'
 
