@@ -5,7 +5,9 @@ import JWTService from "./jwt.service";
 import { generateRandomNumber } from "@/utils/config/generate.helper";
 import bcrypt from "bcryptjs";
 import { Result } from "@/utils/result";
+import { promisify } from "util";
 
+const ttlAsync = promisify(redis.ttl).bind(redis); // Chuyển ttl thành Promise
 
 export default class AuthService {
   private accountRepository: AccountRepository;
@@ -31,23 +33,34 @@ export default class AuthService {
    */
   async sendOtp(email: string) {
     const user = await this.isEmail(email);
-    if (!user){
-      return Result.fail(404, 'EMAIL_NOT_FOUND');
+    if (!user) {
+        return Result.fail(404, 'EMAIL_NOT_FOUND');
     }
-
+    
+    const key = `otp-forgot-password:${email}`;
+    
+    // Kiểm tra TTL của OTP hiện tại
+    const remainingTime = await ttlAsync(key);
+    
+    if (remainingTime && remainingTime > 0) {
+      return Result.fail(429, `OTP đã được gửi. Vui lòng thử lại sau ${remainingTime} giây.`);
+    }
+    // Tạo và lưu OTP mới (hiệu lực 5 phút)
     const otp = generateRandomNumber(6);
     await redis.set(`otp-forgot-password:${email}`, otp.toString(), "EX", 300);
 
+    // Gửi email
     await this.mailService.createTransporter();
     await this.mailService.sendMail({
-      from: "djiahak@gmail.com",
-      to: email,
-      subject: "OTP Verification",
-      text: `Your OTP is ${otp}`,
+        from: "djiahak@gmail.com",
+        to: email,
+        subject: "OTP Verification",
+        text: `Your OTP is ${otp}`,
     });
 
-    return Result.ok('OTP sent to email');
-  }
+    return Result.ok({ message: 'OTP sent to email', remainingTime });
+}
+
 
   /**
    * Xác thực OTP
@@ -59,9 +72,10 @@ export default class AuthService {
     }
 
     await redis.del(`otp-forgot-password:${email}`);
+    
 
     const resetToken = await bcrypt.hash(email, 10);
-    await redis.set(`reset_token:${resetToken}`, email, "EX", 600);
+    await redis.set(`reset_token:${resetToken}`, email, "EX", 180);
 
     return Result.ok({resetToken});
   }
@@ -78,10 +92,6 @@ export default class AuthService {
     const user = await this.isEmail(email);
     if (!user){
       return Result.fail(404, 'EMAIL_NOT_FOUND');
-    }
-
-    if (password === user.password){
-      return Result.fail(400, 'PASSWORD_NOT_MATCH');
     }
 
     await this.updatePassword(email, password);
