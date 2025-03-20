@@ -1,0 +1,150 @@
+import { drive_v3, google } from 'googleapis'
+import { Readable } from 'stream'
+import { ConfigService } from './config.service'
+
+export interface FileDataDrive {
+  data: Readable
+  metaData: string | null
+}
+
+/**
+ * CloudDrive handles interactions with Google Drive,
+ * such as copying, retrieving URLs, deleting, and uploading files.
+ */
+export default class CloudDriveService {
+  public static instance: CloudDriveService;
+  private drive: drive_v3.Drive
+
+  private constructor() {
+    const configService = ConfigService.gI()
+    const auth = new google.auth.OAuth2(
+      configService.getOrThrow('DRIVE_CLIENT_ID'),
+      configService.getOrThrow('DRIVE_SECRET_ID'),
+      configService.getOrThrow('REDIRECT_URI')
+    )
+    auth.setCredentials({
+      refresh_token: configService.getOrThrow('REFRESH_TOKEN_DRIVE')
+    })
+    this.drive = google.drive({
+      version: 'v3',
+      auth: auth
+    })
+  }
+
+  async downloadFileToStream(fileId: string): Promise<FileDataDrive | null> {
+    try {
+      const metadataRes = await this.drive.files.get({
+        fileId,
+        fields: 'mimeType'
+      })
+      metadataRes.data.mimeType
+      const response = await this.drive.files.get(
+        { fileId, alt: 'media', fields: 'id, mimeType' },
+        { responseType: 'stream' }
+      )
+      return {
+        data: response.data,
+        metaData: metadataRes.data.mimeType ?? null
+      }
+    } catch (err) {
+      console.error('Error downloading file:', err)
+      return null
+    }
+  }
+
+  /**
+   * Copies a file on Drive and returns the public webContentLink.
+   * @param idFile The id of the file to copy.
+   */
+  async copyFile(idFile: string): Promise<string | null> {
+    try {
+      const res = await this.drive.files.copy({
+        fileId: idFile,
+        fields: 'webContentLink'
+      })
+      if (res.data.id) return res.data.id
+    } catch (err) {
+      console.error('Error copying file:', err)
+      return null
+    }
+    return null
+  }
+
+  /**
+   * Retrieves a file's public URL from Google Drive.
+   * @param idFile The id of the file.
+   */
+  async getUrlFile(idFile: string): Promise<string | null | undefined> {
+    try {
+      const res = await this.drive.files.get({
+        fileId: idFile,
+        fields: 'webContentLink'
+      })
+      return res.data.webContentLink
+    } catch (err) {
+      console.error('Error retrieving file URL:', err)
+      return null
+    }
+  }
+
+  /**
+   * Deletes a file from Google Drive.
+   * @param id The id of the file to delete.
+   */
+  async delete(id: string): Promise<boolean> {
+    try {
+      await this.drive.files.delete({
+        fileId: id
+      })
+      return true
+    } catch (err) {
+      console.error('Error deleting file:', err)
+      return false
+    }
+  }
+
+  /**
+   * Uploads a file to Google Drive.
+   * Automatically sets permissions to allow anyone write access
+   * and retrieves a public webViewLink.
+   * @param buff The file content as a Buffer or Readable stream.
+   */
+  async uploadFile(buff: Buffer | Readable): Promise<string | null> {
+    const nameFile = 'file-' + Date.now()
+    try {
+      const createResponse = await this.drive.files.create({
+        requestBody: { name: nameFile },
+        media: { body: buff instanceof Buffer ? Readable.from(buff) : buff }
+      })
+      const fileId = createResponse.data.id
+      if (!fileId) {
+        console.error('No fileId returned after upload')
+        return null
+      }
+      // Set file permissions for public access
+      await this.drive.permissions.create({
+        fileId,
+        requestBody: {
+          role: 'writer',
+          type: 'anyone'
+        }
+      })
+      // Retrieve public webViewLink
+      const fileData = await this.drive.files.get({
+        fileId,
+        fields: 'webViewLink'
+      })
+      return fileId
+    } catch (err) {
+      console.error('Error uploading file:', err)
+      return null
+    }
+  }
+
+  public static gI(): CloudDriveService {
+    if (CloudDriveService.instance) {
+      return CloudDriveService.instance
+    }
+    return (CloudDriveService.instance = new CloudDriveService())
+  }
+}
