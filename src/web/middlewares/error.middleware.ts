@@ -14,20 +14,20 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: Next
 
   // Check for specific error types (can be expanded)
   if (err.name === 'ValidationError') {
-    res.status(400).json(new ResponseData(400, [], [err.message], null))
+    res.status(400).json(new ResponseData(400, "", [err.message], null))
   }
 
   if (err.name === 'UnauthorizedError') {
-    res.status(401).json(new ResponseData(401, [], ['Authentication error'], null))
+    res.status(401).json(new ResponseData(401, "", ['Authentication error'], null))
   }
 
   // Generic error response
-  res.status(statusCode).json(new ResponseData(statusCode, [], [err.message || 'Server error'], null))
+  res.status(statusCode).json(new ResponseData(statusCode, "", [err.message || 'Server error'], null))
 }
 
 /**
  * Not found handler for undefined routes
  */
 export const notFoundHandler = (req: Request, res: Response, next: NextFunction) => {
-  res.status(404).json(new ResponseData(404, [], [`Path ${req.originalUrl} not found`], null))
+  res.status(404).json(new ResponseData(404, "", [`Path ${req.originalUrl} not found`], null))
 }
