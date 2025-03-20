@@ -1,11 +1,12 @@
-import { AccountRepository, CustomerRepository, AdminRepository } from '@/infras/repositories'
-import { ConfigService } from './config.service'
-import JWTService from './jwt.service'
-import { Result } from '@/utils/result'
 import redis from '@/infras/redis/redis'
-import bcrypt from 'bcryptjs'
 import { generateRandomNumber } from '@/utils/config/generate.helper'
+import bcrypt from 'bcryptjs'
+import { Result } from '@/utils/result'
+import { promisify } from 'util'
+import { AccountRepository, CustomerRepository, AdminRepository } from '@/infras/repositories'
+import JWTService from './jwt.service'
 import { MailService } from './mail.service'
+const ttlAsync = promisify(redis.ttl).bind(redis) // Chuyển ttl thành Promise
 
 export default class AuthService {
   private accountRepository: AccountRepository
@@ -31,11 +32,23 @@ export default class AuthService {
    */
   async sendOtp(email: string) {
     const user = await this.isEmail(email)
-    if (!user) throw new Error('EMAIL_NOT_FOUND')
+    if (!user) {
+      return Result.fail(404, 'EMAIL_NOT_FOUND')
+    }
 
+    const key = `otp-forgot-password:${email}`
+
+    // Kiểm tra TTL của OTP hiện tại
+    const remainingTime = await ttlAsync(key)
+
+    if (remainingTime && remainingTime > 0) {
+      return Result.fail(429, `OTP đã được gửi. Vui lòng thử lại sau ${remainingTime} giây.`)
+    }
+    // Tạo và lưu OTP mới (hiệu lực 5 phút)
     const otp = generateRandomNumber(6)
     await redis.set(`otp-forgot-password:${email}`, otp.toString(), 'EX', 300)
 
+    // Gửi email
     await this.mailService.createTransporter()
     await this.mailService.sendMail({
       from: 'djiahak@gmail.com',
@@ -44,7 +57,7 @@ export default class AuthService {
       text: `Your OTP is ${otp}`
     })
 
-    return 'OTP sent to email'
+    return Result.ok({ message: 'OTP sent to email', remainingTime })
   }
 
   /**
@@ -52,15 +65,16 @@ export default class AuthService {
    */
   async verifyOtp(email: string, otp: string) {
     const storedOtp = await redis.get(`otp-forgot-password:${email}`)
-    if (!storedOtp || storedOtp !== otp) throw new Error('OTP_INVALID')
+    if (!storedOtp || storedOtp !== otp) {
+      return Result.fail(400, 'OTP_INVALID')
+    }
 
     await redis.del(`otp-forgot-password:${email}`)
 
-    // const resetToken = this.jwtService.generateAccessToken({ email });
     const resetToken = await bcrypt.hash(email, 10)
-    await redis.set(`reset_token:${resetToken}`, email, 'EX', 600)
+    await redis.set(`reset_token:${resetToken}`, email, 'EX', 180)
 
-    return { message: 'OTP verified', resetToken }
+    return Result.ok({ resetToken })
   }
 
   /**
@@ -68,17 +82,17 @@ export default class AuthService {
    */
   async resetPassword(resetToken: string, password: string) {
     const email = await redis.get(`reset_token:${resetToken}`)
-    if (!email) throw new Error('INVALID_TOKEN')
+    if (!email) {
+      return Result.fail(400, 'INVALID_TOKEN')
+    }
 
     const user = await this.isEmail(email)
-    if (!user) throw new Error('EMAIL_NOT_FOUND')
-
-    if (password === user.password) throw new Error('PASSWORD_NOT_MATCH')
-
+    if (!user) {
+      return Result.fail(404, 'EMAIL_NOT_FOUND')
+    }
     await this.updatePassword(email, password)
     await redis.del(`reset_token:${resetToken}`)
-
-    return 'Password reset successfully'
+    return Result.ok('Password reset successfully')
   }
 
   async registerAccount(
