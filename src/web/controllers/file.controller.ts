@@ -1,5 +1,5 @@
 import CloudDriveService from '@/services/google-drive.service'
-import ResponseData from '@/utils/response'
+import ResponseData from '@/utils/data-types/response'
 import { NextFunction, Request, Response } from 'express'
 
 class FileController {

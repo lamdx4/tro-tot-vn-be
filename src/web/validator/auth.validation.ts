@@ -1,5 +1,5 @@
 import { body } from 'express-validator'
-import { validateRequest } from '../middlewares/validateRequest'
+import { validateRequest } from '../middlewares/validateRequest.middleware'
 
 export const forgotPasswordValidation = [body('email').isEmail().withMessage('Invalid email format'), validateRequest]
 
