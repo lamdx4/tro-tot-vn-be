@@ -1,4 +1,4 @@
-import ResponseData from '@/utils/response'
+import ResponseData from '@/utils/data-types/response'
 import { Request, Response, NextFunction } from 'express'
 import AuthService from '@/services/auth.service'
 
@@ -96,6 +96,32 @@ class AuthController {
     try {
       const result = await this.authService.login(identifier, password)
       res.status(200).json(ResponseData.success(result))
+    } catch (error) {
+      next(error)
+    }
+  }
+  async logout(req: Request, res: Response, next: NextFunction) {
+    const { token } = req.body
+    try {
+      const result = await this.authService.logout(token)
+      if (result.isSuccess) {
+        res.status(result.code).json(ResponseData.successWithCode(result.code, result.getValue()))
+        return
+      }
+      res.status(result.code).json(ResponseData.error(result.code, 'INVALID_ACCESS_TOKEN', 'Invalid access token'))
+    } catch (error) {
+      next(error)
+    }
+  }
+  async refreshToken(req: Request, res: Response, next: NextFunction) {
+    const { refreshToken } = req.body
+    try {
+      const result = await this.authService.refreshToken(refreshToken)
+      if (result.isSuccess) {
+        res.status(result.code).json(ResponseData.successWithCode(result.code, result.getValue()))
+        return
+      }
+      res.status(result.code).json(ResponseData.error(result.code, 'INVALID_REFRESH_TOKEN', 'Invalid refresh token'))
     } catch (error) {
       next(error)
     }

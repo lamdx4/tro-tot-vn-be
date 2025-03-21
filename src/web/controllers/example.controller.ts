@@ -1,5 +1,5 @@
 import ExampleService from '@/services/example.service'
-import ResponseData from '@/utils/response'
+import ResponseData from '@/utils/data-types/response'
 import { Request, Response, NextFunction } from 'express'
 
 class ExampleController {

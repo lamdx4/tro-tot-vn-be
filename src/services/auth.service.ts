@@ -1,7 +1,7 @@
 import redis from '@/infras/redis/redis'
 import { generateRandomNumber } from '@/utils/config/generate.helper'
 import bcrypt from 'bcryptjs'
-import { Result } from '@/utils/result'
+import { Result } from '@/utils/data-types/result'
 import { promisify } from 'util'
 import { AccountRepository, CustomerRepository, AdminRepository } from '@/infras/repositories'
 import JWTService from './jwt.service'
@@ -13,6 +13,29 @@ export default class AuthService {
   private mailService: MailService
   private jwtService: JWTService
 
+  async refreshToken(refreshToken: string) {
+    const result = this.jwtService.verifyRefreshToken(refreshToken)
+    if (!result.isSuccess) {
+      return Result.fail(401, 'Token is not valid')
+    }
+    const account = await this.accountRepository.findOne({
+      where: { accountId: result.getValue()!.accountId },
+      relations: ['role', 'customer', 'admin']
+    })
+    if (!account) {
+      return Result.fail(404, 'Token is not valid')
+    }
+    return Result.ok({
+      accessToken: this.jwtService.generateAccessToken(Object.assign({}, account))
+    })
+  }
+  async logout(refreshToken: string) {
+    // const result = this.jwtService.verifyRefreshToken(refreshToken)
+    // if (!result.isSuccess) {
+    //   return Result.fail(401, 'Token is not valid')
+    // }
+    return Result.ok()
+  }
   constructor() {
     this.accountRepository = new AccountRepository()
     this.mailService = new MailService()
