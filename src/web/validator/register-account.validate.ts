@@ -1,5 +1,5 @@
 import { body } from 'express-validator'
-import validateExpressRequest from '../middlewares/validate.middleware'
+import { validateRequest } from '../middlewares/validateRequest.middleware'
 
 const validateRegister = [
   body('phone').isMobilePhone('vi-VN').withMessage('Invalid phone number'),
@@ -12,6 +12,6 @@ const validateRegister = [
     .withMessage('Last name must not contain special characters'),
   body('gender').isIn(['Male', 'Female']).withMessage('Gender can only be Male or Female'),
   body('password').isLength({ min: 8 }).withMessage('Password is required'),
-  validateExpressRequest
+  validateRequest
 ]
 export default validateRegister
