@@ -4,7 +4,7 @@ import { BaseRepository } from './base.repository'
 import { DataSource } from 'typeorm'
 import AppDataSource from '../db/datasource'
 import { CustomerRepository } from '@/infras/repositories'
-import { Result } from '@/utils/result'
+import { Result } from '@/utils/data-types/result'
 
 export class AccountRepository extends BaseRepository<Account> {
   private customerRepository: CustomerRepository

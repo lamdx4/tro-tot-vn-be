@@ -3,7 +3,8 @@ import authController from '../controllers/auth.controller'
 import validateRegister from '../validator/register-account.validate'
 import validateLogin from '../validator/login.validate'
 import { forgotPasswordValidation, resetPasswordValidation, verifyOtpValidation } from '../validator/auth.validation'
-import { validateRequest } from '../middlewares/validateRequest'
+import { validateRequest } from '../middlewares/validateRequest.middleware'
+import { refreshTokenValidator } from '../validator/refresh-token.validate'
 
 const authRouter = express.Router()
 
@@ -14,7 +15,7 @@ authRouter.post('/forgot-password', authController.forgotPassword.bind(authContr
 authRouter.post(
   '/forgot-password',
   forgotPasswordValidation,
-   // Middleware kiểm tra dữ liệu đầu vào
+  // Middleware kiểm tra dữ liệu đầu vào
   authController.forgotPassword.bind(authController)
 )
 
@@ -22,12 +23,12 @@ authRouter.post(
 authRouter.post('/verify-otp', verifyOtpValidation, authController.verifyOtp.bind(authController))
 
 //reset-password
-authRouter.post(
-  '/reset-password',
-  resetPasswordValidation,
-  authController.resetPassword.bind(authController)
-)
+authRouter.post('/reset-password', resetPasswordValidation, authController.resetPassword.bind(authController))
 
 authRouter.post('/login', validateLogin, authController.login.bind(authController))
+
+authRouter.post('/refresh-token', refreshTokenValidator, authController.refreshToken.bind(authController))
+
+authRouter.post('/logout', refreshTokenValidator, authController.logout.bind(authController))
 
 export default authRouter

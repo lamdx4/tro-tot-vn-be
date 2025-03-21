@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
-import ResponseData from '@/utils/response'
+import ResponseData from '@/utils/data-types/response'
 
 /**
  * Global error handler middleware

@@ -1,5 +1,5 @@
 import { body } from 'express-validator'
-import validateExpressRequest from '../middlewares/validate.middleware'
+import { validateRequest } from '../middlewares/validateRequest.middleware'
 
-const validateLogin = [body('identifier').notEmpty(), body('password').notEmpty(), validateExpressRequest]
+const validateLogin = [body('identifier').notEmpty(), body('password').notEmpty(), validateRequest]
 export default validateLogin

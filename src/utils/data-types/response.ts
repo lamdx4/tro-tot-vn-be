@@ -29,4 +29,7 @@ export default class ResponseData<T> {
   static badRequest<T>(message: string) {
     return new ResponseData(400, message, [], null)
   }
+  static successWithCode<T>(statusCode: number, data: T): ResponseData<T> {
+    return new ResponseData(statusCode, '', [], data)
+  }
 }
