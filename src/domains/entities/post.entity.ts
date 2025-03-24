@@ -21,7 +21,8 @@ import { Report } from './report.entity'
 import { ReportTarget } from './report-tagert.entity'
 import { InteriorCondition, PostStatus } from './enum/value-object'
 
-@Entity('Post')@Check(`status IN ('Pending', 'Approved', 'Rejected', 'Hidden', 'Suspended')`)
+@Entity('Post')
+@Check(`status IN ('Pending', 'Approved', 'Rejected', 'Hidden', 'Suspended')`)
 @Check(`interiorCondition IN ('Full', 'None')`)
 @Check(`price >= 0`)
 @Check(`acreage > 0`)
@@ -35,11 +36,11 @@ export class Post {
   ownerId: number
 
   @Column({
-    type: "varchar",
+    type: 'varchar',
     length: 20,
     nullable: false
   })
-  status: string;
+  status: string
 
   @Column({
     type: 'datetime',
@@ -78,12 +79,12 @@ export class Post {
   longitude: number
 
   @Column({
-    type: "varchar",
+    type: 'varchar',
     length: 10,
     nullable: false,
-    default : "None"
+    default: 'None'
   })
-  interiorCondition: string;
+  interiorCondition: string
 
   @Column({ type: 'int', nullable: true })
   acreage: number
@@ -94,7 +95,7 @@ export class Post {
   @Column({ type: 'datetime', nullable: true })
   extendedAt: Date
 
-  @Column({ type: 'int', nullable: false })
+  @Column({ type: 'int', nullable: false, default: 1 })
   version: number
 
   @Column({ type: 'int', nullable: true, default: null })

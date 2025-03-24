@@ -11,7 +11,7 @@ export class Account {
   @PrimaryGeneratedColumn()
   accountId: number
 
-  @Column({ type: 'char', length: 12, unique: true, nullable: false })
+  @Column({ type: 'varchar', length: 12, unique: true, nullable: false })
   phone: string
 
   @Column({ type: 'varchar', length: 60, nullable: false })
