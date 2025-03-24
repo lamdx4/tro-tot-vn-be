@@ -12,7 +12,7 @@ export class InfoEdition {
   @Column({ type: 'int', nullable: false })
   version: number
 
-  @Column({ type: 'char', length: 100, nullable: false })
+  @Column({ type: 'varchar', length: 100, nullable: false })
   field: string
 
   @Column({ type: 'varchar', length: 1500, nullable: false })
