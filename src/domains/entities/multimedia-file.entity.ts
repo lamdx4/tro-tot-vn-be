@@ -8,7 +8,7 @@ export class MultimediaFile {
   @PrimaryGeneratedColumn()
   fileId: number;
 
-  @Column({ type: "char", length: 100, nullable: false })
+  @Column({ type: "varchar", length: 100, nullable: false })
   fileUrl: string;
 
   @Column({
