@@ -1,10 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Check, ManyToOne, JoinColumn } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Check, ManyToOne, JoinColumn, Index } from 'typeorm'
 import { Customer } from './customer.entity'
 import { Post } from './post.entity'
 import { AppointmentStatus } from './enum/value-object'
 
 @Entity('Appointment')
 @Check(`status IN ('Pending', 'Reject', 'Accept')`)
+@Index(['postId', 'requesterId', 'appointmentAt'], { unique: true })
 @Check(`appointment > createdAt`) // Ensure appointment time is in the future relative to creation time
 export class Appointment {
   @PrimaryGeneratedColumn()
@@ -26,11 +27,14 @@ export class Appointment {
   appointment: Date
 
   @Column({
-    type: "varchar",
+    type: 'varchar',
     length: 20,
     nullable: false
   })
-  status: string;
+  status: string
+
+  @Column({ type: 'datetime', nullable: false })
+  appointmentAt: Date
 
   @ManyToOne(() => Customer, (customer) => customer.appointments)
   @JoinColumn({ name: 'requesterId' })
