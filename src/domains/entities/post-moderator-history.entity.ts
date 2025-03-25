@@ -13,9 +13,6 @@ export class PostModerationHistory {
   postId: number
 
   @Column({ type: 'int', nullable: false })
-  version: number
-
-  @Column({ type: 'int', nullable: false })
   adminId: number
 
   @Column({
