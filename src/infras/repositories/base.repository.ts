@@ -1,4 +1,4 @@
-import { DataSource, EntityTarget, ObjectLiteral, Repository } from 'typeorm'
+import { EntityTarget, ObjectLiteral, Repository } from 'typeorm'
 import AppDataSource from '../db/datasource'
 
 export class BaseRepository<T extends ObjectLiteral> extends Repository<T> {

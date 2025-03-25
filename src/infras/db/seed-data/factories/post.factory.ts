@@ -231,9 +231,7 @@ export class PostFactory {
       ownerId: customerId,
       title: title,
       description: description,
-      price: price,
-      deposit: Math.round(price * 0.8), // Typical deposit is 1-2 months rent
-      acreage: area,
+      price: price,      acreage: area,
       city: city,
       district: district,
       ward: ward,
@@ -322,7 +320,7 @@ export class PostFactory {
         // Link the file to the post
         const postMultimediaFile = {
           postId: savedPost.postId,
-          multimediaFileId: savedFile.fileUrl,
+          multimediaFileId: savedFile.fileCloudId,
           isMainImage: isMainImage
         }
 

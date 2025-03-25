@@ -17,6 +17,12 @@ export class Message {
   @Column({ type: 'varchar', length: 150 })
   content: string
 
+  @Column({ type: 'tinyint', nullable: true })
+  isReceiverRead: number
+
+  @Column({ type: 'tinyint', nullable: true })
+  isReceiverReceived: number
+
   @ManyToOne(() => Participant, (participant) => participant.sentMessages)
   @JoinColumn({ name: 'senderId' })
   sender: Participant
