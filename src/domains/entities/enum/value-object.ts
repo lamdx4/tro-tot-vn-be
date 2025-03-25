@@ -39,30 +39,7 @@ export enum MultimediaType {
   IMAGE = "Image"
 }
 
-export enum EntityMemberType {
+export enum EntityParticipantType {
   ADMIN = "Admin",
   CUSTOMER = "Customer"
-}
-
-export enum EntityType {
-  POST = "Post",
-  RATE = "Rate",
-  CUSTOMER = "Customer"
-}
-
-export enum ReportStatus {
-  PENDING = "Pending",
-  DONE = "Done"
-}
-
-export enum EntityReportTarget {
-  POST = "Post",
-  RATE = "Rate",
-  USER = "User"
-}
-
-export enum PenaltyType {
-  TEMPORARY_BAN = "Temporary Ban",
-  PERMANENT_BAN = "Permanent Ban",
-  WARNING = "Warning"
 }

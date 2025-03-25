@@ -12,8 +12,7 @@ export class SavedPost {
 
   @Column({
     type: 'datetime',
-    default: () => 'CURRENT_TIMESTAMP',
-    nullable: false
+    default: () => 'CURRENT_TIMESTAMP'
   })
   createdAt: Date
 

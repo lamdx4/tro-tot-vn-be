@@ -13,7 +13,8 @@ const AppDataSource = new DataSource({
   options: {
     encrypt: true,
     trustServerCertificate: true
-  }
+  },
+  subscribers: [path.join(__dirname, './subscribers/**/*.subscriber.{js,ts}')],
 })
 
 export default AppDataSource

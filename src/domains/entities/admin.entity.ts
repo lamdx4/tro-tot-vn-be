@@ -1,8 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, Check, ManyToOne, JoinColumn, OneToMany, OneToOne } from 'typeorm'
 import { Account } from './account.entity'
-import { Message } from './message.entity'
 import { PostModerationHistory } from './post-moderator-history.entity'
-import { Report } from './report.entity'
 import { Participant } from './participant.entity'
 import { Gender } from './enum/value-object'
 
@@ -10,18 +8,19 @@ import { Gender } from './enum/value-object'
 @Check(`gender IN ('Male', 'Female')`)
 @Check(`birthday < GETDATE()`) // Ensure birthday is in the past
 export class Admin {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn({ type: 'int' })
   adminId: number
 
   @Column({ type: 'int', nullable: false })
   accountId: number
 
   @Column({
-    type: "varchar",
+    type: 'varchar',
     length: 10,
-    nullable: false
+    nullable: false,
+    default : Gender.MALE
   })
-  gender: string;
+  gender: string
 
   @Column({ type: 'varchar', length: 30, nullable: false })
   firstName: string
@@ -38,9 +37,6 @@ export class Admin {
 
   @OneToMany(() => PostModerationHistory, (history) => history.admin)
   moderationHistories: PostModerationHistory[]
-
-  @OneToMany(() => Report, (report) => report.handler)
-  handledReports: Report[]
 
   @OneToOne(() => Participant, (participant) => participant.admin)
   participant: Participant

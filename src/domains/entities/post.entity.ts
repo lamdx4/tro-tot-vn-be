@@ -3,36 +3,30 @@ import {
   PrimaryGeneratedColumn,
   Column,
   Check,
-  CreateDateColumn,
   ManyToOne,
   JoinColumn,
   OneToMany,
-  OneToOne
 } from 'typeorm'
 import { Appointment } from './appointment.entity'
 import { Customer } from './customer.entity'
-import { InfoEdition } from './info-edition.entity'
 import { PostModerationHistory } from './post-moderator-history.entity'
 import { PostMultimediaFile } from './post-multimedia-file.entity'
 import { PostViewHistory } from './post-view-history.entity'
 import { Rate } from './rate.entity'
 import { SavedPost } from './saved-post.entity'
-import { Report } from './report.entity'
-import { ReportTarget } from './report-tagert.entity'
-import { InteriorCondition, PostStatus } from './enum/value-object'
+import { InteriorCondition } from './enum/value-object'
+import { fa } from '@faker-js/faker/.'
 
 @Entity('Post')
 @Check(`status IN ('Pending', 'Approved', 'Rejected', 'Hidden', 'Suspended')`)
 @Check(`interiorCondition IN ('Full', 'None')`)
 @Check(`price >= 0`)
 @Check(`acreage > 0`)
-@Check(`deposit >= 0`)
-@Check(`version >= 1`)
 export class Post {
   @PrimaryGeneratedColumn()
   postId: number
 
-  @Column({ type: 'int', nullable: true })
+  @Column({ type: 'int', nullable: false })
   ownerId: number
 
   @Column({
@@ -48,13 +42,13 @@ export class Post {
   })
   createdAt: Date
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 70, nullable: false })
   title: string
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', default: '' })
   description: string
 
-  @Column({ type: 'int', nullable: true })
+  @Column({ type: 'int', nullable: false })
   price: number
 
   @Column({ type: 'varchar', length: 70, nullable: false })
@@ -82,24 +76,18 @@ export class Post {
     type: 'varchar',
     length: 10,
     nullable: false,
-    default: 'None'
+    default: InteriorCondition.NONE
   })
   interiorCondition: string
 
-  @Column({ type: 'int', nullable: true })
+  @Column({ type: 'int', nullable: false })
   acreage: number
 
-  @Column({ type: 'int', nullable: true })
-  deposit: number
-
-  @Column({ type: 'datetime', nullable: true })
+  @Column({
+    type: 'datetime',
+    default: () => 'CURRENT_TIMESTAMP'
+  })
   extendedAt: Date
-
-  @Column({ type: 'int', nullable: false, default: 1 })
-  version: number
-
-  @Column({ type: 'int', nullable: true, default: null })
-  reportTarget: number
 
   @ManyToOne(() => Customer, (customer) => customer.posts)
   @JoinColumn({ name: 'ownerId' })
@@ -122,11 +110,4 @@ export class Post {
 
   @OneToMany(() => PostModerationHistory, (history) => history.post)
   moderationHistories: PostModerationHistory[]
-
-  @OneToMany(() => InfoEdition, (info) => info.post)
-  infoEditions: InfoEdition[]
-
-  @OneToOne(() => ReportTarget, (reportTarget) => reportTarget.post)
-  @JoinColumn({ name: 'reportTarget' })
-  postReportTarget: ReportTarget
 }
