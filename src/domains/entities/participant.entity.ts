@@ -1,24 +1,15 @@
-import { Check, Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm'
-import { Message } from './message.entity'
-import { Customer } from './customer.entity'
+import { Entity, Column, PrimaryColumn, OneToOne, JoinColumn, OneToMany, Index, PrimaryGeneratedColumn } from 'typeorm'
 import { Admin } from './admin.entity'
-import { EntityMemberType } from './enum/value-object'
+import { Customer } from './customer.entity'
+import { Message } from './message.entity'
 
 @Entity('Participant')
-@Check(`typeUser IN ('Admin', 'Customer')`)
-@Check(`
-  (typeUser = 'Admin' AND adminId IS NOT NULL AND customerId IS NULL) OR
-  (typeUser = 'Customer' AND customerId IS NOT NULL AND adminId IS NULL)
-`) // Ensure that only the appropriate ID is set based on typeUser
+@Index(['typeUser', 'adminId', 'customerId'], { unique: true })
 export class Participant {
   @PrimaryGeneratedColumn()
   participantId: number
 
-  @Column({
-    type: "varchar",
-    length: 20,
-    nullable: false
-  })
+  @Column({ type: 'nvarchar', length: 255 })
   typeUser: string
 
   @Column({ type: 'int', nullable: true })
@@ -27,11 +18,11 @@ export class Participant {
   @Column({ type: 'int', nullable: true })
   customerId: number
 
-  @ManyToOne(() => Admin)
+  @OneToOne(() => Admin, (admin) => admin.participant)
   @JoinColumn({ name: 'adminId' })
   admin: Admin
 
-  @OneToOne(() => Customer, (customer) => customer.ownParticipant)
+  @OneToOne(() => Customer, (customer) => customer.participant)
   @JoinColumn({ name: 'customerId' })
   customer: Customer
 
