@@ -8,8 +8,8 @@ export class MultimediaFile {
   @PrimaryGeneratedColumn()
   fileId: number;
 
-  @Column({ type: "varchar", length: 100, nullable: false })
-  fileUrl: string;
+  @Column({ type: "varchar", length: 200, nullable: false })
+  fileCloudId: string;
 
   @Column({
     type: "varchar",

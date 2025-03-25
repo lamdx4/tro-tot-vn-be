@@ -1,9 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToOne, OneToMany, Check } from 'typeorm'
-import { AccountPenalty } from './account-penalty.entity'
 import { Customer } from './customer.entity'
-import { AccountStatus } from './enum/value-object'
 import { Role } from './role.entity'
 import { Admin } from './admin.entity'
+import { AccountStatus } from './enum/value-object'
 
 @Entity('Account')
 @Check(`status IN ('Active', 'InActive', 'Banned')`)
@@ -23,7 +22,7 @@ export class Account {
   @Column({
     type: "varchar",
     length: 20,
-    default: "Active",
+    default: AccountStatus.ACTIVE,
     nullable: false
   })
   status: string;
@@ -41,6 +40,4 @@ export class Account {
   @OneToOne(() => Customer, (customer) => customer.account)
   customer: Customer
 
-  @OneToMany(() => AccountPenalty, (penalty) => penalty.penaltyAccount)
-  penalties: AccountPenalty[]
 }

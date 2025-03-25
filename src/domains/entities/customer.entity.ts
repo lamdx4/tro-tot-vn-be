@@ -1,25 +1,19 @@
 import { Entity, PrimaryGeneratedColumn, Column, Check, ManyToOne, JoinColumn, OneToMany, OneToOne } from 'typeorm'
-import { AccountPenalty } from './account-penalty.entity'
 import { Account } from './account.entity'
 import { Appointment } from './appointment.entity'
-import { InfoEdition } from './info-edition.entity'
-import { Message } from './message.entity'
 import { PostViewHistory } from './post-view-history.entity'
 import { Post } from './post.entity'
 import { Rate } from './rate.entity'
 import { SavedPost } from './saved-post.entity'
 import { SubscriptionAreaPost } from './subscription-area-post.entity'
-import { Report } from './report.entity'
 import { Participant } from './participant.entity'
-import { Gender } from './enum/value-object'
-import { ReportTarget } from './report-tagert.entity'
 
 @Entity('Customer')
 @Check(`gender IN ('Male', 'Female')`)
 @Check(`isVerified IN (0, 1)`)
 @Check(`birthday IS NULL OR birthday < GETDATE()`) // Ensure birthday is in the past if provided
 export class Customer {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn({ type: "int"})
   customerId: number
 
   @Column({ type: 'int', nullable: false })
@@ -51,8 +45,6 @@ export class Customer {
   @Column({ type: 'int', nullable: true })
   participantId: number
 
-  @Column({ type: 'int', nullable: true, default: null })
-  reportTarget: number
 
   @OneToOne(() => Account)
   @JoinColumn({ name: 'accountId' })
@@ -76,17 +68,6 @@ export class Customer {
   @OneToMany(() => SubscriptionAreaPost, (subscription) => subscription.customer)
   subscriptions: SubscriptionAreaPost[]
 
-  @OneToMany(() => Report, (report) => report.sender)
-  sentReports: Report[]
-
-  @OneToOne(() => ReportTarget, (reportTarget) => reportTarget.customer)
-  @JoinColumn({ name: 'reportTarget' })
-  customerReportTarget: ReportTarget
-
-  @ManyToOne(() => Participant)
-  @JoinColumn({ name: 'participantId' })
-  participant: Participant
-
-  @OneToOne(() => Participant, (participant) => participant.customer)
-  ownParticipant: Participant
+  @OneToOne(() => Participant, participant => participant.customer)
+  participant: Participant;
 }
