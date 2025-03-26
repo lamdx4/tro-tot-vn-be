@@ -9,9 +9,8 @@ const createPostValidate = [
   body('city').notEmpty().withMessage('City is required'),
   body('ward').notEmpty().withMessage('Ward is required'),
   body('district').notEmpty().withMessage('District is required'),
-  body('houseNumber').notEmpty().withMessage('House number is required'),
-  body('streetName').notEmpty().withMessage('Street name is required'),
+  body('streetNumber').notEmpty().withMessage('House number is required'),
+  body('street').notEmpty().withMessage('Street name is required'),
   body('description').notEmpty().withMessage('Description is required'),
-  validateRequest
 ]
 export default createPostValidate
