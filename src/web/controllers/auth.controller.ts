@@ -1,3 +1,4 @@
+import { email } from 'envalid';
 import ResponseData from '@/utils/data-types/response'
 import { Request, Response, NextFunction } from 'express'
 import AuthService from '@/services/auth.service'
@@ -26,6 +27,42 @@ class AuthController {
       }
     }
   }
+
+  async sendOTPRegister(req: Request, res: Response, next: NextFunction) {
+    const {email} = req.body;
+    const sendOTP = await this.authService.sendOtp(email);
+    if (sendOTP.isSuccess) {
+      res.status(200).json(ResponseData.success(sendOTP.getValue()))
+      console.log(sendOTP.getValue())
+    } else if (sendOTP.code === 404) {
+      res.status(404).json(ResponseData.error(404, 'USER_NOT_FOUND', 'User with this email does not exist'))
+    } else if (sendOTP.code === 429) {
+      res.status(429).json(ResponseData.error(429, 'EMAIL_EXIST', sendOTP.error ?? 'Unknown error')) // Trả về số giây còn lại
+    } else {
+      res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'An error occurred while sending OTP'))
+    }
+  }
+
+  async verifyOTPRegister(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { email, otp } = req.body
+      const result = await this.authService.verifyOtp(email, otp)
+
+      if (result.isSuccess) {
+        res.status(200).json(ResponseData.success(result.getValue()))
+        return
+      } else if (result.code === 400) {
+        res.status(400).json(ResponseData.error(400, 'INVALID_OTP', 'OTP is incorrect or expired'))
+        return
+      }
+
+      res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'An error occurred while verifying OTP'))
+    } catch (error) {
+      console.error('Error in verifyOtp:', error)
+      res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'Something went wrong'))
+    }
+  }
+
   async forgotPassword(req: Request, res: Response, next: NextFunction) {
     try {
       const { email } = req.body

@@ -6,6 +6,7 @@ import { promisify } from 'util'
 import { AccountRepository, CustomerRepository, AdminRepository } from '@/infras/repositories'
 import JWTService from './jwt.service'
 import { MailService } from './mail.service'
+import { text } from 'stream/consumers'
 const ttlAsync = promisify(redis.ttl).bind(redis) // Chuyển ttl thành Promise
 
 export default class AuthService {
