@@ -23,7 +23,7 @@ export default class AuthService {
       relations: ['role', 'customer', 'admin']
     })
     if (!account) {
-      return Result.fail(404, 'Token is not valid')
+      return Result.fail(401, 'Token is not valid')
     }
     return Result.ok({
       accessToken: this.jwtService.generateAccessToken(Object.assign({}, account))
@@ -58,7 +58,7 @@ export default class AuthService {
     if (!user) {
       return Result.fail(404, 'EMAIL_NOT_FOUND')
     }
-
+    
     const key = `otp-forgot-password:${email}`
 
     // Kiểm tra TTL của OTP hiện tại

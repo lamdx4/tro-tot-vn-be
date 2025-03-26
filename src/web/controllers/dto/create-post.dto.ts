@@ -6,7 +6,7 @@ export interface CreatePostDto {
   city: string
   ward: string
   district: string
-  houseNumber: string
-  streetName: string
+  streetNumber: string
+  street: string
   description: string
 }

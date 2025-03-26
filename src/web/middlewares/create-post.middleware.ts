@@ -28,6 +28,10 @@ const uploadMiddleware = (req: Request, res: Response, next: NextFunction) => {
 
       const files = req.files as { [fieldname: string]: Express.Multer.File[] }
       // Kiểm tra dung lượng file
+      if (!files) {
+        res.status(400).json(new ResponseData(400, `File không tồn tại.`))
+        return
+      }
       if (files.video) {
         const video = files.video[0]
         if (video.size > 25 * 1024 * 1024) {
