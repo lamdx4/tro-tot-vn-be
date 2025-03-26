@@ -32,7 +32,8 @@ export class Post {
   @Column({
     type: 'varchar',
     length: 20,
-    nullable: false
+    nullable: false,
+    default : 'Pending'
   })
   status: string
 
