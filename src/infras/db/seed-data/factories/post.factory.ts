@@ -231,7 +231,8 @@ export class PostFactory {
       ownerId: customerId,
       title: title,
       description: description,
-      price: price,      acreage: area,
+      price: price,
+      acreage: area,
       city: city,
       district: district,
       ward: ward,
@@ -240,8 +241,7 @@ export class PostFactory {
         PostStatus.APPROVED,
         PostStatus.PENDING,
         PostStatus.REJECTED,
-        PostStatus.HIDDEN,
-        PostStatus.SUSPENDED
+        PostStatus.HIDDEN
       ]), // Weighted to have more active posts
       interiorCondition: faker.helpers.arrayElement([InteriorCondition.FULL, InteriorCondition.NONE]),
       createdAt: creationDate,
