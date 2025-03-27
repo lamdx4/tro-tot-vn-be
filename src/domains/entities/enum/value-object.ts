@@ -14,7 +14,6 @@ export enum PostStatus {
   APPROVED = "Approved",
   REJECTED = "Rejected",
   HIDDEN = "Hidden",
-  SUSPENDED = "Suspended"
 }
 
 export enum ActionType {
