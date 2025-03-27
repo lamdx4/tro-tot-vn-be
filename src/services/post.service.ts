@@ -6,6 +6,7 @@ import CloudDriveService from './google-drive.service'
 import { MultimediaFile } from '@/domains/entities/multimedia-file.entity'
 import { MultimediaType } from '@/domains/entities/enum/value-object'
 import { Result } from '@/utils/data-types/result'
+import { MoreThan } from 'typeorm'
 
 export default class PostService {
   private postRepository: PostRepository
@@ -13,6 +14,49 @@ export default class PostService {
   constructor() {
     this.postRepository = new PostRepository()
     this.cloudService = CloudDriveService.gI()
+  }
+  async getPost(customer: Customer, status: string, cursor: number, limit: number) {
+    try {
+      const posts = await this.postRepository.find({
+        select: {
+          postId: true,
+          title: true,
+          description: true,
+          price: true,
+          streetNumber: true,
+          street: true,
+          city: true,
+          district: true,
+          ward: true,
+          interiorCondition: true,
+          acreage: true,
+          createdAt: true,
+          status: true,
+          extendedAt: true,
+          multimediaFiles: {
+            fileId: true,
+            postId: false,
+            file: {
+              fileId: false,
+              fileCloudId: false,
+              fileType: true,
+              createdAt: true
+            }
+          }
+        },
+        where: { ownerId: customer.customerId, status: status, postId: MoreThan(cursor) },
+        relations: {
+          multimediaFiles: {
+            file: true
+          }
+        },
+        take: limit
+      })
+      return Result.ok(posts)
+    } catch (e) {
+      console.log(e)
+      return Result.fail(500, 'Get post failure')
+    }
   }
   createPost = async (
     customer: Customer,

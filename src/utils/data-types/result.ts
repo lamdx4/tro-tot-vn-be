@@ -30,7 +30,7 @@ export class Result<T> {
     return new Result<U>(200, true, null, value === undefined ? null : value)
   }
 
-  public static fail<U>(code: number, message: string): Result<U> {
-    return new Result<U>(code, false, message)
+  public static fail(code: number, message: string): Result<null> {
+    return new Result<null>(code, false, message)
   }
 }

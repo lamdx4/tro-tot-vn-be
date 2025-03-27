@@ -4,6 +4,7 @@ import deleteFileFromDisk from '@/utils/func/delete-file'
 import { NextFunction, Request, Response } from 'express'
 import { validationResult } from 'express-validator'
 import { CreatePostDto } from './dto/create-post.dto'
+import { CursorPaging } from '@/utils/data-types/paging-response'
 
 class PostController {
   private postService: PostService
@@ -29,6 +30,33 @@ class PostController {
       next(e)
     } finally {
       deleteFileFromDisk(req.files as any)
+    }
+  }
+
+  getPost = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      let r = await this.postService.getPost(
+        req.user?.customer!,
+        req.query.status as string,
+        isNaN(Number(req.query.cursor)) ? 0 : Number(req.query.cursor),
+        Number(req.query.limit)
+      )
+      if (r.isSuccess) {
+        res
+          .status(200)
+          .json(
+            ResponseData.success(
+              new CursorPaging(
+                r.getValue()!,
+                r.getValue()!.length > 0 ? r.getValue()![r.getValue()!.length - 1].postId : null
+              ).toResponse()
+            )
+          )
+      } else {
+        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+      }
+    } catch (e) {
+      next(e)
     }
   }
 }
