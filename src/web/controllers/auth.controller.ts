@@ -49,13 +49,17 @@ class AuthController {
       const result = await this.authService.verifyOtp('otp-register', email, otp)
 
       if (result.isSuccess) {
-        res.status(200).json(ResponseData.success(result.getValue()))
+        const r = await this.authService.setVerifiedCustomer(email)
+        if (r.isSuccess) {
+          res.status(200).json(ResponseData.success(r.getValue()))
+        } else {
+          res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'An error occurred while verifying OTP'))
+        }
         return
       } else if (result.code === 400) {
         res.status(400).json(ResponseData.error(400, 'INVALID_OTP', 'OTP is incorrect or expired'))
         return
       }
-
       res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'An error occurred while verifying OTP'))
     } catch (error) {
       console.error('Error in verifyOtp:', error)
