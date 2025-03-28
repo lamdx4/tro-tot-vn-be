@@ -32,7 +32,8 @@ export class Post {
   @Column({
     type: 'varchar',
     length: 20,
-    nullable: false
+    nullable: false,
+    default : 'Pending'
   })
   status: string
 
@@ -51,19 +52,19 @@ export class Post {
   @Column({ type: 'int', nullable: false })
   price: number
 
-  @Column({ type: 'varchar', length: 70, nullable: false })
+  @Column({ type: 'nvarchar', length: 70, nullable: false })
   streetNumber: string
 
-  @Column({ type: 'varchar', length: 70, nullable: false })
+  @Column({ type: 'nvarchar', length: 70, nullable: false })
   street: string
 
-  @Column({ type: 'varchar', length: 70, nullable: false })
+  @Column({ type: 'nvarchar', length: 70, nullable: false })
   ward: string
 
-  @Column({ type: 'varchar', length: 70, nullable: false })
+  @Column({ type: 'nvarchar', length: 70, nullable: false })
   district: string
 
-  @Column({ type: 'varchar', length: 70, nullable: false })
+  @Column({ type: 'nvarchar', length: 70, nullable: false })
   city: string
 
   @Column({ type: 'decimal', precision: 10, scale: 8, nullable: true })

@@ -12,7 +12,7 @@ export interface FileDataDrive {
  * such as copying, retrieving URLs, deleting, and uploading files.
  */
 export default class CloudDriveService {
-  public static instance: CloudDriveService;
+  public static instance: CloudDriveService
   private drive: drive_v3.Drive
 
   private constructor() {
@@ -130,13 +130,50 @@ export default class CloudDriveService {
         }
       })
       // Retrieve public webViewLink
-      const fileData = await this.drive.files.get({
+      await this.drive.files.get({
         fileId,
         fields: 'webViewLink'
       })
       return fileId
     } catch (err) {
       console.error('Error uploading file:', err)
+      return null
+    }
+  }
+
+  async uploadFiles(buffs: Buffer[] | Readable[]): Promise<string[] | null> {
+    const listId = []
+    const nameFile = 'file-' + Date.now()
+    try {
+      for (const buff of buffs) {
+        const createResponse = await this.drive.files.create({
+          requestBody: { name: nameFile },
+          media: { body: buff instanceof Buffer ? Readable.from(buff) : buff }
+        })
+        const fileId = createResponse.data.id
+        if (!fileId) {
+          throw new Error()
+        }
+        // Set file permissions for public access
+        await this.drive.permissions.create({
+          fileId,
+          requestBody: {
+            role: 'writer',
+            type: 'anyone'
+          }
+        })
+        // Retrieve public webViewLink
+        await this.drive.files.get({
+          fileId,
+          fields: 'webViewLink'
+        })
+        listId.push(fileId)
+      }
+      return listId
+    } catch (err) {
+      for (const id of listId) {
+        await this.delete(id)
+      }
       return null
     }
   }
