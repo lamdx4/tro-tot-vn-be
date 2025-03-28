@@ -1,4 +1,4 @@
-import { email } from 'envalid';
+import { email } from 'envalid'
 import ResponseData from '@/utils/data-types/response'
 import { Request, Response, NextFunction } from 'express'
 import AuthService from '@/services/auth.service'
@@ -29,8 +29,8 @@ class AuthController {
   }
 
   async sendOTPRegister(req: Request, res: Response, next: NextFunction) {
-    const {email} = req.body;
-    const sendOTP = await this.authService.sendOtp(email);
+    const { email } = req.body
+    const sendOTP = await this.authService.sendOtp('otp-register', email)
     if (sendOTP.isSuccess) {
       res.status(200).json(ResponseData.success(sendOTP.getValue()))
       console.log(sendOTP.getValue())
@@ -46,7 +46,7 @@ class AuthController {
   async verifyOTPRegister(req: Request, res: Response, next: NextFunction) {
     try {
       const { email, otp } = req.body
-      const result = await this.authService.verifyOtp(email, otp)
+      const result = await this.authService.verifyOtp('otp-register', email, otp)
 
       if (result.isSuccess) {
         res.status(200).json(ResponseData.success(result.getValue()))
@@ -66,7 +66,7 @@ class AuthController {
   async forgotPassword(req: Request, res: Response, next: NextFunction) {
     try {
       const { email } = req.body
-      const result = await this.authService.sendOtp(email)
+      const result = await this.authService.sendOtp('otp-forgot-password', email)
 
       if (result.isSuccess) {
         res.status(200).json(ResponseData.success(result.getValue()))
@@ -86,7 +86,7 @@ class AuthController {
   async verifyOtp(req: Request, res: Response, next: NextFunction) {
     try {
       const { email, otp } = req.body
-      const result = await this.authService.verifyOtp(email, otp)
+      const result = await this.authService.verifyOtpForgotPassword('otp-forgot-password', email, otp)
 
       if (result.isSuccess) {
         res.status(200).json(ResponseData.success(result.getValue()))

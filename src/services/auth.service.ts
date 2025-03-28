@@ -54,13 +54,14 @@ export default class AuthService {
   /**
    * Gửi OTP đến email
    */
-  async sendOtp(email: string) {
+  async sendOtp(keyRedis: string, email: string) {
     const user = await this.isEmail(email)
     if (!user) {
       return Result.fail(404, 'EMAIL_NOT_FOUND')
     }
 
-    const key = `otp-forgot-password:${email}`
+    // const key = `otp-forgot-password:${email}`
+    const key = `${keyRedis}:${email}`
 
     // Kiểm tra TTL của OTP hiện tại
     const remainingTime = await ttlAsync(key)
@@ -87,17 +88,23 @@ export default class AuthService {
   /**
    * Xác thực OTP
    */
-  async verifyOtp(email: string, otp: string) {
-    const storedOtp = await redis.get(`otp-forgot-password:${email}`)
+  async verifyOtp(keyRedis: string, email: string, otp: string) {
+    // const storedOtp = await redis.get(`otp-forgot-password:${email}`)
+    const storedOtp = await redis.get(`${keyRedis}:${email}`)
     if (!storedOtp || storedOtp !== otp) {
       return Result.fail(400, 'OTP_INVALID')
     }
+    await redis.del(`${keyRedis}:${email}`)
+    return Result.ok()
+  }
 
-    await redis.del(`otp-forgot-password:${email}`)
-
+  async verifyOtpForgotPassword(keyRedis: string, email: string, otp: string) {
+    const r = await this.verifyOtp(keyRedis, email, otp)
+    if (!r.isSuccess) {
+      return Result.fail(400, 'OTP_INVALID')
+    }
     const resetToken = await bcrypt.hash(email, 10)
     await redis.set(`reset_token:${resetToken}`, email, 'EX', 180)
-
     return Result.ok({ resetToken })
   }
 
