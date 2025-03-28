@@ -7,13 +7,14 @@ import { Rate } from './rate.entity'
 import { SavedPost } from './saved-post.entity'
 import { SubscriptionAreaPost } from './subscription-area-post.entity'
 import { Participant } from './participant.entity'
+import { MultimediaFile } from './multimedia-file.entity'
 
 @Entity('Customer')
 @Check(`gender IN ('Male', 'Female')`)
 @Check(`isVerified IN (0, 1)`)
 @Check(`birthday IS NULL OR birthday < GETDATE()`) // Ensure birthday is in the past if provided
 export class Customer {
-  @PrimaryGeneratedColumn({ type: "int"})
+  @PrimaryGeneratedColumn({ type: 'int' })
   customerId: number
 
   @Column({ type: 'int', nullable: false })
@@ -43,8 +44,10 @@ export class Customer {
   birthday: Date
 
   @Column({ type: 'int', nullable: true })
-  participantId: number
+  avatar: number
 
+  @Column({ type: 'int', nullable: true })
+  participantId: number
 
   @OneToOne(() => Account)
   @JoinColumn({ name: 'accountId' })
@@ -68,6 +71,9 @@ export class Customer {
   @OneToMany(() => SubscriptionAreaPost, (subscription) => subscription.customer)
   subscriptions: SubscriptionAreaPost[]
 
-  @OneToOne(() => Participant, participant => participant.customer)
-  participant: Participant;
+  @OneToOne(() => Participant, (participant) => participant.customer)
+  participant: Participant
+
+  @OneToOne(() => MultimediaFile, (file) => file.customer)
+  avatarFile: MultimediaFile
 }
