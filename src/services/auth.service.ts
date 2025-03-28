@@ -24,7 +24,7 @@ export default class AuthService {
       relations: ['role', 'customer', 'admin']
     })
     if (!account) {
-      return Result.fail(404, 'Token is not valid')
+      return Result.fail(401, 'Token is not valid')
     }
     return Result.ok({
       accessToken: this.jwtService.generateAccessToken(Object.assign({}, account))
