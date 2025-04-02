@@ -7,6 +7,8 @@ import { MultimediaFile } from '@/domains/entities/multimedia-file.entity'
 import { MultimediaType } from '@/domains/entities/enum/value-object'
 import { Result } from '@/utils/data-types/result'
 import { MoreThan } from 'typeorm'
+import { ac } from '@faker-js/faker/dist/airline-CBNP41sR'
+import { tr } from '@faker-js/faker/.'
 
 export default class PostService {
   private postRepository: PostRepository
@@ -15,7 +17,68 @@ export default class PostService {
     this.postRepository = new PostRepository()
     this.cloudService = CloudDriveService.gI()
   }
-  async getPost(customer: Customer, status: string, cursor: number, limit: number) {
+
+  async getPostDetail(postId: number) {
+    try {
+      const post = await this.postRepository.findOne({
+        select: {
+          postId: true,
+          title: true,
+          description: true,
+          price: true,
+          streetNumber: true,
+          street: true,
+          city: true,
+          district: true,
+          ward: true,
+          interiorCondition: true,
+          acreage: true,
+          createdAt: true,
+          status: true,
+          extendedAt: true,
+          multimediaFiles: {
+            fileId: true,
+            file: {
+              fileId: true,
+              fileType: true,
+              createdAt: true
+            }
+          },
+          owner: {
+            customerId: true,
+            firstName: true,
+            lastName: true,
+            address: true,
+            avatar: true,
+            joinedAt: true,
+            account: {
+              accountId: true,
+              email: true,
+              phone: true
+            }
+          }
+        },
+        where: { postId: postId, status: 'Approved' },
+        relations: {
+          multimediaFiles: {
+            file: true
+          },
+          owner: {
+            account: true
+          }
+        }
+      })
+      if (!post) {
+        return Result.fail(404, 'Post not found')
+      }
+      return Result.ok(post)
+    } catch (e) {
+      console.log(e)
+      return Result.fail(500, 'Get post failure')
+    }
+  }
+
+  async getPosts(customer: Customer, status: string, cursor: number, limit: number) {
     try {
       const posts = await this.postRepository.find({
         select: {
@@ -64,31 +127,17 @@ export default class PostService {
     imgs: Express.Multer.File[],
     video?: Express.Multer.File
   ) => {
-    const fileImgs = imgs.map((value) => {
-      return value.stream
-    })
-    console.log(fileImgs)
-    const listId = await this.cloudService.uploadFiles(imgs)
+    const listId = await this.cloudService.uploadFiles(video ? [...imgs, video] : imgs)
     if (!listId) {
       throw new Error('Cannot upload files')
     }
     try {
       const mediaFile = listId.map((id) => {
         const file = new MultimediaFile()
-        file.fileCloudId = id
-        file.fileType = MultimediaType.IMAGE
+        file.fileCloudId = id.fileId
+        file.fileType = id.fileType.startsWith('image/') ? MultimediaType.IMAGE : MultimediaType.VIDEO
         return file
       })
-      if (video) {
-        const videoId = await this.cloudService.uploadFile(video)
-        if (!videoId) {
-          throw new Error('Cannot upload files')
-        }
-        const videoMedia = new MultimediaFile()
-        videoMedia.fileCloudId = videoId
-        videoMedia.fileType = MultimediaType.VIDEO
-        mediaFile.push(videoMedia)
-      }
       const post = new Post()
       post.ownerId = customer.customerId
       post.title = dto.title

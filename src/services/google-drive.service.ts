@@ -152,28 +152,31 @@ export default class CloudDriveService {
     }
   }
 
-  async uploadFiles(files: Express.Multer.File[]): Promise<string[] | null> {
+  async uploadFiles(files: Express.Multer.File[]): Promise<
+    | {
+        fileId: string
+        fileType: string
+      }[]
+    | null
+  > {
+    console.log('Uploading files:', files)
     const listId = []
     try {
       for (const file of files) {
         const filePath = path.resolve(file.path)
-        console.log('File path:', filePath)
         // Check if the file exists before attempting to upload
         if (!fs.existsSync(filePath)) {
-          console.error('File does not exist:', filePath)
           continue
         }
         const fileStream = createReadStream(filePath)
         const passThroughStream = new PassThrough()
         fileStream.pipe(passThroughStream)
 
-        console.log('Uploading file:', passThroughStream)
-
         const createResponse = await this.drive.files.create({
           requestBody: { name: file.originalname, mimeType: file.mimetype },
           media: { body: passThroughStream, mimeType: file.mimetype }
         })
-        
+
         const fileId = createResponse.data.id
         if (!fileId) {
           throw new Error()
@@ -191,12 +194,15 @@ export default class CloudDriveService {
           fileId,
           fields: 'webViewLink'
         })
-        listId.push(fileId)
+        listId.push({
+          fileId: fileId,
+          fileType: file.mimetype
+        })
       }
       return listId
     } catch (err) {
       for (const id of listId) {
-        await this.delete(id)
+        await this.delete(id.fileId)
       }
       return null
     }
