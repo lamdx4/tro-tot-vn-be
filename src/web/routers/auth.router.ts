@@ -9,6 +9,8 @@ import { refreshTokenValidator } from '../validator/refresh-token.validate'
 const authRouter = express.Router()
 
 authRouter.post('/register', validateRegister, authController.registerAccount.bind(authController))
+authRouter.post('/send-otp-register', authController.sendOTPRegister.bind(authController))
+authRouter.post('/verify-otp-register', authController.verifyOTPRegister.bind(authController))
 
 authRouter.post('/forgot-password', authController.forgotPassword.bind(authController))
 

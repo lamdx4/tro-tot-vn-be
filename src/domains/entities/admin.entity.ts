@@ -22,14 +22,20 @@ export class Admin {
   })
   gender: string
 
-  @Column({ type: 'varchar', length: 30, nullable: false })
+  @Column({ type: 'nvarchar', length: 30, nullable: false })
   firstName: string
 
-  @Column({ type: 'varchar', length: 30, nullable: false })
+  @Column({ type: 'nvarchar', length: 30, nullable: false })
   lastName: string
 
   @Column({ type: 'date', nullable: false })
   birthday: Date
+
+  @Column({
+    type: 'date',
+    default: () => 'CURRENT_TIMESTAMP'
+  })
+  joinedAt: Date
 
   @OneToOne(() => Account)
   @JoinColumn({ name: 'accountId' })

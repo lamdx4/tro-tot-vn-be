@@ -1,6 +1,8 @@
 import { drive_v3, google } from 'googleapis'
-import { Readable } from 'stream'
+import { PassThrough, Readable } from 'stream'
 import { ConfigService } from './config.service'
+import path from 'path'
+import fs, { createReadStream } from 'fs'
 
 export interface FileDataDrive {
   data: Readable
@@ -12,7 +14,7 @@ export interface FileDataDrive {
  * such as copying, retrieving URLs, deleting, and uploading files.
  */
 export default class CloudDriveService {
-  public static instance: CloudDriveService;
+  public static instance: CloudDriveService
   private drive: drive_v3.Drive
 
   private constructor() {
@@ -109,12 +111,21 @@ export default class CloudDriveService {
    * and retrieves a public webViewLink.
    * @param buff The file content as a Buffer or Readable stream.
    */
-  async uploadFile(buff: Buffer | Readable): Promise<string | null> {
-    const nameFile = 'file-' + Date.now()
+  async uploadFile(file: Express.Multer.File): Promise<string | null> {
+    // const nameFile = 'file-' + Date.now()
     try {
+      const filePath = path.resolve(file.path)
+      if (!fs.existsSync(filePath)) {
+        console.error('File does not exist:', filePath)
+        return null
+      }
+      const fileStream = createReadStream(filePath)
+      const passThroughStream = new PassThrough()
+      fileStream.pipe(passThroughStream)
+      console.log('Uploading file:', passThroughStream)
       const createResponse = await this.drive.files.create({
-        requestBody: { name: nameFile },
-        media: { body: buff instanceof Buffer ? Readable.from(buff) : buff }
+        requestBody: { name: file.filename, mimeType: file.mimetype },
+        media: { body: file.stream, mimeType: file.mimetype }
       })
       const fileId = createResponse.data.id
       if (!fileId) {
@@ -130,13 +141,69 @@ export default class CloudDriveService {
         }
       })
       // Retrieve public webViewLink
-      const fileData = await this.drive.files.get({
+      await this.drive.files.get({
         fileId,
         fields: 'webViewLink'
       })
       return fileId
     } catch (err) {
       console.error('Error uploading file:', err)
+      return null
+    }
+  }
+
+  async uploadFiles(files: Express.Multer.File[]): Promise<
+    | {
+        fileId: string
+        fileType: string
+      }[]
+    | null
+  > {
+    console.log('Uploading files:', files)
+    const listId = []
+    try {
+      for (const file of files) {
+        const filePath = path.resolve(file.path)
+        // Check if the file exists before attempting to upload
+        if (!fs.existsSync(filePath)) {
+          continue
+        }
+        const fileStream = createReadStream(filePath)
+        const passThroughStream = new PassThrough()
+        fileStream.pipe(passThroughStream)
+
+        const createResponse = await this.drive.files.create({
+          requestBody: { name: file.originalname, mimeType: file.mimetype },
+          media: { body: passThroughStream, mimeType: file.mimetype }
+        })
+
+        const fileId = createResponse.data.id
+        if (!fileId) {
+          throw new Error()
+        }
+        // Set file permissions for public access
+        await this.drive.permissions.create({
+          fileId,
+          requestBody: {
+            role: 'writer',
+            type: 'anyone'
+          }
+        })
+        // Retrieve public webViewLink
+        await this.drive.files.get({
+          fileId,
+          fields: 'webViewLink'
+        })
+        listId.push({
+          fileId: fileId,
+          fileType: file.mimetype
+        })
+      }
+      return listId
+    } catch (err) {
+      for (const id of listId) {
+        await this.delete(id.fileId)
+      }
       return null
     }
   }
