@@ -1,5 +1,5 @@
 import { RoleType } from '@/domains/entities/enum/value-object'
-import { AccountRepository, CustomerRepository } from '@/infras/repositories'
+import { AccountRepository, CustomerRepository, PostRepository } from '@/infras/repositories'
 import { Result } from '@/utils/data-types/result'
 import { ro } from '@faker-js/faker/.'
 import { ParsedQs } from 'qs'
@@ -7,17 +7,33 @@ import { ParsedQs } from 'qs'
 export class CustomerService {
   private accountRepository: AccountRepository
   private customerRepository: CustomerRepository
+  private postRepository: PostRepository
 
   constructor() {
     this.accountRepository = new AccountRepository()
+    this.customerRepository = new CustomerRepository()
+    this.postRepository = new PostRepository()
   }
 
   async getCustomerProfile(customerId: number) {
-    const data = await this.customerRepository.findOne({
-      where: { customerId },
-      relations: ['post', ]
+    const status = 'Approved'
+    const customer = await this.customerRepository.findOne({
+      where: { customerId }
     })
+
+    const posts = await this.postRepository.find({
+      where: { ownerId: customerId, status },
+      order: { postId: 'DESC' },
+      take: 8,
+      relations: {
+        multimediaFiles: { file: true }
+      }
+    })
+
+    const data = { ...customer, posts }
+
     if (!data) {
+      console.log(data)
       return Result.fail(404, 'CUSTOMER_NOT_FOUND')
     }
     return Result.ok(data)

@@ -1,12 +1,17 @@
 import express from 'express'
 import customerController from '../controllers/customer.controller'
 import authenticateMiddleware from '../middlewares/authenticate.middleware'
-const userRouter = express.Router()
+import validateGetInformation from '../validator/get-information.validate'
+const customerRouter = express.Router()
 
-userRouter.get('/my-profile', authenticateMiddleware, customerController.getMyProfile.bind(customerController))
+customerRouter.get('/my-profile', authenticateMiddleware, customerController.getMyProfile.bind(customerController))
 
-userRouter.put('/my-profile', authenticateMiddleware, customerController.updateMyProfile.bind(customerController))
+customerRouter.put('/my-profile', authenticateMiddleware, customerController.updateMyProfile.bind(customerController))
 
-userRouter.get('/customer/information', customerController.getInformation.bind(customerController))
+customerRouter.get(
+  '/:customerId/profile',
+  validateGetInformation,
+  customerController.getInformation.bind(customerController)
+)
 
-export default userRouter
+export default customerRouter

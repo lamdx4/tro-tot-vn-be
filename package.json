@@ -46,6 +46,8 @@
     "googleapis": "^146.0.0",
     "ioredis": "^5.6.0",
     "jsonwebtoken": "^9.0.2",
+    "mime": "^4.0.6",
+    "mine": "^0.1.0",
     "morgan": "^1.10.0",
     "mssql": "^11.0.1",
     "multer": "^1.4.5-lts.1",

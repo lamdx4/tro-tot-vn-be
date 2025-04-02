@@ -29,7 +29,7 @@ class PostController {
     } catch (e) {
       next(e)
     } finally {
-      deleteFileFromDisk(req.files as any)
+      // deleteFileFromDisk(req.files as any)
     }
   }
 

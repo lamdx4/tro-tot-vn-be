@@ -3,18 +3,15 @@ import ResponseData from '@/utils/data-types/response'
 import { NextFunction, Request, Response } from 'express'
 
 class CustomerController {
-  private userService: CustomerService
+  private customerService: CustomerService
   constructor() {
-    this.userService = new CustomerService()
+    this.customerService = new CustomerService()
   }
 
   getInformation = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const customerId = isNaN(Number(req.query.customerId)) ? null : Number(req.query.customerId)
-      if (!customerId) {
-        res.status(400).json(ResponseData.failure(400, 'MISSING_CUSTOMER_ID', 'Missing customer id'))
-      }
-      const r = await this.userService.getCustomerProfile(customerId!)
+      const customerId = isNaN(Number(req.params.customerId)) ? null : Number(req.params.customerId)
+      const r = await this.customerService.getCustomerProfile(customerId!)
       if (r.isSuccess) {
         res.status(200).json(ResponseData.success(r.getValue()))
       } else {
@@ -29,7 +26,7 @@ class CustomerController {
   getMyProfile = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const account = req.user
-      const r = await this.userService.getMyProfile(account!.accountId)
+      const r = await this.customerService.getMyProfile(account!.accountId)
       if (r.isSuccess) {
         res.status(200).json(ResponseData.success(r.getValue()))
       } else {
