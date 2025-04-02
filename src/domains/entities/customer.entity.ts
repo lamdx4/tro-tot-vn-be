@@ -31,13 +31,13 @@ export class Customer {
   })
   gender: string
 
-  @Column({ type: 'varchar', length: 150, default: '' })
+  @Column({ type: 'nvarchar', length: 150, default: '' })
   bio: string
 
-  @Column({ type: 'varchar', length: 30, nullable: false })
+  @Column({ type: 'nvarchar', length: 30, nullable: false })
   firstName: string
 
-  @Column({ type: 'varchar', length: 30, nullable: false })
+  @Column({ type: 'nvarchar', length: 30, nullable: false })
   lastName: string
 
   @Column({ type: 'date', nullable: true })
@@ -46,8 +46,14 @@ export class Customer {
   @Column({ type: 'int', nullable: true })
   avatar: number
 
-  @Column({ type: 'int', nullable: true })
-  participantId: number
+  @Column({ type: 'nvarchar', length: 30, nullable: true })
+  address: string
+
+  @Column({
+    type: 'date',
+    default: () => 'CURRENT_TIMESTAMP'
+  })
+  joinedAt: Date
 
   @OneToOne(() => Account)
   @JoinColumn({ name: 'accountId' })

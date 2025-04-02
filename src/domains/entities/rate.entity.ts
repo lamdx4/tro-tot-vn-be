@@ -15,7 +15,7 @@ export class Rate {
   @Check(`"numRate" BETWEEN 1 AND 5`)
   numRate: number
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Column({ type: 'nvarchar', length: 100, nullable: true })
   comment: string
 
   @CreateDateColumn()

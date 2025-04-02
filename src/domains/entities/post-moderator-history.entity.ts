@@ -22,7 +22,7 @@ export class PostModerationHistory {
   })
   actionType: string
 
-  @Column({ type: 'varchar', length: 255, default: null, nullable: true })
+  @Column({ type: 'nvarchar', length: 255, default: null, nullable: true })
   reason: string
 
   @Column({

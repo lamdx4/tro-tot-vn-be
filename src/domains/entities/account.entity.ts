@@ -10,7 +10,6 @@ export class Account {
   @PrimaryGeneratedColumn()
   accountId: number
 
-
   @Column({ type: 'varchar', length: 12, unique: true, nullable: false })
   phone: string
 

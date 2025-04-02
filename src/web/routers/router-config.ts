@@ -18,6 +18,6 @@ routerConfig.use('/admin', adminRouter)
 
 routerConfig.use('/post', postRouter)
 
-routerConfig.use('/user', customerRouter)
+routerConfig.use('/customer', customerRouter)
 
 export default routerConfig

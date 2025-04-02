@@ -67,7 +67,8 @@ export default class PostService {
     const fileImgs = imgs.map((value) => {
       return value.stream
     })
-    const listId = await this.cloudService.uploadFiles(fileImgs)
+    console.log(fileImgs)
+    const listId = await this.cloudService.uploadFiles(imgs)
     if (!listId) {
       throw new Error('Cannot upload files')
     }
@@ -79,7 +80,7 @@ export default class PostService {
         return file
       })
       if (video) {
-        const videoId = await this.cloudService.uploadFile(video.stream)
+        const videoId = await this.cloudService.uploadFile(video)
         if (!videoId) {
           throw new Error('Cannot upload files')
         }

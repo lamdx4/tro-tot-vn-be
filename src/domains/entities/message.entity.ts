@@ -14,7 +14,7 @@ export class Message {
   @Column({ type: 'int', nullable: false })
   receiverId: number
 
-  @Column({ type: 'varchar', length: 150 })
+  @Column({ type: 'nvarchar', length: 150 })
   content: string
 
   @Column({ type: 'tinyint', nullable: true })
@@ -22,6 +22,12 @@ export class Message {
 
   @Column({ type: 'tinyint', nullable: true })
   isReceiverReceived: number
+
+  @Column({
+    type: 'datetime',
+    default: () => 'CURRENT_TIMESTAMP'
+  })
+  createdAt: Date
 
   @ManyToOne(() => Participant, (participant) => participant.sentMessages)
   @JoinColumn({ name: 'senderId' })
