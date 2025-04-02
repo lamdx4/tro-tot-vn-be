@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, Check, CreateDateColumn, OneToMany } from "typeorm"
+import { Entity, PrimaryGeneratedColumn, Column, Check, CreateDateColumn, OneToMany, OneToOne } from "typeorm"
 import { PostMultimediaFile } from "./post-multimedia-file.entity"
 import { MultimediaType } from "./enum/value-object";
+import { Customer } from "./customer.entity";
 
 @Entity('MultimediaFile')
 @Check(`fileType IN ('Image', 'Video')`)
@@ -26,4 +27,7 @@ export class MultimediaFile {
 
   @OneToMany(() => PostMultimediaFile, postFile => postFile.file)
   postFiles: PostMultimediaFile[];
+
+  @OneToOne(() => Customer, customer => customer.avatar)
+  customer: PostMultimediaFile;
 }

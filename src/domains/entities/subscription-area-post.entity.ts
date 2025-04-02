@@ -11,13 +11,13 @@ export class SubscriptionAreaPost {
   @Column({ type: 'int' })
   customerId: number
 
-  @Column({ type: 'varchar', length: 70, nullable: true })
+  @Column({ type: 'nvarchar', length: 70, nullable: true })
   ward: string
 
-  @Column({ type: 'varchar', length: 70, nullable: false })
+  @Column({ type: 'nvarchar', length: 70, nullable: false })
   district: string
 
-  @Column({ type: 'varchar', length: 70, nullable: false })
+  @Column({ type: 'nvarchar', length: 70, nullable: false })
   city: string
 
   @Column({ 
