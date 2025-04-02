@@ -29,13 +29,13 @@ class PostController {
     } catch (e) {
       next(e)
     } finally {
-      // deleteFileFromDisk(req.files as any)
+      deleteFileFromDisk(req.files as any)
     }
   }
 
-  getPost = async (req: Request, res: Response, next: NextFunction) => {
+  getMyPosts = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      let r = await this.postService.getPost(
+      let r = await this.postService.getPosts(
         req.user?.customer!,
         req.query.status as string,
         isNaN(Number(req.query.cursor)) ? 0 : Number(req.query.cursor),
@@ -52,6 +52,19 @@ class PostController {
               ).toResponse()
             )
           )
+      } else {
+        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+      }
+    } catch (e) {
+      next(e)
+    }
+  }
+
+  getDetailPost = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      let r = await this.postService.getPostDetail(Number(req.params.postId))
+      if (r.isSuccess) {
+        res.status(200).json(ResponseData.success(r.getValue()))
       } else {
         res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
       }

@@ -20,6 +20,7 @@ const upload = multer({
 
 const uploadMiddleware = (req: Request, res: Response, next: NextFunction) => {
   upload(req, res, (err) => {
+    console.log('err', err)
     try {
       if (err) {
         res.status(400).json(new ResponseData(400, err.message))

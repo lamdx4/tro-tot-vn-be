@@ -5,6 +5,7 @@ import uploadMiddleware from '../middlewares/create-post.middleware'
 import createPostValidate from '../validator/create-post.validate'
 import authenticateMiddleware from '../middlewares/authenticate.middleware'
 import getPostValidate from '../validator/get-post.validate'
+import getDetailPostValidate from '../validator/get-detail-post.validate'
 
 postRouter.post(
   '/create',
@@ -14,6 +15,8 @@ postRouter.post(
   postController.createPost.bind(postController)
 )
 
-postRouter.get('/list', authenticateMiddleware, getPostValidate, postController.getPost.bind(postController))
+postRouter.get('/list', authenticateMiddleware, getPostValidate, postController.getMyPosts.bind(postController))
+
+postRouter.get('/:postId/detail', getDetailPostValidate, postController.getDetailPost.bind(postController))
 
 export default postRouter
