@@ -7,8 +7,6 @@ import { MultimediaFile } from '@/domains/entities/multimedia-file.entity'
 import { MultimediaType } from '@/domains/entities/enum/value-object'
 import { Result } from '@/utils/data-types/result'
 import { MoreThan } from 'typeorm'
-import { ac } from '@faker-js/faker/dist/airline-CBNP41sR'
-import { tr } from '@faker-js/faker/.'
 
 export default class PostService {
   private postRepository: PostRepository
@@ -121,6 +119,7 @@ export default class PostService {
       return Result.fail(500, 'Get post failure')
     }
   }
+
   createPost = async (
     customer: Customer,
     dto: CreatePostDto,
