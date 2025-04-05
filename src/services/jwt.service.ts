@@ -49,4 +49,5 @@ export default class JWTService {
   decodeToken<T>(token: string): object | string | null {
     return jwt.decode(token)
   }
+  
 }
