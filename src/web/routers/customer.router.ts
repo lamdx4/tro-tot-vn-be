@@ -9,4 +9,6 @@ userRouter.put('/my-profile', authenticateMiddleware, customerController.updateM
 
 userRouter.get('/customer/information', customerController.getInformation.bind(customerController))
 
+userRouter.post('/receivePost', customerController.receivePost.bind(customerController))
+
 export default userRouter
