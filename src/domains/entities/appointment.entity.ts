@@ -6,7 +6,7 @@ import { AppointmentStatus } from './enum/value-object'
 @Entity('Appointment')
 @Check(`status IN ('Pending', 'Reject', 'Accept')`)
 @Index(['postId', 'requesterId', 'appointmentAt'], { unique: true })
-@Check(`appointment > createdAt`) // Ensure appointment time is in the future relative to creation time
+@Check(`appointmentAt > createdAt`) // Ensure appointment time is in the future relative to creation time
 export class Appointment {
   @PrimaryGeneratedColumn()
   appointmentId: number
@@ -22,9 +22,6 @@ export class Appointment {
     default: () => 'CURRENT_TIMESTAMP'
   })
   createdAt: Date
-
-  @Column({ type: 'datetime', nullable: false })
-  appointment: Date
 
   @Column({
     type: 'varchar',

@@ -6,6 +6,8 @@ import createPostValidate from '../validator/create-post.validate'
 import authenticateMiddleware from '../middlewares/authenticate.middleware'
 import getPostValidate from '../validator/get-post.validate'
 import getDetailPostValidate from '../validator/get-detail-post.validate'
+import { body } from 'express-validator'
+import hideMyPostValidate from '../validator/hide-my-post.validate'
 
 postRouter.post(
   '/create',
@@ -18,5 +20,14 @@ postRouter.post(
 postRouter.get('/list', authenticateMiddleware, getPostValidate, postController.getMyPosts.bind(postController))
 
 postRouter.get('/:postId/detail', getDetailPostValidate, postController.getDetailPost.bind(postController))
+
+postRouter.get('/latest-post', postController.getLastPost.bind(postController))
+
+postRouter.post(
+  '/hide-post',
+  hideMyPostValidate,
+  authenticateMiddleware,
+  postController.hideMyPost.bind(postController)
+)
 
 export default postRouter
