@@ -51,6 +51,21 @@ export default class AuthService {
     return await this.accountRepository.update({ email }, { password })
   }
 
+  async changePassword(accountId: number, oldPassword: string, newPassword: string) {
+    const account = await this.accountRepository.findOne({ where: { accountId: accountId } })
+    if (!account) {
+      return Result.fail(404, 'ACCOUNT_NOT_FOUND')
+    }
+    if (account.password !== oldPassword) {
+      return Result.fail(400, 'PASSWORD_NOT_MATCH')
+    }
+    const r = await this.accountRepository.update({ accountId: accountId }, { password: newPassword })
+    if(r.affected === 0) {
+      return Result.fail(500, 'UPDATE_PASSWORD_FAIL')
+    }
+    return Result.ok(true)
+  }
+
   /**
    * Gửi OTP đến email
    */

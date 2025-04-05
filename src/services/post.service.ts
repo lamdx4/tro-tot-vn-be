@@ -4,11 +4,9 @@ import { PostRepository } from '@/infras/repositories'
 import { CreatePostDto } from '@/web/controllers/dto/create-post.dto'
 import CloudDriveService from './google-drive.service'
 import { MultimediaFile } from '@/domains/entities/multimedia-file.entity'
-import { MultimediaType } from '@/domains/entities/enum/value-object'
+import { MultimediaType, PostStatus } from '@/domains/entities/enum/value-object'
 import { Result } from '@/utils/data-types/result'
 import { MoreThan } from 'typeorm'
-import { ac } from '@faker-js/faker/dist/airline-CBNP41sR'
-import { tr } from '@faker-js/faker/.'
 
 export default class PostService {
   private postRepository: PostRepository
@@ -18,6 +16,65 @@ export default class PostService {
     this.cloudService = CloudDriveService.gI()
   }
 
+  async hidePost(postId: number, customerId: number) {
+    const isOwner = await this.postRepository.findOne({
+      where: { postId, ownerId: customerId },
+      select: { postId: true, ownerId: true }
+    })
+    if (!isOwner) {
+      return Result.fail(403, 'CUSTOMER_NOT_OWNER')
+    }
+    const post = await this.postRepository.findOne({
+      where: { postId },
+      select: { postId: true, status: true }
+    })
+    if (!post) {
+      return Result.fail(404, 'POST_NOT_FOUND')
+    }
+    if (post.status !== PostStatus.APPROVED) {
+      return Result.fail(400, 'STATE_NOT_ALLOW')
+    }
+    post.status = PostStatus.HIDDEN
+    await this.postRepository.save(post)
+    return Result.ok({})
+  }
+
+  async getLastPost(limit: number) {
+    try {
+      const posts = await this.postRepository.find({
+        select: {
+          postId: true,
+          title: true,
+          description: true,
+          price: true,
+          streetNumber: true,
+          street: true,
+          city: true,
+          district: true,
+          ward: true,
+          interiorCondition: true,
+          acreage: true,
+          createdAt: true,
+          status: true,
+          extendedAt: true,
+          multimediaFiles: {
+            fileId: true,
+            postId: false
+          }
+        },
+        relations: {
+          multimediaFiles: true
+        },
+        where: { status: 'Approved' },
+        order: { createdAt: 'DESC' },
+        take: limit
+      })
+      return Result.ok(posts)
+    } catch (e) {
+      console.log(e)
+      return Result.fail(500, 'Get post failure')
+    }
+  }
   async getPostDetail(postId: number) {
     try {
       const post = await this.postRepository.findOne({

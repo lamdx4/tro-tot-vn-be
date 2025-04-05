@@ -70,7 +70,6 @@ export class UserFactory {
       gender: faker.helpers.arrayElement([Gender.MALE, Gender.FEMALE]),
       birthday,
       bio: faker.lorem.paragraph(2),
-      isVerified: faker.number.int({ min: 0, max: 1 }),
       ...customerOverrides
     }
 

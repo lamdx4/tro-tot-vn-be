@@ -11,6 +11,16 @@ class PostController {
   constructor() {
     this.postService = new PostService()
   }
+
+  editPost = async (req: Request, res: Response, next: NextFunction) => {
+    try{
+
+    }
+    catch(e){
+      next(e)
+    }
+  }
+
   createPost = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req)
@@ -71,6 +81,35 @@ class PostController {
     } catch (e) {
       next(e)
     }
+  }
+
+  getLastPost = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const limit = Number(req.query.limit) || 4
+      const r = await this.postService.getLastPost(limit)
+      if (r.isSuccess) {
+        res.status(200).json(ResponseData.success(r.getValue()))
+      } else {
+        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+      }
+    } catch (e) {
+      next(e)
+    }
+  }
+
+  hideMyPost = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const postId = Number(req.body.postId)
+      const customerId = Number(req.user?.customer.customerId)
+      console.log('postId', postId)
+      console.log('customerId', customerId)
+      let r = await this.postService.hidePost(postId, customerId)
+      if (r.isSuccess) {
+        res.status(200).json(ResponseData.success(r.getValue()))
+      } else {
+        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+      }
+    } catch (e) {}
   }
 }
 export default new PostController()

@@ -20,7 +20,7 @@ export class Customer {
   @Column({ type: 'int', nullable: false })
   accountId: number
 
-  @Column({ type: 'tinyint', default: 0 })
+  @Column({ type: 'tinyint', default: 1 })
   isVerified: number
 
   @Column({
