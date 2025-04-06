@@ -2,7 +2,6 @@ import { Customer } from '@/domains/entities/customer.entity'
 import { BaseRepository } from './base.repository'
 import { Account } from '@/domains/entities/account.entity'
 import ChangedProfileDto from '@/web/controllers/dto/changed-profile.dto'
-import { da } from '@faker-js/faker/.'
 import moment from 'moment'
 
 export class CustomerRepository extends BaseRepository<Customer> {

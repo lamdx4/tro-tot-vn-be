@@ -4,6 +4,7 @@ import {
   AppointmentRepository,
   CustomerRepository,
   PostRepository,
+  PostViewHistoryRepository,
   SavedPostRepository
 } from '@/infras/repositories'
 import { Result } from '@/utils/data-types/result'
@@ -17,6 +18,7 @@ export class CustomerService {
   private postRepository: PostRepository
   private savedPostRepository: SavedPostRepository
   private appointmentRepository: AppointmentRepository
+  private historyRepository: PostViewHistoryRepository
 
   constructor() {
     this.accountRepository = new AccountRepository()
@@ -24,6 +26,7 @@ export class CustomerService {
     this.postRepository = new PostRepository()
     this.savedPostRepository = new SavedPostRepository()
     this.appointmentRepository = new AppointmentRepository()
+    this.historyRepository = new PostViewHistoryRepository()
   }
 
   // đã gửi, đã bị từ chối, cuộc hẹn sắp tới, đang chờ chấp nhận
@@ -124,7 +127,7 @@ export class CustomerService {
     })
 
     const posts = await this.postRepository.find({
-      where: { ownerId: customerId, status },
+      where: { ownerId: customerId, status : status },
       order: { postId: 'DESC' },
       take: 8,
       relations: {
@@ -208,9 +211,24 @@ export class CustomerService {
       return Result.ok(false)
     }
   }
+  async getViewedPost(customerId: number) {
+    const viewedPosts = await this.historyRepository.find({
+      where: { customerId, post: { status: PostStatus.APPROVED } },
+      relations: {
+        post: {
+          multimediaFiles: { file: true }
+        }
+      },
+      order: { viewedAt: 'DESC' }
+    })
+    const data = viewedPosts.map((viewedPost) => {
+      return viewedPost.post
+    })
+    return Result.ok(data)
+  }
   async getSavedPost(customerId: number) {
     const savedPosts = await this.savedPostRepository.find({
-      where: { customerId },
+      where: { customerId, post: { status: PostStatus.APPROVED } },
       relations: {
         post: {
           multimediaFiles: { file: true }
@@ -218,7 +236,10 @@ export class CustomerService {
       },
       order: { createdAt: 'DESC' }
     })
-    return Result.ok(savedPosts)
+    const data = savedPosts.map((savedPost) => {
+      return savedPost.post
+    })
+    return Result.ok(data)
   }
 
   async createAppointment(customerId: number, postId: number, appointmentAt: Date) {
