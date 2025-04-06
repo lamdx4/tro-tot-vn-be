@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, Check, ManyToOne, JoinColumn, OneToMany } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, Check, ManyToOne, JoinColumn, OneToMany, AfterInsert, AfterUpdate } from 'typeorm'
 import { Appointment } from './appointment.entity'
 import { Customer } from './customer.entity'
 import { PostModerationHistory } from './post-moderator-history.entity'
@@ -6,7 +6,7 @@ import { PostMultimediaFile } from './post-multimedia-file.entity'
 import { PostViewHistory } from './post-view-history.entity'
 import { Rate } from './rate.entity'
 import { SavedPost } from './saved-post.entity'
-import { InteriorCondition } from './enum/value-object'
+import { InteriorCondition, PostStatus } from './enum/value-object'
 
 @Entity('Post')
 @Check(`status IN ('Pending', 'Approved', 'Rejected', 'Hidden', 'Suspended')`)
@@ -37,7 +37,7 @@ export class Post {
   @Column({ type: 'nvarchar', length: 70, nullable: false })
   title: string
 
-  @Column({ type: 'nvarchar', length: 1000, default: '' })
+  @Column({ type: 'nvarchar', length: 'MAX', default: '' })
   description: string
 
   @Column({ type: 'int', nullable: false })
