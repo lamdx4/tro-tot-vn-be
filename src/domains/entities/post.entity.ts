@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, Check, ManyToOne, JoinColumn, OneToMany, AfterInsert, AfterUpdate } from 'typeorm'
-import { Appointment } from './appointment.entity'
+// import { Appointment } from './appointment.entity'
 import { Customer } from './customer.entity'
 import { PostModerationHistory } from './post-moderator-history.entity'
 import { PostMultimediaFile } from './post-multimedia-file.entity'
@@ -97,8 +97,8 @@ export class Post {
   @OneToMany(() => SavedPost, (savedPost) => savedPost.post)
   savedBy: SavedPost[]
 
-  @OneToMany(() => Appointment, (appointment) => appointment.post)
-  appointments: Appointment[]
+  // @OneToMany(() => Appointment, (appointment) => appointment.post)
+  // appointments: Appointment[]
 
   @OneToMany(() => PostModerationHistory, (history) => history.post)
   moderationHistories: PostModerationHistory[]

@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, Check, ManyToOne, JoinColumn, OneToMany, OneToOne } from 'typeorm'
 import { Account } from './account.entity'
 import { PostModerationHistory } from './post-moderator-history.entity'
-import { Participant } from './participant.entity'
+// import { Participant } from './participant.entity'
 import { Gender } from './enum/value-object'
 
 @Entity('Admin')
@@ -44,6 +44,6 @@ export class Admin {
   @OneToMany(() => PostModerationHistory, (history) => history.admin)
   moderationHistories: PostModerationHistory[]
 
-  @OneToOne(() => Participant, (participant) => participant.admin)
-  participant: Participant
+  // @OneToOne(() => Participant, (participant) => participant.admin)
+  // participant: Participant
 }

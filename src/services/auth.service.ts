@@ -196,7 +196,15 @@ export default class AuthService {
   async login(identifier: string, password: string) {
     const account = await this.accountRepository.findOne({
       where: [{ phone: identifier }, { email: identifier }],
-      relations: ['role', 'customer', 'admin']
+      relations: {
+        role: {
+          rolePermissions: {
+            permission: true
+          }
+        },
+        customer: true,
+        admin: true
+      }
     })
     if (!account) {
       throw new Error('Account not found')

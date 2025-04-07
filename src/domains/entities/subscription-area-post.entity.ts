@@ -3,7 +3,7 @@ import { Customer } from './customer.entity'
 import { fa } from '@faker-js/faker/.'
 
 @Entity('SubscriptionAreaPost')
-@Index(['city', 'customerId', 'district', 'ward'], { unique: true })
+@Index(['city', 'customerId', 'district'], { unique: true })
 export class SubscriptionAreaPost {
   @PrimaryGeneratedColumn()
   subscriptionId: number
@@ -11,18 +11,15 @@ export class SubscriptionAreaPost {
   @Column({ type: 'int' })
   customerId: number
 
-  @Column({ type: 'nvarchar', length: 70, nullable: true })
-  ward: string
-
   @Column({ type: 'nvarchar', length: 70, nullable: false })
   district: string
 
   @Column({ type: 'nvarchar', length: 70, nullable: false })
   city: string
 
-  @Column({ 
-    type: "datetime", 
-    default: () => "CURRENT_TIMESTAMP" 
+  @Column({
+    type: 'datetime',
+    default: () => 'CURRENT_TIMESTAMP'
   })
   createdAt: Date
 
