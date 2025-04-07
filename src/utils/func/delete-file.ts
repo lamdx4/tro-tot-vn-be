@@ -19,4 +19,18 @@ const deleteFileFromDisk = (files: { [fieldname: string]: Express.Multer.File[] 
     }
   }
 }
-export default deleteFileFromDisk
+const deleteFileFromDisk2 = (files: { [fieldname: string]: Express.Multer.File[] }) => {
+  if (files) {
+    if (files.newImgs) {
+      for (const img of files.newImgs) {
+        deleteFile(img.path)
+      }
+    }
+    if (files.newVideo) {
+      for (const v of files.newVideo) {
+        deleteFile(v.path)
+      }
+    }
+  }
+}
+export { deleteFileFromDisk, deleteFileFromDisk2 }

@@ -1,16 +1,17 @@
-import { PostStatus, RoleType } from '@/domains/entities/enum/value-object'
+import { PostStatus } from '@/domains/entities/enum/value-object'
 import {
   AccountRepository,
   AppointmentRepository,
   CustomerRepository,
   PostRepository,
   PostViewHistoryRepository,
-  SavedPostRepository
+  RateRepository,
+  SavedPostRepository,
+  SubscriptionAreaPostRepository
 } from '@/infras/repositories'
 import { Result } from '@/utils/data-types/result'
 import ChangedProfileDto from '@/web/controllers/dto/changed-profile.dto'
-import { da } from '@faker-js/faker/.'
-import { MoreThan } from 'typeorm'
+import { LessThan, LessThanOrEqual, MoreThan } from 'typeorm'
 
 export class CustomerService {
   private accountRepository: AccountRepository
@@ -19,6 +20,8 @@ export class CustomerService {
   private savedPostRepository: SavedPostRepository
   private appointmentRepository: AppointmentRepository
   private historyRepository: PostViewHistoryRepository
+  private rateRepository: RateRepository
+  private subscriptionRepository: SubscriptionAreaPostRepository
 
   constructor() {
     this.accountRepository = new AccountRepository()
@@ -27,51 +30,114 @@ export class CustomerService {
     this.savedPostRepository = new SavedPostRepository()
     this.appointmentRepository = new AppointmentRepository()
     this.historyRepository = new PostViewHistoryRepository()
+    this.rateRepository = new RateRepository()
+    this.subscriptionRepository = new SubscriptionAreaPostRepository()
   }
 
-  // đã gửi, đã bị từ chối, cuộc hẹn sắp tới, đang chờ chấp nhận
-  async getAllAppointments(customerId: number) {
-    const sentAppointments = await this.appointmentRepository.find({
-      where: { requesterId: customerId, appointmentAt: MoreThan(new Date()), status: 'Pending' },
-      relations: {
-        post: {
-          owner: true,
-          multimediaFiles: { file: true }
-        }
-      },
-      order: { createdAt: 'DESC' }
+  async getRateFromPost(postId: number, cursor: Date | null, limit: number) {
+    console.log('getRateFromPost', postId, cursor, limit)
+    const post = await this.postRepository.findOne({
+      where: { postId: postId, status: PostStatus.APPROVED }
     })
-    const receivedAppointments = await this.appointmentRepository.find({
-      where: { post: { ownerId: customerId }, appointmentAt: MoreThan(new Date()) },
-      relations: {
-        requester: true,
-        post: true
-      },
-      order: { createdAt: 'DESC' }
+    if (post === null) {
+      return Result.fail(404, 'POST_NOT_FOUND')
+    }
+    const rates = await this.rateRepository
+      .createQueryBuilder('rate')
+      .leftJoinAndSelect('rate.rater', 'rater')
+      .where('rate.postId = :postId', { postId })
+      .andWhere(cursor ? 'rate.createdAt < :cursor' : '1=1', { cursor })
+      .orderBy('rate.createdAt', 'DESC')
+      .take(limit)
+      .getMany()
+
+    return Result.ok(rates)
+  }
+
+  async getAvgRateFromPost(postId: number) {
+    const post = await this.postRepository.findOne({
+      where: { postId: postId, status: PostStatus.APPROVED }
     })
-    const inComingAppointments = await this.appointmentRepository.find({
-      where: { appointmentAt: MoreThan(new Date()), status: 'Accept' },
-      relations: {
-        requester: true,
-        post: true
-      },
-      order: { createdAt: 'DESC' }
-    })
-    const rejectedAppointments = await this.appointmentRepository.find({
-      where: { appointmentAt: MoreThan(new Date()), status: 'Reject' },
-      relations: {
-        requester: true,
-        post: true
-      },
-      order: { createdAt: 'DESC' }
-    })
+    if (post === null) {
+      return Result.fail(404, 'POST_NOT_FOUND')
+    }
+    const avgRate = await this.rateRepository
+      .createQueryBuilder('rate')
+      .select('CAST(AVG(rate.numRate) AS FLOAT)', 'avgRate')
+      .where('rate.postId = :postId', { postId })
+      .getRawOne()
+    const coutRate = await this.rateRepository
+      .createQueryBuilder('rate')
+      .select('COUNT(rate.rateId)', 'countRate')
+      .where('rate.postId = :postId', { postId })
+      .getRawOne()
 
     return Result.ok({
-      sentAppointments: sentAppointments,
-      receivedAppointments: receivedAppointments,
-      inComingAppointments: inComingAppointments,
-      rejectedAppointments: rejectedAppointments
+      avgRate: avgRate.avgRate,
+      countRate: coutRate.countRate
     })
+  }
+
+  async addRate(customerId: number, postId: number, numStart: number, comment: string) {
+    const isExist = await this.postRepository.findOne({
+      where: { postId: postId, status: PostStatus.APPROVED }
+    })
+    if (isExist === null) {
+      return Result.fail(404, 'POST_NOT_FOUND')
+    }
+    const isOwner = await this.postRepository.findOne({
+      where: { postId: postId, ownerId: customerId }
+    })
+
+    if (isOwner) {
+      return Result.fail(400, 'CANNOT_RATE_OWN_POST')
+    }
+
+    const rate = await this.rateRepository.findOne({
+      where: { raterId: customerId, postId: postId }
+    })
+    if (rate) {
+      await this.rateRepository.update(
+        { rateId: rate.rateId },
+        {
+          numRate: numStart,
+          comment: comment,
+          createdAt: new Date()
+        }
+      )
+    } else {
+      const object = {
+        raterId: customerId,
+        postId: postId,
+        numRate: numStart,
+        comment: comment
+      }
+      await this.rateRepository.insert(object)
+    }
+    return Result.ok({})
+  }
+
+  async getMyRateOnPost(customerId: number, postId: number) {
+    console.log('getMyRateOnPost', customerId, postId)
+    const rate = await this.rateRepository.findOne({
+      where: { raterId: customerId, postId: postId },
+      relations: { rater: true }
+    })
+    if (rate === null) {
+      return Result.fail(404, 'RATE_NOT_FOUND')
+    }
+    return Result.ok(rate)
+  }
+
+  async delMyRateOnPost(customerId: number, postId: number) {
+    const rate = await this.rateRepository.findOne({
+      where: { raterId: customerId, postId: postId }
+    })
+    if (rate === null) {
+      return Result.fail(404, 'RATE_NOT_FOUND')
+    }
+    await this.rateRepository.delete({ raterId: customerId, postId: postId })
+    return Result.ok({})
   }
 
   async deleteSavedPost(customerId: number, postId: number) {
@@ -127,7 +193,7 @@ export class CustomerService {
     })
 
     const posts = await this.postRepository.find({
-      where: { ownerId: customerId, status : status },
+      where: { ownerId: customerId, status: status },
       order: { postId: 'DESC' },
       take: 8,
       relations: {
@@ -142,20 +208,6 @@ export class CustomerService {
       return Result.fail(404, 'CUSTOMER_NOT_FOUND')
     }
     return Result.ok(data)
-  }
-
-  async getAppointments(customerId: number) {
-    const r = await this.appointmentRepository.find({
-      where: { requesterId: customerId },
-      relations: {
-        post: {
-          owner: true,
-          multimediaFiles: { file: true }
-        }
-      },
-      order: { createdAt: 'DESC' }
-    })
-    return Result.ok(r)
   }
 
   async getMyProfile(customerId: number) {
@@ -287,4 +339,52 @@ export class CustomerService {
   }
 
   async getAnalytics(customerId: number) {}
+
+  async getSubscription(customerId: number) {
+    const subscription = await this.subscriptionRepository.find({
+      where: { customerId },
+      order: { createdAt: 'DESC' }
+    })
+    return Result.ok(subscription)
+  }
+  async createSubscription(customerId: number, city: string, district: string) {
+    const isExist = await this.subscriptionRepository.findOne({
+      where: { customerId, city, district }
+    })
+    if (isExist) {
+      return Result.fail(400, 'SUBSCRIPTION_ALREADY_EXISTS')
+    }
+    const subscription = this.subscriptionRepository.create({
+      customerId,
+      city,
+      district,
+      createdAt: new Date()
+    })
+    const data = await this.subscriptionRepository.save(subscription)
+    return Result.ok(data)
+  }
+
+  editSubscription = async (customerId: number, subscriptionId: number, city: string, district: string) => {
+    const subscription = await this.subscriptionRepository.findOne({
+      where: { customerId, subscriptionId }
+    })
+    if (!subscription) {
+      return Result.fail(404, 'SUBSCRIPTION_NOT_FOUND')
+    }
+    subscription.city = city
+    subscription.district = district
+    await this.subscriptionRepository.save(subscription)
+    return Result.ok(subscription)
+  }
+
+  deleteSubscription = async (customerId: number, subscriptionId: number) => {
+    const subscription = await this.subscriptionRepository.findOne({
+      where: { customerId, subscriptionId }
+    })
+    if (!subscription) {
+      return Result.fail(404, 'SUBSCRIPTION_NOT_FOUND')
+    }
+    await this.subscriptionRepository.delete({ customerId, subscriptionId })
+    return Result.ok({})
+  }
 }

@@ -1,9 +1,20 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, OneToMany, Check, OneToOne, Index } from "typeorm"
-import { Customer } from "./customer.entity"
-import { Post } from "./post.entity"
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+  Check,
+  OneToOne,
+  Index
+} from 'typeorm'
+import { Customer } from './customer.entity'
+import { Post } from './post.entity'
 
 @Entity('Rate')
-@Index(["raterId", "postId"], { unique: true })
+@Index(['raterId', 'postId'], { unique: true })
 export class Rate {
   @PrimaryGeneratedColumn()
   rateId: number
@@ -15,10 +26,13 @@ export class Rate {
   @Check(`"numRate" BETWEEN 1 AND 5`)
   numRate: number
 
-  @Column({ type: 'nvarchar', length: 100, nullable: true })
+  @Column({ type: 'nvarchar', length: 100, nullable: true, default: '' })
   comment: string
 
-  @CreateDateColumn()
+  @Column({
+    type: 'datetime',
+    default: () => 'CURRENT_TIMESTAMP'
+  })
   createdAt: Date
 
   @Column({ type: 'int' })
@@ -31,5 +45,4 @@ export class Rate {
   @ManyToOne(() => Post, (post) => post.rates)
   @JoinColumn({ name: 'postId' })
   post: Post
-
 }

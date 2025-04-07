@@ -1,6 +1,6 @@
 import PostService from '@/services/post.service'
 import ResponseData from '@/utils/data-types/response'
-import deleteFileFromDisk from '@/utils/func/delete-file'
+import { deleteFileFromDisk, deleteFileFromDisk2 } from '@/utils/func/delete-file'
 import { NextFunction, Request, Response } from 'express'
 import { validationResult } from 'express-validator'
 import { CreatePostDto } from './dto/create-post.dto'
@@ -37,6 +37,8 @@ class PostController {
       }
     } catch (e) {
       next(e)
+    } finally {
+      deleteFileFromDisk2(req.files as any)
     }
   }
 
@@ -143,6 +145,7 @@ class PostController {
       }
     } catch (e) {}
   }
+  
   unHideMyPost = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const postId = Number(req.body.postId)

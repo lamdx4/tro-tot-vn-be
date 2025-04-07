@@ -27,7 +27,7 @@ export default class PostService {
     }
     const post = await this.postRepository.findOne({
       where: { postId },
-      select: { postId: true, status: true }
+      select: { postId: true, status: true, extendedAt: true }
     })
     if (!post) {
       return Result.fail(404, 'POST_NOT_FOUND')
@@ -36,6 +36,11 @@ export default class PostService {
       return Result.fail(400, 'STATE_NOT_ALLOW')
     }
     post.status = PostStatus.APPROVED
+    const sixtyDaysAgo = new Date()
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
+    if (post.extendedAt < sixtyDaysAgo) {
+      post.extendedAt = new Date()
+    }
     await this.postRepository.save(post)
     return Result.ok({})
   }
@@ -137,6 +142,7 @@ export default class PostService {
       return Result.fail(500, 'Uploaded failure')
     }
   }
+
   async getDetailMyPost(postId: number, customerId: number) {
     const post = await this.postRepository.findOne({
       where: { postId, ownerId: customerId },
