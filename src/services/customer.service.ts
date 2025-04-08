@@ -1,7 +1,6 @@
 import { PostStatus } from '@/domains/entities/enum/value-object'
 import {
   AccountRepository,
-  AppointmentRepository,
   CustomerRepository,
   PostRepository,
   PostViewHistoryRepository,
@@ -18,7 +17,6 @@ export class CustomerService {
   private customerRepository: CustomerRepository
   private postRepository: PostRepository
   private savedPostRepository: SavedPostRepository
-  private appointmentRepository: AppointmentRepository
   private historyRepository: PostViewHistoryRepository
   private rateRepository: RateRepository
   private subscriptionRepository: SubscriptionAreaPostRepository
@@ -28,7 +26,6 @@ export class CustomerService {
     this.customerRepository = new CustomerRepository()
     this.postRepository = new PostRepository()
     this.savedPostRepository = new SavedPostRepository()
-    this.appointmentRepository = new AppointmentRepository()
     this.historyRepository = new PostViewHistoryRepository()
     this.rateRepository = new RateRepository()
     this.subscriptionRepository = new SubscriptionAreaPostRepository()
@@ -292,50 +289,6 @@ export class CustomerService {
       return savedPost.post
     })
     return Result.ok(data)
-  }
-
-  async createAppointment(customerId: number, postId: number, appointmentAt: Date) {
-    const post = await this.postRepository.findOne({
-      where: { postId: postId, status: PostStatus.APPROVED }
-    })
-    if (post === null) {
-      return Result.fail(404, 'POST_NOT_FOUND')
-    }
-
-    const existingAppointments = await this.appointmentRepository.find({
-      where: { requesterId: customerId },
-      order: { appointmentAt: 'DESC' }
-    })
-
-    for (const existingAppointment of existingAppointments) {
-      const timeDifference = Math.abs(
-        new Date(existingAppointment.appointmentAt).getTime() - new Date(appointmentAt).getTime()
-      )
-      const hoursDifference = timeDifference / (1000 * 60 * 60)
-      if (hoursDifference < 24) {
-        return Result.fail(400, 'APPOINTMENTS_MUST_BE_24H_APART')
-      }
-    }
-
-    const appointment = await this.appointmentRepository.exists({
-      where: { postId: postId, requesterId: customerId, appointmentAt: appointmentAt }
-    })
-    if (appointment) {
-      return Result.fail(400, 'APPOINTMENT_ALREADY_EXISTS')
-    }
-
-    const r = await this.appointmentRepository.insert({
-      postId: postId,
-      requesterId: customerId,
-      status: 'Pending',
-      appointmentAt: appointmentAt
-    })
-    if (!r.identifiers[0].appointmentId) {
-      return Result.fail(500, 'INTERNAL_SERVER_ERROR')
-    }
-    return Result.ok({
-      appointmentId: r.identifiers[0].appointmentId
-    })
   }
 
   async getAnalytics(customerId: number) {}

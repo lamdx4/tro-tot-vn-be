@@ -1,6 +1,6 @@
 export * from './account.repository'
 export * from './admin.repository'
-export * from './appointment.repository'
+// export * from './appointment.repository'
 export * from './customer.repository'
 // export * from './message.repository'
 export * from './multimedia-file.repository'
