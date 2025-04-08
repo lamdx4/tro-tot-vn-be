@@ -39,7 +39,7 @@ export class AdminModeratePost implements EntitySubscriberInterface<PostModerati
         mailService.sendMail({
           sender: 'TroTotVN',
           from: 'TroTotVN',
-          to: 'dagxuanlam@gmail.com',
+          to: history.post.owner.account.email,
           subject: 'Tin của bạn đã được duyệt',
           html: `
             <h1>Chúc mừng bạn!</h1>
@@ -59,7 +59,7 @@ export class AdminModeratePost implements EntitySubscriberInterface<PostModerati
         mailService.sendMail({
           sender: 'TroTotVN',
           from: 'TroTotVN.vn',
-          to: 'dagxuanlam@gmail.com',
+          to: history.post.owner.account.email,
           subject: 'Tin của bạn đã bị từ chối',
           html: `
             <h1>Rát tiếc</h1>
