@@ -8,6 +8,7 @@ class AuthController {
 
   async registerAccount(req: Request, res: Response, next: NextFunction) {
     const { phone, email, firstName, lastName, birthday, gender, password } = req.body
+    console.log('newUser', req.body)
     const newUser = await this.authService.registerAccount(
       phone,
       email,
@@ -164,6 +165,20 @@ class AuthController {
         return
       }
       res.status(result.code).json(ResponseData.error(result.code, 'INVALID_REFRESH_TOKEN', 'Invalid refresh token'))
+    } catch (error) {
+      next(error)
+    }
+  }
+  changePassword = async (req: Request, res: Response, next: NextFunction) => { 
+    try {
+      const { oldPassword, newPassword } = req.body
+      const accountId = Number(req.user?.accountId)
+      const result = await this.authService.changePassword(accountId, oldPassword, newPassword)
+      if (result.isSuccess) {
+        res.status(200).json(ResponseData.success(result.getValue()))
+      } else {
+        res.status(result.code).json(ResponseData.error(result.code, result.error ?? '', ''))
+      }
     } catch (error) {
       next(error)
     }
