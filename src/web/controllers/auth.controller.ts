@@ -137,6 +137,7 @@ class AuthController {
     const { identifier, password } = req.body
     try {
       const result = await this.authService.login(identifier, password)
+      
       res.status(200).json(ResponseData.success(result))
     } catch (error) {
       next(error)
