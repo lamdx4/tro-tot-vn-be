@@ -72,7 +72,6 @@ class AdminController {
   async getHistoryOfPost(req: Request, res: Response, next: NextFunction) {
     try {
       const postId = Number(req.params.postId);
-      console.log("postId", postId)
       const result = await this.adminService.getHistoryOfPost(postId)
       if (result.isSuccess) {
         res.status(200).json(ResponseData.success(result.getValue()))

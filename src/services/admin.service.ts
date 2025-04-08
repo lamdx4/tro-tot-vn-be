@@ -104,8 +104,6 @@ export default class AdminService {
 
   async getHistoryOfPost(postId: number) {
     const post = await this.postRepository.findOne({ where: { postId } })
-    console.log("postId", postId)
-    console.log("post", post)
     if (!post) {
       return Result.fail(404, 'POST_NOT_FOUND')
     }

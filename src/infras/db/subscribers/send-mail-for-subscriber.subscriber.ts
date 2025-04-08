@@ -54,10 +54,10 @@ export class CreateParticipantCustomerSubscriber implements EntitySubscriberInte
                 }
               })
               if (customer) {
-                await mailService.sendMail({
+                mailService.sendMail({
                   from: 'TroTotVN',
                   to: customer.account.email,
-                  subject: 'OTP Verification',
+                  subject: 'Tin trọ mới từ TroTotVN',
                   html: `<h1>Có bài viết mới trong khu vực mà bạn đã đăng ký.</h1> 
                 </br> 
                 <p>${post.title}</p> <p>${post.postId}</p>
