@@ -1,7 +1,6 @@
 export enum AccountStatus {
   INACTIVE = 'InActive',
   ACTIVE = 'Active',
-  BANNED = 'Banned'
 }
 
 export enum Gender {
@@ -19,7 +18,6 @@ export enum PostStatus {
 export enum ActionType {
   APPROVED = 'Approved',
   REJECTED = 'Rejected',
-  SUSPENDED = 'Suspended'
 }
 
 export enum InteriorCondition {

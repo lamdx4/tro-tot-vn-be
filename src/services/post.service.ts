@@ -9,6 +9,7 @@ import { Result } from '@/utils/data-types/result'
 import { MoreThan } from 'typeorm'
 import { UpdatePostDto } from '@/web/controllers/dto/update-post.dto'
 
+
 export default class PostService {
   private postRepository: PostRepository
   private cloudService: CloudDriveService
@@ -343,6 +344,7 @@ export default class PostService {
       return Result.fail(500, 'Get post failure')
     }
   }
+
   async createPost(customer: Customer, dto: CreatePostDto, imgs: Express.Multer.File[], video?: Express.Multer.File) {
     const listId = await this.cloudService.uploadFiles(video ? [...imgs, video] : imgs)
     if (!listId) {
