@@ -10,12 +10,9 @@ export class PostRepository extends BaseRepository<Post> {
   }
   async createPost(post: Post, listFile: MultimediaFile[]): Promise<void> {
     await this.manager.transaction(async (transactionalEntityManager) => {
-      await transactionalEntityManager.getRepository(Post).update(
-        {
-          postId: post.postId
-        },
-        { ...post }
-      )
+      const result = await transactionalEntityManager.getRepository(Post).insert(post)
+      const postId = result.identifiers[0].postId
+      post.postId = postId
       await transactionalEntityManager.getRepository(MultimediaFile).save(listFile)
       await transactionalEntityManager.getRepository(PostMultimediaFile).save(
         listFile.map((file) => {

@@ -93,7 +93,7 @@ class PostController {
 
   getDetailPost = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      let r = await this.postService.getPostDetail(Number(req.params.postId))
+      let r = await this.postService.getPostDetail(Number(req.params.postId), req.headers['authorization'])
       if (r.isSuccess) {
         res.status(200).json(ResponseData.success(r.getValue()))
       } else {
@@ -145,7 +145,7 @@ class PostController {
       }
     } catch (e) {}
   }
-  
+
   unHideMyPost = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const postId = Number(req.body.postId)
