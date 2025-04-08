@@ -13,7 +13,6 @@ export class PostModerationHistoryRepository extends BaseRepository<PostModerati
   async moderatePost(reviewerId: number, postId: number, actionType: string, reason: string) {
     try {
       return this.manager.transaction(async (transactionalEntityManager) => {
-        console.log('moderatePost', reviewerId, postId, actionType, reason)
         const postRepository = transactionalEntityManager.getRepository(Post)
         await postRepository.save(
           {
@@ -23,7 +22,7 @@ export class PostModerationHistoryRepository extends BaseRepository<PostModerati
         )
         
         const postModerateHistoryRepository = transactionalEntityManager.getRepository(PostModerationHistory)
-        const postModerateHistory = await postModerateHistoryRepository.create()
+        const postModerateHistory = postModerateHistoryRepository.create()
         postModerateHistory.postId = postId
         postModerateHistory.adminId = reviewerId
         postModerateHistory.actionType = actionType
