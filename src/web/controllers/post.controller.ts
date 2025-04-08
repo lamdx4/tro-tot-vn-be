@@ -1,16 +1,47 @@
 import PostService from '@/services/post.service'
 import ResponseData from '@/utils/data-types/response'
-import deleteFileFromDisk from '@/utils/func/delete-file'
+import { deleteFileFromDisk, deleteFileFromDisk2 } from '@/utils/func/delete-file'
 import { NextFunction, Request, Response } from 'express'
 import { validationResult } from 'express-validator'
 import { CreatePostDto } from './dto/create-post.dto'
 import { CursorPaging } from '@/utils/data-types/paging-response'
+import { UpdatePostDto } from './dto/update-post.dto'
 
 class PostController {
   private postService: PostService
   constructor() {
     this.postService = new PostService()
   }
+
+  editPost = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        res.status(400).json(new ResponseData(400, 'Invalid Request', errors.array()))
+        return
+      }
+      const dto = req.body as UpdatePostDto
+      dto.oldFiles = JSON.parse(req.body.oldFiles) as Array<number>
+      const files = req.files as { newImgs: Express.Multer.File[]; newVideo: Express.Multer.File[] }
+      let r = await this.postService.editPost(
+        req.user?.customer!.customerId!,
+        Number(req.params.postId),
+        dto,
+        files.newImgs,
+        files.newVideo[0]
+      )
+      if (r.isSuccess) {
+        res.status(200).json(new ResponseData(200, 'Upload successfully'))
+      } else {
+        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+      }
+    } catch (e) {
+      next(e)
+    } finally {
+      deleteFileFromDisk2(req.files as any)
+    }
+  }
+
   createPost = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const errors = validationResult(req)
@@ -71,6 +102,61 @@ class PostController {
     } catch (e) {
       next(e)
     }
+  }
+
+  getDetailMyPost = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      let r = await this.postService.getDetailMyPost(Number(req.params.postId), req.user?.customer!.customerId!)
+      if (r.isSuccess) {
+        res.status(200).json(ResponseData.success(r.getValue()))
+      } else {
+        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+      }
+    } catch (e) {
+      next(e)
+    }
+  }
+
+  getLastPost = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const limit = Number(req.query.limit) || 4
+      const r = await this.postService.getLastPost(limit)
+      if (r.isSuccess) {
+        res.status(200).json(ResponseData.success(r.getValue()))
+      } else {
+        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+      }
+    } catch (e) {
+      next(e)
+    }
+  }
+
+  hideMyPost = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const postId = Number(req.body.postId)
+      const customerId = Number(req.user?.customer.customerId)
+      console.log('postId', postId)
+      console.log('customerId', customerId)
+      let r = await this.postService.hidePost(postId, customerId)
+      if (r.isSuccess) {
+        res.status(200).json(ResponseData.success(r.getValue()))
+      } else {
+        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+      }
+    } catch (e) {}
+  }
+  
+  unHideMyPost = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const postId = Number(req.body.postId)
+      const customerId = Number(req.user?.customer.customerId)
+      let r = await this.postService.unHidePost(postId, customerId)
+      if (r.isSuccess) {
+        res.status(200).json(ResponseData.success(r.getValue()))
+      } else {
+        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+      }
+    } catch (e) {}
   }
 }
 export default new PostController()

@@ -1,12 +1,12 @@
 import { Entity, PrimaryGeneratedColumn, Column, Check, ManyToOne, JoinColumn, OneToMany, OneToOne } from 'typeorm'
 import { Account } from './account.entity'
-import { Appointment } from './appointment.entity'
+// import { Appointment } from './appointment.entity'
 import { PostViewHistory } from './post-view-history.entity'
 import { Post } from './post.entity'
 import { Rate } from './rate.entity'
 import { SavedPost } from './saved-post.entity'
 import { SubscriptionAreaPost } from './subscription-area-post.entity'
-import { Participant } from './participant.entity'
+// import { Participant } from './participant.entity'
 import { MultimediaFile } from './multimedia-file.entity'
 
 @Entity('Customer')
@@ -20,7 +20,7 @@ export class Customer {
   @Column({ type: 'int', nullable: false })
   accountId: number
 
-  @Column({ type: 'tinyint', default: 0 })
+  @Column({ type: 'tinyint', default: 1 })
   isVerified: number
 
   @Column({
@@ -71,14 +71,14 @@ export class Customer {
   @OneToMany(() => PostViewHistory, (history) => history.customer)
   viewHistories: PostViewHistory[]
 
-  @OneToMany(() => Appointment, (appointment) => appointment.requester)
-  appointments: Appointment[]
+  // @OneToMany(() => Appointment, (appointment) => appointment.requester)
+  // appointments: Appointment[]
 
   @OneToMany(() => SubscriptionAreaPost, (subscription) => subscription.customer)
   subscriptions: SubscriptionAreaPost[]
 
-  @OneToOne(() => Participant, (participant) => participant.customer)
-  participant: Participant
+  // @OneToOne(() => Participant, (participant) => participant.customer)
+  // participant: Participant
 
   @OneToOne(() => MultimediaFile, (file) => file.customer)
   avatarFile: MultimediaFile

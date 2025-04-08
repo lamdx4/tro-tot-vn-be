@@ -5,6 +5,8 @@ import validateLogin from '../validator/login.validate'
 import { forgotPasswordValidation, resetPasswordValidation, verifyOtpValidation } from '../validator/auth.validation'
 import { validateRequest } from '../middlewares/validateRequest.middleware'
 import { refreshTokenValidator } from '../validator/refresh-token.validate'
+import changePasswordValidation from '../validator/change-password.validate'
+import authenticateMiddleware from '../middlewares/authenticate.middleware'
 
 const authRouter = express.Router()
 
@@ -32,5 +34,13 @@ authRouter.post('/login', validateLogin, authController.login.bind(authControlle
 authRouter.post('/refresh-token', refreshTokenValidator, authController.refreshToken.bind(authController))
 
 authRouter.post('/logout', refreshTokenValidator, authController.logout.bind(authController))
+
+authRouter.post(
+  '/change-password',
+  authenticateMiddleware,
+  changePasswordValidation,
+  authController.changePassword.bind(authController)
+)
+
 
 export default authRouter

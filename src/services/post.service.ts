@@ -4,9 +4,11 @@ import { PostRepository } from '@/infras/repositories'
 import { CreatePostDto } from '@/web/controllers/dto/create-post.dto'
 import CloudDriveService from './google-drive.service'
 import { MultimediaFile } from '@/domains/entities/multimedia-file.entity'
-import { MultimediaType } from '@/domains/entities/enum/value-object'
+import { MultimediaType, PostStatus } from '@/domains/entities/enum/value-object'
 import { Result } from '@/utils/data-types/result'
 import { MoreThan } from 'typeorm'
+import { UpdatePostDto } from '@/web/controllers/dto/update-post.dto'
+
 
 export default class PostService {
   private postRepository: PostRepository
@@ -16,6 +18,229 @@ export default class PostService {
     this.cloudService = CloudDriveService.gI()
   }
 
+  async unHidePost(postId: number, customerId: number) {
+    const isOwner = await this.postRepository.findOne({
+      where: { postId, ownerId: customerId },
+      select: { postId: true, ownerId: true }
+    })
+    if (!isOwner) {
+      return Result.fail(403, 'CUSTOMER_NOT_OWNER')
+    }
+    const post = await this.postRepository.findOne({
+      where: { postId },
+      select: { postId: true, status: true, extendedAt: true }
+    })
+    if (!post) {
+      return Result.fail(404, 'POST_NOT_FOUND')
+    }
+    if (post.status !== PostStatus.HIDDEN) {
+      return Result.fail(400, 'STATE_NOT_ALLOW')
+    }
+    post.status = PostStatus.APPROVED
+    const sixtyDaysAgo = new Date()
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
+    if (post.extendedAt < sixtyDaysAgo) {
+      post.extendedAt = new Date()
+    }
+    await this.postRepository.save(post)
+    return Result.ok({})
+  }
+
+  async editPost(
+    customerId: number,
+    postId: number,
+    dto: UpdatePostDto,
+    newImgs: Express.Multer.File[],
+    newVideo: Express.Multer.File
+  ) {
+    try {
+      const post = await this.postRepository.findOne({
+        where: { postId, ownerId: customerId },
+        relations: {
+          multimediaFiles: {
+            file: true
+          }
+        },
+        select: {
+          postId: true,
+          title: true,
+          description: true,
+          price: true,
+          streetNumber: true,
+          street: true,
+          city: true,
+          district: true,
+          ward: true,
+          interiorCondition: true,
+          acreage: true,
+          createdAt: true,
+          status: true,
+          multimediaFiles: {
+            fileId: true,
+            file: {
+              fileId: true,
+              fileCloudId: true,
+              fileType: true,
+              createdAt: true
+            }
+          }
+        }
+      })
+      if (!post) {
+        return Result.fail(403, 'CUSTOMER_NOT_OWNER')
+      }
+      if (!post) {
+        return Result.fail(404, 'POST_NOT_FOUND')
+      }
+      const listId = await this.cloudService.uploadFiles(newVideo ? [...newImgs, newVideo] : newImgs)
+      if (!listId) {
+        throw new Error('Cannot upload files')
+      }
+      console.log(dto)
+      post.title = dto.title
+      post.description = dto.description
+      post.price = Number(dto.price)
+      post.streetNumber = dto.streetNumber
+      post.street = dto.street
+      post.city = dto.city
+      post.district = dto.district
+      post.ward = dto.ward
+      post.interiorCondition = dto.interiorStatus
+      post.acreage = Number(dto.acreage)
+      post.extendedAt = new Date()
+      const mediaFile = listId.map((id) => {
+        const file = new MultimediaFile()
+        file.fileCloudId = id.fileId
+        file.fileType = id.fileType.startsWith('image/') ? MultimediaType.IMAGE : MultimediaType.VIDEO
+        return file
+      })
+      const deletedFileIds = post.multimediaFiles.filter((v) => {
+        return !dto.oldFiles.find((i) => Number(i) === v.fileId)
+      })
+      console.log(deletedFileIds)
+      console.log(post.multimediaFiles)
+
+      if (deletedFileIds.length > 0) {
+        for (const file of deletedFileIds) {
+          if (file) {
+            console.log(file.file.fileCloudId)
+            await this.cloudService.delete(file.file.fileCloudId)
+            const isDeletedFile = await this.postRepository.removeFileFromPost(post.postId, file.fileId)
+            if (!isDeletedFile) {
+              return Result.fail(500, 'DELETED_FAILURE')
+            }
+          }
+        }
+      }
+      const isSuccess = await this.postRepository.editPost(post, mediaFile)
+      console.log(isSuccess)
+      if (!isSuccess) {
+        return Result.fail(500, '"Uploaded failure"')
+      }
+      return Result.ok('Upload successfully')
+    } catch (e) {
+      console.log(e)
+      return Result.fail(500, 'Uploaded failure')
+    }
+  }
+
+  async getDetailMyPost(postId: number, customerId: number) {
+    const post = await this.postRepository.findOne({
+      where: { postId, ownerId: customerId },
+      relations: {
+        multimediaFiles: {
+          file: true
+        }
+      },
+      select: {
+        postId: true,
+        title: true,
+        description: true,
+        price: true,
+        streetNumber: true,
+        street: true,
+        city: true,
+        district: true,
+        ward: true,
+        interiorCondition: true,
+        acreage: true,
+        createdAt: true,
+        status: true,
+        multimediaFiles: {
+          fileId: true,
+          file: {
+            fileId: true,
+            fileType: true,
+            createdAt: true
+          }
+        }
+      }
+    })
+    if (!post) {
+      return Result.fail(404, 'POST_NOT_FOUND')
+    }
+    return Result.ok(post)
+  }
+
+  async hidePost(postId: number, customerId: number) {
+    const isOwner = await this.postRepository.findOne({
+      where: { postId, ownerId: customerId },
+      select: { postId: true, ownerId: true }
+    })
+    if (!isOwner) {
+      return Result.fail(403, 'CUSTOMER_NOT_OWNER')
+    }
+    const post = await this.postRepository.findOne({
+      where: { postId },
+      select: { postId: true, status: true }
+    })
+    if (!post) {
+      return Result.fail(404, 'POST_NOT_FOUND')
+    }
+    if (post.status !== PostStatus.APPROVED) {
+      return Result.fail(400, 'STATE_NOT_ALLOW')
+    }
+    post.status = PostStatus.HIDDEN
+    await this.postRepository.save(post)
+    return Result.ok({})
+  }
+
+  async getLastPost(limit: number) {
+    try {
+      const posts = await this.postRepository.find({
+        select: {
+          postId: true,
+          title: true,
+          description: true,
+          price: true,
+          streetNumber: true,
+          street: true,
+          city: true,
+          district: true,
+          ward: true,
+          interiorCondition: true,
+          acreage: true,
+          createdAt: true,
+          status: true,
+          extendedAt: true,
+          multimediaFiles: {
+            fileId: true,
+            postId: false
+          }
+        },
+        relations: {
+          multimediaFiles: true
+        },
+        where: { status: 'Approved' },
+        order: { createdAt: 'DESC' },
+        take: limit
+      })
+      return Result.ok(posts)
+    } catch (e) {
+      console.log(e)
+      return Result.fail(500, 'Get post failure')
+    }
+  }
   async getPostDetail(postId: number) {
     try {
       const post = await this.postRepository.findOne({
@@ -120,12 +345,7 @@ export default class PostService {
     }
   }
 
-  createPost = async (
-    customer: Customer,
-    dto: CreatePostDto,
-    imgs: Express.Multer.File[],
-    video?: Express.Multer.File
-  ) => {
+  async createPost(customer: Customer, dto: CreatePostDto, imgs: Express.Multer.File[], video?: Express.Multer.File) {
     const listId = await this.cloudService.uploadFiles(video ? [...imgs, video] : imgs)
     if (!listId) {
       throw new Error('Cannot upload files')
