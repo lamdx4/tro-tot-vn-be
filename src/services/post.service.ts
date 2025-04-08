@@ -1,21 +1,23 @@
 import { Customer } from '@/domains/entities/customer.entity'
 import { Post } from '@/domains/entities/post.entity'
-import { PostRepository } from '@/infras/repositories'
+import { AccountRepository, PostRepository, PostViewHistoryRepository } from '@/infras/repositories'
 import { CreatePostDto } from '@/web/controllers/dto/create-post.dto'
 import CloudDriveService from './google-drive.service'
 import { MultimediaFile } from '@/domains/entities/multimedia-file.entity'
-import { MultimediaType, PostStatus } from '@/domains/entities/enum/value-object'
+import { MultimediaType, PostStatus, RoleType } from '@/domains/entities/enum/value-object'
 import { Result } from '@/utils/data-types/result'
 import { MoreThan } from 'typeorm'
 import { UpdatePostDto } from '@/web/controllers/dto/update-post.dto'
-
+import JWTService from './jwt.service'
 
 export default class PostService {
   private postRepository: PostRepository
   private cloudService: CloudDriveService
+  private postViewHistoryRepository: PostViewHistoryRepository
   constructor() {
     this.postRepository = new PostRepository()
     this.cloudService = CloudDriveService.gI()
+    this.postViewHistoryRepository = new PostViewHistoryRepository()
   }
 
   async unHidePost(postId: number, customerId: number) {
@@ -241,7 +243,8 @@ export default class PostService {
       return Result.fail(500, 'Get post failure')
     }
   }
-  async getPostDetail(postId: number) {
+
+  async getPostDetail(postId: number, authorizationToken?: string) {
     try {
       const post = await this.postRepository.findOne({
         select: {
@@ -294,6 +297,47 @@ export default class PostService {
       if (!post) {
         return Result.fail(404, 'Post not found')
       }
+
+      try {
+        if (authorizationToken) {
+          const token = (authorizationToken.startsWith('Bearer ') ?? '') ? authorizationToken.split(' ')[1] : undefined
+          if (token) {
+            const jwtService = new JWTService()
+            const result = jwtService.verifyAccessToken(token)
+            const account = result.getValue() ?? undefined
+            if (account) {
+              if (account.role.roleName === RoleType.CUSTOMER) {
+                const isViewHistory = await this.postViewHistoryRepository.findOne({
+                  where: {
+                    customerId: account.customer.customerId,
+                    postId: postId
+                  }
+                })
+                if (!isViewHistory) {
+                  await this.postViewHistoryRepository.save({
+                    customerId: account.customer.customerId,
+                    postId: postId,
+                    viewedAt: new Date()
+                  })
+                } else
+                  await this.postViewHistoryRepository.update(
+                    {
+                      historyId: isViewHistory?.historyId
+                    },
+                    {
+                      customerId: account.customer.customerId,
+                      postId: postId,
+                      viewedAt: new Date()
+                    }
+                  )
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.log(e)
+      }
+
       return Result.ok(post)
     } catch (e) {
       console.log(e)
@@ -373,6 +417,9 @@ export default class PostService {
       return Result.ok('Upload successfully')
     } catch (e) {
       console.log(e)
+      for (const id of listId) {
+        this.cloudService.delete(id.fileId)
+      }
       return Result.fail(500, 'Uploaded failure')
     }
   }

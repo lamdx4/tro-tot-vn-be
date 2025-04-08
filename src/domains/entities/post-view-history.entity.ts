@@ -1,8 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm'
 import { Customer } from './customer.entity'
 import { Post } from './post.entity'
 
 @Entity('PostViewHistory')
+@Index(['postId', 'customerId'], { unique: true })
 export class PostViewHistory {
   @PrimaryGeneratedColumn()
   historyId: number
