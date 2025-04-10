@@ -92,4 +92,15 @@ customerRouter.delete(
   authenticateMiddleware,
   customerController.deleteSubscription.bind(customerController)
 )
+
+customerRouter.get(
+  '/history-view-post',
+  authenticateMiddleware,
+  customerController.getHistoryViewPost.bind(customerController)
+)
+customerRouter.post(
+  '/history-view-post',
+  authenticateMiddleware,
+  customerController.addPostHistoryView.bind(customerController)
+)
 export default customerRouter

@@ -262,7 +262,7 @@ export class CustomerService {
   }
   async getViewedPost(customerId: number) {
     const viewedPosts = await this.historyRepository.find({
-      where: { customerId, post: { status: PostStatus.APPROVED } },
+      where: { customerId},
       relations: {
         post: {
           multimediaFiles: { file: true }
@@ -273,8 +273,43 @@ export class CustomerService {
     const data = viewedPosts.map((viewedPost) => {
       return viewedPost.post
     })
+    console.log('getViewedPost', data)
     return Result.ok(data)
   }
+  async addPostHistoryView(customerId: number, postId: number) {
+    const post = await this.postRepository.findOne({
+      where: { postId: postId, status: PostStatus.APPROVED }
+    })
+    if (post === null) {
+      return Result.fail(404, 'POST_NOT_FOUND')
+    }
+    const isOwner = await this.postRepository.findOne({
+      where: { postId: postId, ownerId: customerId }
+    })
+    if (isOwner) {
+      return Result.fail(400, 'CANNOT_VIEW_OWN_POST')
+    }
+    const isExist = await this.historyRepository.findOne({
+      where: { customerId, postId }
+    })
+    if (isExist) {
+      await this.historyRepository.update(
+        { customerId, postId },
+        {
+          viewedAt: new Date()
+        }
+      )
+    } else {
+      const object = {
+        customerId: customerId,
+        postId: postId,
+        viewedAt: new Date()
+      }
+      await this.historyRepository.insert(object)
+    }
+    return Result.ok({})
+  }
+
   async getSavedPost(customerId: number) {
     const savedPosts = await this.savedPostRepository.find({
       where: { customerId, post: { status: PostStatus.APPROVED } },
@@ -340,4 +375,5 @@ export class CustomerService {
     await this.subscriptionRepository.delete({ customerId, subscriptionId })
     return Result.ok({})
   }
+  
 }
