@@ -68,4 +68,6 @@ postRouter.post(
   postController.unHideMyPost.bind(postController)
 )
 
+postRouter.get('/search', postController.searchPost.bind(postController))
+
 export default postRouter

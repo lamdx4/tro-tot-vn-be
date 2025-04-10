@@ -20,8 +20,21 @@ export class PostRepository extends BaseRepository<Post> {
     cursor?: number | null,
     limit = 20
   ): Promise<Post[]> {
+    console.log('search', search)
+    console.log('city', city)
+    console.log('district', district)
+    console.log('ward', ward)
+    console.log('interiorCondition', interiorCondition)
+    console.log('acreage', acreage)
+    console.log('price', price)
+    console.log('cursor', cursor)
+    console.log('limit', limit)
+
     const repo = this.manager.getRepository(Post)
-    const qb = repo.createQueryBuilder('post')
+    const qb = repo
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.multimediaFiles', 'postFile')
+      .leftJoinAndSelect('postFile.file', 'file')
 
     // Chỉ lấy bài đã duyệt
     qb.where('post.status = :status', { status: PostStatus.APPROVED })
@@ -42,7 +55,7 @@ export class PostRepository extends BaseRepository<Post> {
     if (district) {
       qb.andWhere('post.district = :district', { district })
     }
-    if( interiorCondition) {
+    if (interiorCondition) {
       qb.andWhere('post.interiorCondition = :interiorCondition', { interiorCondition })
     }
     if (ward) {
@@ -64,10 +77,11 @@ export class PostRepository extends BaseRepository<Post> {
     if (cursor) {
       qb.andWhere('post.createdAt < :cursor', { cursor })
     }
-    
+
     // Giới hạn số kết quả và sắp xếp (ví dụ: mới nhất trước)
     qb.orderBy('post.createdAt', 'DESC').limit(limit)
-
+    console.log('query', qb.getSql())
+    console.log('parameters', qb.getParameters())
     return qb.getMany()
   }
 
