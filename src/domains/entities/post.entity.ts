@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, Check, ManyToOne, JoinColumn, OneToMany, AfterInsert, AfterUpdate } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, Check, ManyToOne, JoinColumn, OneToMany, AfterInsert, AfterUpdate, Index } from 'typeorm'
 // import { Appointment } from './appointment.entity'
 import { Customer } from './customer.entity'
 import { PostModerationHistory } from './post-moderator-history.entity'
@@ -14,6 +14,8 @@ import { InteriorCondition, PostStatus } from './enum/value-object'
 @Check(`price >= 0`)
 @Check(`acreage > 0`)
 export class Post {
+
+  @Index('PK_Post', ['postId'], { unique: true })
   @PrimaryGeneratedColumn()
   postId: number
 

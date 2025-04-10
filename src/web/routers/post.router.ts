@@ -23,7 +23,13 @@ postRouter.post(
   postController.createPost.bind(postController)
 )
 
-postRouter.get('/list', authenticateMiddleware, getPostValidate, postController.getMyPosts.bind(postController))
+postRouter.get(
+  '/list',
+  authenticateMiddleware,
+  getPostValidate,
+  requireRoleMiddleware([RoleType.CUSTOMER]),
+  postController.getMyPosts.bind(postController)
+)
 
 postRouter.get('/:postId/detail', getDetailPostValidate, postController.getDetailPost.bind(postController))
 

@@ -8,6 +8,69 @@ export class PostRepository extends BaseRepository<Post> {
   constructor() {
     super(Post)
   }
+
+  async searchPost(
+    search: string,
+    city?: string,
+    district?: string,
+    ward?: string,
+    interiorCondition?: string | null,
+    acreage?: [number, number],
+    price?: [number, number],
+    cursor?: number | null,
+    limit = 20
+  ): Promise<Post[]> {
+    const repo = this.manager.getRepository(Post)
+    const qb = repo.createQueryBuilder('post')
+
+    // Chỉ lấy bài đã duyệt
+    qb.where('post.status = :status', { status: PostStatus.APPROVED })
+
+    // Full‑Text Search trên các cột chính
+    qb.andWhere(
+      `FREETEXT(
+         (post.title, post.description, post.street, post.ward, post.district, post.city),
+         :search
+       )`,
+      { search }
+    )
+
+    // Các filter bổ sung
+    if (city) {
+      qb.andWhere('post.city = :city', { city })
+    }
+    if (district) {
+      qb.andWhere('post.district = :district', { district })
+    }
+    if( interiorCondition) {
+      qb.andWhere('post.interiorCondition = :interiorCondition', { interiorCondition })
+    }
+    if (ward) {
+      qb.andWhere('post.ward = :ward', { ward })
+    }
+    if (acreage) {
+      qb.andWhere('post.acreage BETWEEN :minA AND :maxA', {
+        minA: acreage[0],
+        maxA: acreage[1]
+      })
+    }
+    if (price) {
+      qb.andWhere('post.price BETWEEN :minP AND :maxP', {
+        minP: price[0],
+        maxP: price[1]
+      })
+    }
+
+    if (cursor) {
+      qb.andWhere('post.createdAt < :cursor', { cursor })
+    }
+    
+    // Giới hạn số kết quả và sắp xếp (ví dụ: mới nhất trước)
+    qb.orderBy('post.createdAt', 'DESC').limit(limit)
+
+    return qb.getMany()
+  }
+
   async createPost(post: Post, listFile: MultimediaFile[]): Promise<void> {
     await this.manager.transaction(async (transactionalEntityManager) => {
       const result = await transactionalEntityManager.getRepository(Post).insert(post)

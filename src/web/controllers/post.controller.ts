@@ -158,5 +158,45 @@ class PostController {
       }
     } catch (e) {}
   }
+
+  searchPost = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const keyword = String(req.query.keyword)
+      const city = String(req.query.city)
+      const district = String(req.query.district)
+      const ward = String(req.query.ward)
+      const acreage = req.query.acreage
+        ? String(req.query.acreage)
+            .split('-')
+            .map((val: string) => Number(val))
+        : null
+      const price = req.query.price
+        ? String(req.query.price)
+            .split('-')
+            .map((val: string) => Number(val))
+        : null
+      const interiorCondition = String(req.query.interiorCondition)
+      const limit = Number(req.query.limit) || 4
+      const cursor = isNaN(Number(req.query.cursor)) ? null : Number(req.query.cursor)
+      const r = await this.postService.searchPost(
+        keyword,
+        city,
+        district,
+        ward,
+        interiorCondition,
+        acreage,
+        price,
+        cursor,
+        limit
+      )
+      if (r.isSuccess) {
+        res.status(200).json(ResponseData.success(r.getValue()))
+      } else {
+        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+      }
+    } catch (e) {
+      next(e)
+    }
+  }
 }
 export default new PostController()

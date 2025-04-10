@@ -12,15 +12,16 @@ import '@/web/routers/router-config'
 
 import AppDataSource from '@/infras/db/datasource'
 
-
 import compression from 'compression'
 import morgan from 'morgan'
 import { notFoundHandler, errorHandler } from '@/web/middlewares/error.middleware'
 import seedData from '@/infras/db/seed-data/seed-data'
+import { setupFullText } from '@/infras/db/setup-fulltext'
 
 async function startApp() {
   try {
     await AppDataSource.initialize()
+    await setupFullText(AppDataSource)
     console.log('Database connected')
   } catch (e) {
     console.error(e)
