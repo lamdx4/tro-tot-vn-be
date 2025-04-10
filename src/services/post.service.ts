@@ -20,6 +20,33 @@ export default class PostService {
     this.postViewHistoryRepository = new PostViewHistoryRepository()
   }
 
+  async searchPost(
+    search: any,
+    city: string,
+    district: string,
+    ward: string,
+    interiorCondition: string | null,
+    acreage: number[] | null,
+    price: number[] | null,
+    cursor: number | null,
+    limit: number
+  ) {
+    const formattedAcreage = acreage ? ([acreage[0], acreage[1]] as [number, number]) : undefined
+    const formattedPrice = price ? ([price[0], price[1]] as [number, number]) : undefined
+    const posts = await this.postRepository.searchPost(
+      search,
+      city,
+      district,
+      ward,
+      interiorCondition,
+      formattedAcreage,
+      formattedPrice,
+      cursor,
+      limit
+    )
+    return Result.ok(posts)
+  }
+
   async unHidePost(postId: number, customerId: number) {
     const isOwner = await this.postRepository.findOne({
       where: { postId, ownerId: customerId },
@@ -347,6 +374,7 @@ export default class PostService {
 
   async getPosts(customer: Customer, status: string, cursor: number, limit: number) {
     try {
+      console.log('customer', customer)
       const posts = await this.postRepository.find({
         select: {
           postId: true,
@@ -372,10 +400,12 @@ export default class PostService {
               fileType: true,
               createdAt: true
             }
-          }
+          },
+          moderationHistories: true
         },
         where: { ownerId: customer.customerId, status: status, postId: MoreThan(cursor) },
         relations: {
+          moderationHistories: true,
           multimediaFiles: {
             file: true
           }
