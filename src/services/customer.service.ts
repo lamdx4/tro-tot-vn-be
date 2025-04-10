@@ -276,40 +276,6 @@ export class CustomerService {
     console.log('getViewedPost', data)
     return Result.ok(data)
   }
-  async addPostHistoryView(customerId: number, postId: number) {
-    const post = await this.postRepository.findOne({
-      where: { postId: postId, status: PostStatus.APPROVED }
-    })
-    if (post === null) {
-      return Result.fail(404, 'POST_NOT_FOUND')
-    }
-    const isOwner = await this.postRepository.findOne({
-      where: { postId: postId, ownerId: customerId }
-    })
-    if (isOwner) {
-      return Result.fail(400, 'CANNOT_VIEW_OWN_POST')
-    }
-    const isExist = await this.historyRepository.findOne({
-      where: { customerId, postId }
-    })
-    if (isExist) {
-      await this.historyRepository.update(
-        { customerId, postId },
-        {
-          viewedAt: new Date()
-        }
-      )
-    } else {
-      const object = {
-        customerId: customerId,
-        postId: postId,
-        viewedAt: new Date()
-      }
-      await this.historyRepository.insert(object)
-    }
-    return Result.ok({})
-  }
-
   async getSavedPost(customerId: number) {
     const savedPosts = await this.savedPostRepository.find({
       where: { customerId, post: { status: PostStatus.APPROVED } },

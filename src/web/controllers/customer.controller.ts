@@ -244,22 +244,7 @@ class CustomerController {
       next(e)
     }
   }
-  addPostHistoryView = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const customerId = Number(req.user?.customer.customerId)
-      console.log('customerId', customerId)
-      const postId = Number(req.body.postId)
-      console.log('postId', postId)
-      const r = await this.customerService.addPostHistoryView(customerId, postId)
-      if (r.isSuccess) {
-        res.status(200).json(ResponseData.success(r.getValue()))
-      } else {
-        res.status(r.code).json(ResponseData.failure(r.code, r.error ?? '', ''))
-      }
-    } catch (e) {
-      next(e)
-    }
-  }
+  
 
 }
 export default new CustomerController()
