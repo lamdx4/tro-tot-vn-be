@@ -21,15 +21,15 @@ export default class PostService {
   }
 
   async searchPost(
-    search: any,
-    city: string,
-    district: string,
-    ward: string,
-    interiorCondition: string | null,
-    acreage: number[] | null,
-    price: number[] | null,
-    cursor: number | null,
-    limit: number
+    search: string,
+    city?: string,
+    district?: string,
+    ward?: string,
+    interiorCondition?: string,
+    acreage?: number[],
+    price?: number[],
+    cursor?: number,
+    limit: number = 10
   ) {
     const formattedAcreage = acreage ? ([acreage[0], acreage[1]] as [number, number]) : undefined
     const formattedPrice = price ? ([price[0], price[1]] as [number, number]) : undefined

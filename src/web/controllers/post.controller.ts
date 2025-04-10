@@ -161,23 +161,23 @@ class PostController {
 
   searchPost = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const keyword = String(req.query.keyword)
-      const city = String(req.query.city)
-      const district = String(req.query.district)
-      const ward = String(req.query.ward)
+      const keyword = req.query.keyword ? String(req.query.keyword) : ''
+      const city = req.query.city ? String(req.query.city) : undefined
+      const district = req.query.district ? String(req.query.district) : undefined
+      const ward = req.query.ward ? String(req.query.ward) : undefined
       const acreage = req.query.acreage
         ? String(req.query.acreage)
             .split('-')
             .map((val: string) => Number(val))
-        : null
+        : undefined
       const price = req.query.price
         ? String(req.query.price)
             .split('-')
             .map((val: string) => Number(val))
-        : null
-      const interiorCondition = String(req.query.interiorCondition)
+        : undefined
+      const interiorCondition = req.query.interiorCondition ? String(req.query.interiorCondition) : undefined
       const limit = Number(req.query.limit) || 4
-      const cursor = isNaN(Number(req.query.cursor)) ? null : Number(req.query.cursor)
+      const cursor = isNaN(Number(req.query.cursor)) ? undefined : Number(req.query.cursor)
       const r = await this.postService.searchPost(
         keyword,
         city,
@@ -190,7 +190,16 @@ class PostController {
         limit
       )
       if (r.isSuccess) {
-        res.status(200).json(ResponseData.success(r.getValue()))
+        res
+          .status(200)
+          .json(
+            ResponseData.success(
+              new CursorPaging(
+                r.getValue()!,
+                r.getValue()!.length > 0 ? r.getValue()![r.getValue()!.length - 1].postId : null
+              ).toResponse()
+            )
+          )
       } else {
         res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
       }
