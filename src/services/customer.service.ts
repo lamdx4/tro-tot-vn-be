@@ -262,7 +262,7 @@ export class CustomerService {
   }
   async getViewedPost(customerId: number) {
     const viewedPosts = await this.historyRepository.find({
-      where: { customerId, post: { status: PostStatus.APPROVED } },
+      where: { customerId},
       relations: {
         post: {
           multimediaFiles: { file: true }
@@ -273,6 +273,7 @@ export class CustomerService {
     const data = viewedPosts.map((viewedPost) => {
       return viewedPost.post
     })
+    console.log('getViewedPost', data)
     return Result.ok(data)
   }
   async getSavedPost(customerId: number) {
@@ -340,4 +341,5 @@ export class CustomerService {
     await this.subscriptionRepository.delete({ customerId, subscriptionId })
     return Result.ok({})
   }
+  
 }
