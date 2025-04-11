@@ -4,5 +4,5 @@ export default interface ChangedProfileDto {
   firstName: string
   email: string
   gender: string
-  birthDate: string
+  birthDate?: string
 }
