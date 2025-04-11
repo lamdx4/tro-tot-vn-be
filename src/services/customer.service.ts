@@ -150,6 +150,7 @@ export class CustomerService {
   }
 
   async updateMyProfile(customerId: number, data: ChangedProfileDto) {
+    console.log('updateMyProfile', customerId, data)
     const customer = await this.customerRepository.findOne({
       where: { customerId },
       relations: { account: true },

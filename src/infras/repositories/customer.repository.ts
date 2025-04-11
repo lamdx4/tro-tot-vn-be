@@ -21,12 +21,14 @@ export class CustomerRepository extends BaseRepository<Customer> {
 
         await transactionalEntityManager.update(
           Customer,
-          { customerId : customerId },
+          { customerId: customerId },
           {
             bio: data.bio,
             lastName: data.lastName,
             firstName: data.firstName,
-            birthday: moment(data.birthDate, 'DD/MM/YYYY').toDate(),
+            birthday: !isNaN(moment(data.birthDate, 'DD/MM/YYYY').toDate().getTime())
+              ? moment(data.birthDate, 'DD/MM/YYYY').toDate()
+              : undefined,
             gender: data.gender
           }
         )

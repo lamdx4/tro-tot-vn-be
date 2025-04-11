@@ -3,7 +3,8 @@ import ResponseData from '@/utils/data-types/response'
 import { NextFunction, Request, Response } from 'express'
 import ChangedProfileDto from './dto/changed-profile.dto'
 import { CursorPaging } from '@/utils/data-types/paging-response'
-
+import { da } from '@faker-js/faker/.'
+import moment from 'moment'
 
 class CustomerController {
   private customerService: CustomerService
@@ -244,8 +245,6 @@ class CustomerController {
       next(e)
     }
   }
-  
-
 }
 export default new CustomerController()
 // tạo user - role -> gắn role cho user
