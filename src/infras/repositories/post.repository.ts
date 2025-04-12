@@ -82,7 +82,9 @@ export class PostRepository extends BaseRepository<Post> {
     qb.orderBy('post.createdAt', 'DESC').limit(limit)
     console.log('query', qb.getSql())
     console.log('parameters', qb.getParameters())
-    return qb.getMany()
+    const r =  await qb.getMany()
+    console.log(r)
+    return r
   }
 
   async createPost(post: Post, listFile: MultimediaFile[]): Promise<void> {
