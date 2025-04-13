@@ -1,15 +1,19 @@
 import { PostStatus, RoleType } from '@/domains/entities/enum/value-object'
-import { AccountRepository, AdminRepository, PostModerationHistoryRepository, PostRepository } from '@/infras/repositories'
+import {
+  AccountRepository,
+  AdminRepository,
+  PostModerationHistoryRepository,
+  PostRepository
+} from '@/infras/repositories'
 import { Result } from '@/utils/data-types/result'
 import dayjs from 'dayjs'
 import { Like, Not } from 'typeorm'
 
 export default class AdminService {
-
   private postRepository: PostRepository
   private postModerateHistoryRepository: PostModerationHistoryRepository
   private adminRepository: AdminRepository
-  private accountRepository: AccountRepository;
+  private accountRepository: AccountRepository
 
   constructor() {
     this.postRepository = new PostRepository()
@@ -29,7 +33,7 @@ export default class AdminService {
     }
     account.password = password
     await this.accountRepository.save(account)
-    return Result.ok("Reset password successfully")
+    return Result.ok('Reset password successfully')
   }
 
   async listPostPending() {
@@ -89,7 +93,7 @@ export default class AdminService {
 
   async moderatePost(reviewerId: number, actionType: string, postId: number, reason: string) {
     if (actionType === PostStatus.REJECTED && (!reason || reason.trim() === '')) {
-      return Result.fail(400, "REQUIRED_REASON")
+      return Result.fail(400, 'REQUIRED_REASON')
     }
     const post = await this.postRepository.findOne({ where: { postId } })
     if (!post) {
@@ -138,7 +142,7 @@ export default class AdminService {
     }
     const history = await this.postModerateHistoryRepository.find({
       relations: {
-        post: true,
+        post: true
       },
       where: {
         admin: { adminId: moderatorId }
@@ -150,7 +154,7 @@ export default class AdminService {
         execAt: true,
         post: {
           title: true,
-          postId: true,
+          postId: true
         }
       }
     })
@@ -162,40 +166,38 @@ export default class AdminService {
 
   async getModeratorsService(key: string | null) {
     const admins = await this.adminRepository
-      .createQueryBuilder("admin")
-      .leftJoinAndSelect("admin.account", "account")
-      .leftJoinAndSelect("account.role", "role")
-      .where("role.roleName != :roleName", { roleName: RoleType.MANAGER })
-      .andWhere(
-        key
-          ? "(account.phone LIKE :key OR account.email LIKE :key)"
-          : "1=1",
-        key ? { key: `%${key}%` } : {}
-      )
-      .select([
-        "admin",
-        "account.email",
-        "account.phone",
-        "account.status",
-      ])
-      .getMany();
+      .createQueryBuilder('admin')
+      .leftJoinAndSelect('admin.account', 'account')
+      .leftJoinAndSelect('account.role', 'role')
+      .where('role.roleName != :roleName', { roleName: RoleType.MANAGER })
+      .andWhere(key ? '(account.phone LIKE :key OR account.email LIKE :key)' : '1=1', key ? { key: `%${key}%` } : {})
+      .select(['admin', 'account.email', 'account.phone', 'account.status'])
+      .getMany()
     return Result.ok(admins)
   }
 
-  async addModeratorsService(firstName: string, lastName: string, email: string, phone: string, gender: string, birthday: Date, password: string) {
+  async addModeratorsService(
+    firstName: string,
+    lastName: string,
+    email: string,
+    phone: string,
+    gender: string,
+    birthday: Date,
+    password: string
+  ) {
     // Tìm kiếm tài khoản đã tồn tại dựa trên email và phone
-    const birthDay = dayjs(birthday);
+    const birthDay = dayjs(birthday)
     // Chuyển đổi ngày tháng sang chuỗi
-    const birthdayString = birthDay.format('YYYY-MM-DD');
+    const birthdayString = birthDay.format('YYYY-MM-DD')
 
-    let account = await this.accountRepository.findOne({ where: { email, phone } });
+    let account = await this.accountRepository.findOne({ where: { email, phone } })
 
     // Nếu tài khoản không tồn tại, tạo một tài khoản mới
     if (!account) {
-      account = this.accountRepository.create({ email, phone, status: "Active", password, roleId: 2 });
-      await this.accountRepository.save(account);
+      account = this.accountRepository.create({ email, phone, status: 'Active', password, roleId: 2 })
+      await this.accountRepository.save(account)
     } else {
-      return Result.fail(400, "Account already exists")
+      return Result.fail(400, 'Account already exists')
     }
 
     // Tạo một đối tượng Admin mới
@@ -205,35 +207,35 @@ export default class AdminService {
       gender,
       birthday: birthdayString, // Sử dụng chuỗi ngày tháng đã chuyển đổi
       accountId: account.accountId, // Gán accountId
-      account,
-    });
+      account
+    })
 
     // Lưu đối tượng Admin vào cơ sở dữ liệu
-    await this.adminRepository.save(admin);
+    await this.adminRepository.save(admin)
 
-    return Result.ok("User added as moderator successfully");
+    return Result.ok('User added as moderator successfully')
   }
   async updateModeratorService(status: string, moderatorId: number) {
     // Tìm kiếm tài khoản dựa trên moderatorId
     const moderator = await this.accountRepository.findOne({
       where: {
-        admin: { adminId: moderatorId },
+        admin: { adminId: moderatorId }
       },
       relations: {
         admin: true
       }
-    },);
+    })
     if (!moderator) {
-      return Result.fail(404, 'User not found');
+      return Result.fail(404, 'User not found')
     }
 
     // Cập nhật trạng thái tài khoản
-    moderator.status = status;
+    moderator.status = status
 
     // Lưu thay đổi vào cơ sở dữ liệu
-    await this.accountRepository.save(moderator);
+    await this.accountRepository.save(moderator)
 
-    return Result.ok('Moderator status updated successfully');
+    return Result.ok('Moderator status updated successfully')
   }
   async getProfileModeratorService(adminId: number) {
     console.log('adminId', adminId)
@@ -249,19 +251,19 @@ export default class AdminService {
         account: {
           phone: true,
           email: true,
-          status: true,
+          status: true
         }
       },
       relations: {
-        account: true,
+        account: true
       },
-      where: { adminId: adminId },
-    });
+      where: { adminId: adminId }
+    })
 
     if (!moderator) {
-      return Result.fail(404, 'MODERATOR_NOT_FOUND');
+      return Result.fail(404, 'MODERATOR_NOT_FOUND')
     }
-    return Result.ok(moderator);
+    return Result.ok(moderator)
   }
   async getMyProfileService(adminId: number) {
     const admin = await this.adminRepository.findOne({
@@ -274,7 +276,7 @@ export default class AdminService {
           accountId: true,
           email: true,
           phone: true,
-          status: true,
+          status: true
         }
       }
     })
@@ -283,52 +285,34 @@ export default class AdminService {
     }
     return Result.ok(admin)
   }
-  async updateMyProfileService(accountId: number, phone: string, email: string) {
+  async updateMyProfileService(
+    accountId: number,
+    phone?: string,
+    email?: string,
+    gender?: string,
+    birthday?: string,
+    firstName?: string,
+    lastName?: string
+  ) {
     const account = await this.accountRepository.findOne({
       where: { accountId }
     })
 
     if (!account) {
-      return Result.fail(404, 'User not found');
+      return Result.fail(404, 'User not found')
     }
-    let isUpdated = false;
-
-    // Kiểm tra số điện thoại đã tồn tại ở tài khoản khác
-    if (phone && account.phone !== phone) {
-      const existPhone = await this.accountRepository.findOne({
-        where: { phone, accountId: Not(accountId) }
-      });
-      if (existPhone) {
-        return Result.fail(400, 'Phone number already exists');
-      }
-
-      account.phone = phone;
-      isUpdated = true;
+    const isSuccess = await this.accountRepository.changeAdminProfile(
+      accountId,
+      phone,
+      email,
+      gender,
+      birthday,
+      firstName,
+      lastName
+    )
+    if (!isSuccess) {
+      return Result.fail(500, 'Failed to update profile')
     }
-
-    // Kiểm tra email đã tồn tại ở tài khoản khác
-    if (email && account.email !== email) {
-      const existEmail = await this.accountRepository.findOne({
-        where: { email, accountId: Not(accountId) }
-      });
-
-      if (existEmail) {
-        return Result.fail(400, 'Email already exists');
-      }
-
-
-      account.email = email;
-      isUpdated = true;
-    }
-
-    // Nếu không thay đổi gì thì trả về
-    if (!isUpdated) {
-      return Result.ok("No changes detected");
-    }
-
-    await this.accountRepository.save(account);
-
-    return Result.ok("Update profile successfully");
+    return Result.ok('Update profile successfully')
   }
-
 }

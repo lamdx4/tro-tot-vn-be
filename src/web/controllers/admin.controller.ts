@@ -15,9 +15,9 @@ class AdminController {
   resetPasswordOfModerator = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const newPassword = String(req.body.newPassword)
-      console.log("newPassword", newPassword)
+      console.log('newPassword', newPassword)
       const moderatorId = Number(req.params.moderatorId)
-      console.log("moderatorId", moderatorId)
+      console.log('moderatorId', moderatorId)
       const result = await this.adminService.resetPasswordOfModerator(newPassword, moderatorId)
       if (result.isSuccess) {
         res.status(200).json(ResponseData.success(result.getValue()))
@@ -26,8 +26,7 @@ class AdminController {
       } else {
         res.status(500).json(ResponseData.error(500, 'Internal Server Error', 'An unexpected error occurred'))
       }
-    }
-    catch (error) {
+    } catch (error) {
       next(error)
     }
   }
@@ -61,7 +60,15 @@ class AdminController {
       if (result.isSuccess) {
         res.status(200).json(ResponseData.success(result.getValue()))
       } else {
-        res.status(result.code).json(ResponseData.error(result.code, result.error ?? 'NOT_DEFINE_ERROR', result.error ?? 'An unexpected error occurred'))
+        res
+          .status(result.code)
+          .json(
+            ResponseData.error(
+              result.code,
+              result.error ?? 'NOT_DEFINE_ERROR',
+              result.error ?? 'An unexpected error occurred'
+            )
+          )
       }
     } catch (error) {
       next(error)
@@ -71,14 +78,20 @@ class AdminController {
   //DONE
   async getHistoryOfPost(req: Request, res: Response, next: NextFunction) {
     try {
-      const postId = Number(req.params.postId);
+      const postId = Number(req.params.postId)
       const result = await this.adminService.getHistoryOfPost(postId)
       if (result.isSuccess) {
         res.status(200).json(ResponseData.success(result.getValue()))
       } else
         res
           .status(result.code)
-          .json(ResponseData.error(result.code, result.error ?? "NOT_DEFINE_ERROR", result.error ?? 'An unexpected error occurred'))
+          .json(
+            ResponseData.error(
+              result.code,
+              result.error ?? 'NOT_DEFINE_ERROR',
+              result.error ?? 'An unexpected error occurred'
+            )
+          )
     } catch (error) {
       next(error)
     }
@@ -94,7 +107,13 @@ class AdminController {
       } else {
         res
           .status(result.code)
-          .json(ResponseData.error(result.code, result.error ?? "NOT_DEFINE_ERROR", result.error ?? 'An unexpected error occurred'))
+          .json(
+            ResponseData.error(
+              result.code,
+              result.error ?? 'NOT_DEFINE_ERROR',
+              result.error ?? 'An unexpected error occurred'
+            )
+          )
       }
     } catch (error) {
       next(error)
@@ -105,31 +124,47 @@ class AdminController {
   async getModerators(req: Request, res: Response, next: NextFunction) {
     try {
       const key = req.query.key ? String(req.query.key) : null
-      const result = await this.adminService.getModeratorsService(key);
+      const result = await this.adminService.getModeratorsService(key)
       if (result.isSuccess) {
         res.status(200).json(ResponseData.success(result.getValue()))
       } else {
-        res.status(result.code).json(ResponseData.error(result.code, result.error ?? "NOT_DEFINE_ERROR", result.error ?? 'An unexpected error occurred'))
+        res
+          .status(result.code)
+          .json(
+            ResponseData.error(
+              result.code,
+              result.error ?? 'NOT_DEFINE_ERROR',
+              result.error ?? 'An unexpected error occurred'
+            )
+          )
       }
     } catch (error) {
       next(error)
     }
   }
 
-  //DONE 
+  //DONE
   async addModerator(req: Request, res: Response, next: NextFunction) {
     try {
       const { firstName, lastName, email, phone, gender, birthday, password } = req.body
-      console.log("req.body", req.body)
-      const result = await this.adminService.addModeratorsService(firstName, lastName, email, phone, gender, birthday, password)
+      console.log('req.body', req.body)
+      const result = await this.adminService.addModeratorsService(
+        firstName,
+        lastName,
+        email,
+        phone,
+        gender,
+        birthday,
+        password
+      )
       if (result.isSuccess) {
         res.status(200).json(ResponseData.success(result.getValue()))
       } else if (result.code === 400) {
-        res.status(400).json(ResponseData.error(400, "Email or phone already exists", "Email or phone already exists"))
+        res.status(400).json(ResponseData.error(400, 'Email or phone already exists', 'Email or phone already exists'))
       } else if (result.code === 404) {
-        res.status(404).json(ResponseData.error(404, "User not found", "User not found"))
+        res.status(404).json(ResponseData.error(404, 'User not found', 'User not found'))
       } else {
-        res.status(500).json(ResponseData.error(500, "Internal Server Error", "An unexpected error occurred"))
+        res.status(500).json(ResponseData.error(500, 'Internal Server Error', 'An unexpected error occurred'))
       }
     } catch (error) {
       console.error('Error in resetPassword:', error)
@@ -141,16 +176,16 @@ class AdminController {
   async setModeratorStatus(req: Request, res: Response, next: NextFunction) {
     try {
       const status = String(req.body.status)
-      console.log("status", status)
-      console.log("req.params", req.params)
-      const moderatorId = Number(req.params.moderatorId);
+      console.log('status', status)
+      console.log('req.params', req.params)
+      const moderatorId = Number(req.params.moderatorId)
       const result = await this.adminService.updateModeratorService(status, moderatorId)
       if (result.isSuccess) {
         res.status(200).json(ResponseData.success(result.getValue()))
       } else if (result.code === 404) {
-        res.status(404).json(ResponseData.error(404, "User not found", "User not found"))
+        res.status(404).json(ResponseData.error(404, 'User not found', 'User not found'))
       } else {
-        res.status(500).json(ResponseData.error(500, "Internal Server Error", "An unexpected error occurred"))
+        res.status(500).json(ResponseData.error(500, 'Internal Server Error', 'An unexpected error occurred'))
       }
     } catch (error) {
       console.error('Error in resetPassword:', error)
@@ -162,22 +197,20 @@ class AdminController {
   async getProfileModerator(req: Request, res: Response, next: NextFunction) {
     try {
       const adminId = Number(req.params.moderatorId)
-      console.log("adminId", adminId)
+      console.log('adminId', adminId)
       const result = await this.adminService.getProfileModeratorService(adminId)
       if (result.isSuccess) {
         res.status(200).json(ResponseData.success(result.getValue()))
       } else if (result.code === 404) {
-        res.status(404).json(ResponseData.error(404, "MODERATOR_NOT_FOUND", "User not found"))
-      }
-      else {
-        res.status(500).json(ResponseData.error(500, "Internal Server Error", "An unexpected error occurred"))
+        res.status(404).json(ResponseData.error(404, 'MODERATOR_NOT_FOUND', 'User not found'))
+      } else {
+        res.status(500).json(ResponseData.error(500, 'Internal Server Error', 'An unexpected error occurred'))
       }
     } catch (error) {
       console.error('Error in resetPassword:', error)
       res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'Something went wrong'))
     }
   }
-
 
   //DONE
   async getMyProfile(req: Request, res: Response, next: NextFunction) {
@@ -188,10 +221,9 @@ class AdminController {
       if (result.isSuccess) {
         res.status(200).json(ResponseData.success(result.getValue()))
       } else if (result.code === 404) {
-        res.status(404).json(ResponseData.error(404, "User not found", "User not found"))
-      }
-      else {
-        res.status(500).json(ResponseData.error(500, "Internal Server Error", "An unexpected error occurred"))
+        res.status(404).json(ResponseData.error(404, 'User not found', 'User not found'))
+      } else {
+        res.status(500).json(ResponseData.error(500, 'Internal Server Error', 'An unexpected error occurred'))
       }
     } catch (error) {
       console.error('Error in resetPassword:', error)
@@ -202,27 +234,37 @@ class AdminController {
   async updateMyProfile(req: Request, res: Response, next: NextFunction) {
     try {
       const accountId = Number(req.user?.admin.accountId)
-      const phone = String(req.body.phone)
-      const email = String(req.body.email)
+      const gender = req.body.gender ? String(req.body.gender) : undefined
+      const birthday = req.body.birthday ? String(req.body.birthday) : undefined
+      const firstName = req.body.firstName ? String(req.body.firstName) : undefined
+      const lastName = req.body.lastName ? String(req.body.lastName) : undefined
+      const phone = req.body.phone ? String(req.body.phone) : undefined
+      const email = req.body.email ? String(req.body.email) : undefined
 
-      const result = await this.adminService.updateMyProfileService(accountId, phone, email)
+      const result = await this.adminService.updateMyProfileService(
+        accountId,
+        phone,
+        email,
+        gender,
+        birthday,
+        firstName,
+        lastName
+      )
       if (result.isSuccess) {
         res.status(200).json(ResponseData.success(result.getValue()))
       } else if (result.code === 404) {
-        res.status(404).json(ResponseData.error(404, "User not found", "User not found"))
+        res.status(404).json(ResponseData.error(404, 'User not found', 'User not found'))
       } else if (result.code === 400) {
-        res.status(400).json(ResponseData.error(400, "Email or phone already exists", "Email or phone already exists"))
-      } else if (result.code === 200 && (result.getValue() === "No changes detected")) {
-        res.status(200).json(ResponseData.success("No changes detected"));
+        res.status(400).json(ResponseData.error(400, 'Email or phone already exists', 'Email or phone already exists'))
+      } else if (result.code === 200 && result.getValue() === 'No changes detected') {
+        res.status(200).json(ResponseData.success('No changes detected'))
       } else {
-        res.status(500).json(ResponseData.error(500, "Internal Server Error", "An unexpected error occurred"))
+        res.status(500).json(ResponseData.error(500, 'Internal Server Error', 'An unexpected error occurred'))
       }
     } catch (error) {
       console.error('Error in resetPassword:', error)
       res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'Something went wrong'))
-
     }
   }
-
 }
 export default new AdminController()
