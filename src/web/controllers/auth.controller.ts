@@ -137,8 +137,11 @@ class AuthController {
     const { identifier, password } = req.body
     try {
       const result = await this.authService.login(identifier, password)
-      
-      res.status(200).json(ResponseData.success(result))
+      if (result.isSuccess) {
+        res.status(result.code).json(ResponseData.successWithCode(result.code, result.getValue()))
+        return
+      }
+      res.status(result.code).json(ResponseData.error(result.code, result.error ?? '', ''))
     } catch (error) {
       next(error)
     }
@@ -169,7 +172,7 @@ class AuthController {
       next(error)
     }
   }
-  changePassword = async (req: Request, res: Response, next: NextFunction) => { 
+  changePassword = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { oldPassword, newPassword } = req.body
       const accountId = Number(req.user?.accountId)
