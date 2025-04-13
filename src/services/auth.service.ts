@@ -5,6 +5,7 @@ import { Result } from '@/utils/data-types/result'
 import { AccountRepository, CustomerRepository, AdminRepository } from '@/infras/repositories'
 import JWTService from './jwt.service'
 import { MailService } from './mail.service'
+import { AccountStatus } from '@/domains/entities/enum/value-object'
 
 export default class AuthService {
   private accountRepository: AccountRepository
@@ -60,7 +61,7 @@ export default class AuthService {
       return Result.fail(400, 'PASSWORD_NOT_MATCH')
     }
     const r = await this.accountRepository.update({ accountId: accountId }, { password: newPassword })
-    if(r.affected === 0) {
+    if (r.affected === 0) {
       return Result.fail(500, 'UPDATE_PASSWORD_FAIL')
     }
     return Result.ok(true)
@@ -195,6 +196,42 @@ export default class AuthService {
 
   async login(identifier: string, password: string) {
     const account = await this.accountRepository.findOne({
+      select: {
+        accountId: true,
+        phone: true,
+        email: true,
+        status: true,
+        password: true,
+        role: {
+          roleId: true,
+          roleName: true,
+          rolePermissions: {
+            permissionId: true,
+            roleId: true,
+            permission: {
+              permissionId: true,
+              permissionName: true
+            }
+          }
+        },
+        admin: {
+          adminId: true,
+          firstName: true,
+          lastName: true,
+          birthday: true,
+          gender: true
+        },
+        customer: {
+          customerId: true,
+          firstName: true,
+          lastName: true,
+          birthday: true,
+          gender: true,
+          avatar: true,
+          address: true,
+          bio: true
+        }
+      },
       where: [{ phone: identifier }, { email: identifier }],
       relations: {
         role: {
@@ -210,15 +247,18 @@ export default class AuthService {
       throw new Error('Account not found')
     }
     if (account.password !== password) {
-      throw new Error('Invalid password')
+      return Result.fail(401, 'PASSWORD_NOT_MATCH')
     }
-    account.password = ''
-    return {
+    if (account.status === AccountStatus.INACTIVE) {
+      return Result.fail(423, 'ACCOUNT_INACTIVE')
+    }
+    account.password = 'pornhub.com'
+    return Result.ok({
       account: account,
       token: {
         accessToken: this.jwtService.generateAccessToken(Object.assign({}, account)),
         refreshToken: this.jwtService.generateRefreshToken(Object.assign({}, account))
       }
-    }
+    })
   }
 }
