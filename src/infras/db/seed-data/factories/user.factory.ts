@@ -85,7 +85,7 @@ export class UserFactory {
   ): Promise<{ account: Partial<Account>; admin: Partial<Admin> }> {
     // Ensure role ID is set to Admin or Moderator
     const account = await this.create({
-      roleId: faker.helpers.arrayElement([2, 3]), // Admin or Moderator roles
+      roleId: faker.helpers.arrayElement([2]), // Admin or Moderator roles
       ...accountOverrides
     })
 
