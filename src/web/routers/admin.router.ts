@@ -29,7 +29,6 @@ adminRouter.post(
   adminController.moderatePost.bind(adminController)
 )
 
-
 adminRouter.get(
   `/posts/review-post/:postId/moderate-history`,
   getHistoryOfPostValidate,
@@ -42,21 +41,23 @@ adminRouter.get(
   '/manager/moderators',
   authenticateMiddleware,
   requireRoleMiddleware([RoleType.MANAGER]),
-  adminController.getModerators.bind(adminController));
-
+  adminController.getModerators.bind(adminController)
+)
 
 adminRouter.post(
   '/manager/add-moderators',
   authenticateMiddleware,
   requireRoleMiddleware([RoleType.MANAGER]),
-  adminController.addModerator.bind(adminController));
+  adminController.addModerator.bind(adminController)
+)
 
 adminRouter.put(
   '/manager/:moderatorId/update-status-moderators',
   setModeratorStatusValidate,
   authenticateMiddleware,
   requireRoleMiddleware([RoleType.MANAGER]),
-  adminController.setModeratorStatus.bind(adminController));
+  adminController.setModeratorStatus.bind(adminController)
+)
 
 adminRouter.get(
   `/manager/moderators/:moderatorId/moderator-history`,
@@ -84,19 +85,28 @@ adminRouter.patch(
   adminController.updateMyProfile.bind(adminController)
 )
 
-adminRouter.get("/moderators/:moderatorId/profile",
+adminRouter.get(
+  '/moderators/:moderatorId/profile',
   getProfileModerator,
   authenticateMiddleware,
   requireRoleMiddleware([RoleType.MANAGER]),
   adminController.getProfileModerator.bind(adminController)
 )
 
-adminRouter.put("/manager/:moderatorId/reset-password",
+adminRouter.put(
+  '/manager/:moderatorId/reset-password',
   getProfileModerator,
   resetPasswordOfModerator,
   authenticateMiddleware,
   requireRoleMiddleware([RoleType.MANAGER]),
   adminController.resetPasswordOfModerator.bind(adminController)
+)
+
+adminRouter.get(
+  '/statistics',
+  authenticateMiddleware,
+  requireRoleMiddleware([RoleType.MANAGER, RoleType.MODERATOR]),
+  adminController.getStatistics.bind(adminController)
 )
 
 export default adminRouter
