@@ -266,5 +266,25 @@ class AdminController {
       res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'Something went wrong'))
     }
   }
+  getStatistics = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const result = await this.adminService.getStatisticsForDashBoard()
+      if (result.isSuccess) {
+        res.status(200).json(ResponseData.success(result.getValue()))
+      } else {
+        res
+          .status(result.code)
+          .json(
+            ResponseData.error(
+              result.code,
+              result.error ?? 'NOT_DEFINE_ERROR',
+              result.error ?? 'An unexpected error occurred'
+            )
+          )
+      }
+    } catch (error) {
+      next(error)
+    }
+  }
 }
 export default new AdminController()

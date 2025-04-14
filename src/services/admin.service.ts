@@ -1,4 +1,4 @@
-import { PostStatus, RoleType } from '@/domains/entities/enum/value-object'
+import { ActionType, PostStatus, RoleType } from '@/domains/entities/enum/value-object'
 import {
   AccountRepository,
   AdminRepository,
@@ -7,7 +7,8 @@ import {
 } from '@/infras/repositories'
 import { Result } from '@/utils/data-types/result'
 import dayjs from 'dayjs'
-import { Like, Not } from 'typeorm'
+import isoWeek from 'dayjs/plugin/isoWeek';
+import { Between } from 'typeorm';
 
 export default class AdminService {
   private postRepository: PostRepository
@@ -20,6 +21,35 @@ export default class AdminService {
     this.postModerateHistoryRepository = new PostModerationHistoryRepository()
     this.adminRepository = new AdminRepository()
     this.accountRepository = new AccountRepository()
+  }
+
+  async getStatisticsForDashBoard() {
+    dayjs.extend(isoWeek);
+    const startOfWeek = dayjs().startOf('isoWeek').toDate(); // Thứ 2 đầu tuần
+    const endOfWeek = dayjs().endOf('isoWeek').toDate();     // Chủ nhật cuối tuần
+  
+    // Tin chờ duyệt
+    const totalPendingPost = await this.postRepository.count({
+      where: { status: PostStatus.PENDING }
+    });
+  
+    // Tin đã duyệt trong tuần này
+    const totalApprovedPostInWeek = await this.postModerateHistoryRepository.count({
+      where: {
+        actionType: ActionType.APPROVED,
+        execAt: Between(startOfWeek, endOfWeek)
+      }
+    });
+  
+    // Tin bị từ chối trong tuần này
+    const totalRejectedPostInWeek = await this.postModerateHistoryRepository.count({
+      where: {
+        actionType: ActionType.REJECTED,
+        execAt: Between(startOfWeek, endOfWeek)
+      }
+    });
+  
+    return Result.ok({ totalPendingPost, totalRejectedPostInWeek, totalApprovedPostInWeek });
   }
 
   async resetPasswordOfModerator(password: any, moderatorId: any) {
