@@ -81,7 +81,7 @@ adminRouter.get(
 adminRouter.patch(
   `/update-my-profile`,
   authenticateMiddleware,
-  requireRoleMiddleware([RoleType.MANAGER]),
+  requireRoleMiddleware([RoleType.MANAGER, RoleType.MODERATOR]),
   adminController.updateMyProfile.bind(adminController)
 )
 

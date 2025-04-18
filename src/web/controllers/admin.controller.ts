@@ -233,13 +233,22 @@ class AdminController {
 
   async updateMyProfile(req: Request, res: Response, next: NextFunction) {
     try {
-      const accountId = Number(req.user?.admin.accountId)
+      console.log('req.body', req.user)
+      const accountId = Number(req.user?.accountId)
       const gender = req.body.gender ? String(req.body.gender) : undefined
       const birthday = req.body.birthday ? String(req.body.birthday) : undefined
       const firstName = req.body.firstName ? String(req.body.firstName) : undefined
       const lastName = req.body.lastName ? String(req.body.lastName) : undefined
       const phone = req.body.phone ? String(req.body.phone) : undefined
       const email = req.body.email ? String(req.body.email) : undefined
+
+      console.log('accountId', accountId)
+      console.log(gender)
+      console.log(birthday)
+      console.log(firstName)
+      console.log(lastName)
+      console.log(phone)
+      console.log(email)
 
       const result = await this.adminService.updateMyProfileService(
         accountId,
