@@ -7,8 +7,8 @@ import {
 } from '@/infras/repositories'
 import { Result } from '@/utils/data-types/result'
 import dayjs from 'dayjs'
-import isoWeek from 'dayjs/plugin/isoWeek';
-import { Between } from 'typeorm';
+import isoWeek from 'dayjs/plugin/isoWeek'
+import { Between } from 'typeorm'
 
 export default class AdminService {
   private postRepository: PostRepository
@@ -24,32 +24,41 @@ export default class AdminService {
   }
 
   async getStatisticsForDashBoard() {
-    dayjs.extend(isoWeek);
-    const startOfWeek = dayjs().startOf('isoWeek').toDate(); // Thứ 2 đầu tuần
-    const endOfWeek = dayjs().endOf('isoWeek').toDate();     // Chủ nhật cuối tuần
-  
+    dayjs.extend(isoWeek)
+    const startOfWeek = dayjs().startOf('isoWeek').toDate() // Thứ 2 đầu tuần
+    const endOfWeek = dayjs().endOf('isoWeek').toDate() // Chủ nhật cuối tuần
+
     // Tin chờ duyệt
     const totalPendingPost = await this.postRepository.count({
       where: { status: PostStatus.PENDING }
-    });
-  
+    })
+
     // Tin đã duyệt trong tuần này
-    const totalApprovedPostInWeek = await this.postModerateHistoryRepository.count({
-      where: {
-        actionType: ActionType.APPROVED,
-        execAt: Between(startOfWeek, endOfWeek)
-      }
-    });
-  
-    // Tin bị từ chối trong tuần này
-    const totalRejectedPostInWeek = await this.postModerateHistoryRepository.count({
-      where: {
-        actionType: ActionType.REJECTED,
-        execAt: Between(startOfWeek, endOfWeek)
-      }
-    });
-  
-    return Result.ok({ totalPendingPost, totalRejectedPostInWeek, totalApprovedPostInWeek });
+    // COUNT DISTINCT posts được approve trong tuần (không phải số lần approve)
+    const totalApprovedPostInWeek = await this.postModerateHistoryRepository
+      .createQueryBuilder('history')
+      .select('COUNT(DISTINCT history.postId)', 'count')
+      .where('history.actionType = :actionType', { actionType: ActionType.APPROVED })
+      .andWhere('history.execAt BETWEEN :start AND :end', {
+        start: startOfWeek,
+        end: endOfWeek
+      })
+      .getRawOne()
+      .then((result) => parseInt(result.count))
+
+    // COUNT DISTINCT posts bị reject trong tuần (không phải số lần reject)
+    const totalRejectedPostInWeek = await this.postModerateHistoryRepository
+      .createQueryBuilder('history')
+      .select('COUNT(DISTINCT history.postId)', 'count')
+      .where('history.actionType = :actionType', { actionType: ActionType.REJECTED })
+      .andWhere('history.execAt BETWEEN :start AND :end', {
+        start: startOfWeek,
+        end: endOfWeek
+      })
+      .getRawOne()
+      .then((result) => parseInt(result.count))
+
+    return Result.ok({ totalPendingPost, totalRejectedPostInWeek, totalApprovedPostInWeek })
   }
 
   async resetPasswordOfModerator(password: any, moderatorId: any) {
