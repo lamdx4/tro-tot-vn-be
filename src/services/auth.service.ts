@@ -261,4 +261,18 @@ export default class AuthService {
       }
     })
   }
+
+  async isActiveAccount(accountId: number) {
+    const account = await this.accountRepository.findOne({
+      where: { accountId: accountId }
+    })
+    console.log(account)
+    if (!account) {
+      return Result.fail(404, 'ACCOUNT_NOT_FOUND')
+    }
+    if (account.status === AccountStatus.INACTIVE) {
+      return Result.fail(423, 'ACCOUNT_INACTIVE')
+    }
+    return Result.ok(true)
+  }
 }

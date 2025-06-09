@@ -28,7 +28,7 @@ export default class PostService {
     interiorCondition?: string,
     acreage?: number[],
     price?: number[],
-    cursor?: number,
+    cursor?: Date,
     limit: number = 10
   ) {
     const formattedAcreage = acreage ? ([acreage[0], acreage[1]] as [number, number]) : undefined
