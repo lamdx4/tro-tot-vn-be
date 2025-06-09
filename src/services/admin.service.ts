@@ -229,28 +229,23 @@ export default class AdminService {
     // Chuyển đổi ngày tháng sang chuỗi
     const birthdayString = birthDay.format('YYYY-MM-DD')
 
-    let account = await this.accountRepository.findOne({ where: { email, phone } })
-
-    // Nếu tài khoản không tồn tại, tạo một tài khoản mới
-    if (!account) {
-      account = this.accountRepository.create({ email, phone, status: 'Active', password, roleId: 2 })
-      await this.accountRepository.save(account)
-    } else {
-      return Result.fail(400, 'Account already exists')
+    if (await this.accountRepository.findOne({ where: { phone } })) {
+      return Result.fail(400, 'PHONE_ALREADY_EXISTS')
+    }
+    if (await this.accountRepository.findOne({ where: { email } })) {
+      return Result.fail(400, 'EMAIL_ALREADY_EXISTS')
     }
 
     // Tạo một đối tượng Admin mới
-    const admin = this.adminRepository.create({
+    const admin = this.adminRepository.createAdmin(
       firstName,
       lastName,
       gender,
-      birthday: birthdayString, // Sử dụng chuỗi ngày tháng đã chuyển đổi
-      accountId: account.accountId, // Gán accountId
-      account
-    })
-
-    // Lưu đối tượng Admin vào cơ sở dữ liệu
-    await this.adminRepository.save(admin)
+      birthdayString, // Sử dụng chuỗi ngày tháng đã chuyển đổi
+      email,
+      phone,
+      password
+    )
 
     return Result.ok('User added as moderator successfully')
   }

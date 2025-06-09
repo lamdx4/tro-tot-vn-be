@@ -160,7 +160,7 @@ class AdminController {
       if (result.isSuccess) {
         res.status(200).json(ResponseData.success(result.getValue()))
       } else if (result.code === 400) {
-        res.status(400).json(ResponseData.error(400, 'Email or phone already exists', 'Email or phone already exists'))
+        res.status(400).json(ResponseData.badRequest(result.error || 'MESSAGE_NOT_DEFINE'))
       } else if (result.code === 404) {
         res.status(404).json(ResponseData.error(404, 'User not found', 'User not found'))
       } else {
