@@ -17,7 +17,7 @@ export class PostRepository extends BaseRepository<Post> {
     interiorCondition?: string | null,
     acreage?: [number, number],
     price?: [number, number],
-    cursor?: number | null,
+    cursor?: Date | null,
     limit = 20
   ): Promise<Post[]> {
     console.log('search', search)
@@ -40,26 +40,28 @@ export class PostRepository extends BaseRepository<Post> {
     qb.where('post.status = :status', { status: PostStatus.APPROVED })
 
     // Full‑Text Search trên các cột chính
-    qb.andWhere(
-      `FREETEXT(
+    if (search) {
+      qb.andWhere(
+        `FREETEXT(
          (post.title, post.description, post.street, post.ward, post.district, post.city),
          :search
        )`,
-      { search }
-    )
+        { search }
+      )
+    }
 
     // Các filter bổ sung
     if (city) {
-      qb.andWhere('post.city = :city', { city })
+      qb.andWhere('post.city = CAST(:city AS NVARCHAR(255))', { city })
     }
     if (district) {
-      qb.andWhere('post.district = :district', { district })
+      qb.andWhere('post.district = CAST(:district AS NVARCHAR(255))', { district })
     }
     if (interiorCondition) {
       qb.andWhere('post.interiorCondition = :interiorCondition', { interiorCondition })
     }
     if (ward) {
-      qb.andWhere('post.ward = :ward', { ward })
+      qb.andWhere('post.ward = CAST(:ward AS NVARCHAR(255))', { ward })
     }
     if (acreage) {
       qb.andWhere('post.acreage BETWEEN :minA AND :maxA', {
@@ -75,15 +77,15 @@ export class PostRepository extends BaseRepository<Post> {
     }
 
     if (cursor) {
-      qb.andWhere('post.createdAt < :cursor', { cursor })
+      qb.andWhere('post.extendedAt < :cursor', { cursor })
     }
 
     // Giới hạn số kết quả và sắp xếp (ví dụ: mới nhất trước)
-    qb.orderBy('post.createdAt', 'DESC').limit(limit)
-    console.log('query', qb.getSql())
-    console.log('parameters', qb.getParameters())
-    const r =  await qb.getMany()
-    console.log(r)
+    qb.orderBy('post.createdAt', 'DESC').take(8)
+
+    console.log(qb.getSql())
+
+    const r = await qb.getMany()
     return r
   }
 
@@ -103,6 +105,7 @@ export class PostRepository extends BaseRepository<Post> {
       )
     })
   }
+
   async editPost(post: Post, listFile: MultimediaFile[]) {
     try {
       return await this.manager.transaction(async (transactionalEntityManager) => {
@@ -119,10 +122,9 @@ export class PostRepository extends BaseRepository<Post> {
             district: post.district,
             city: post.city,
             ward: post.ward,
-            longitude: post.longitude,
-            interiorCondition: post.interiorCondition,
             acreage: post.acreage,
-            status: PostStatus.PENDING
+            status: PostStatus.PENDING,
+            extendedAt : new Date()
           }
         )
         listFile = await transactionalEntityManager.getRepository(MultimediaFile).save(listFile)

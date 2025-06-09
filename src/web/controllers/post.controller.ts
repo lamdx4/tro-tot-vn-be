@@ -177,7 +177,9 @@ class PostController {
         : undefined
       const interiorCondition = req.query.interiorCondition ? String(req.query.interiorCondition) : undefined
       const limit = Number(req.query.limit) || 4
-      const cursor = isNaN(Number(req.query.cursor)) ? undefined : Number(req.query.cursor)
+      const cursor = req.query.cursor && !isNaN(Date.parse(req.query.cursor as string)) 
+        ? new Date(req.query.cursor as string) 
+        : undefined
       const r = await this.postService.searchPost(
         keyword,
         city,
@@ -196,7 +198,7 @@ class PostController {
             ResponseData.success(
               new CursorPaging(
                 r.getValue()!,
-                r.getValue()!.length > 0 ? r.getValue()![r.getValue()!.length - 1].postId : null
+                r.getValue()!.length > 0 ? r.getValue()![r.getValue()!.length - 1].extendedAt : null
               ).toResponse()
             )
           )

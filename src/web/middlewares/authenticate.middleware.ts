@@ -1,8 +1,9 @@
+import AuthService from '@/services/auth.service'
 import JWTService from '@/services/jwt.service'
 import ResponseData from '@/utils/data-types/response'
 import { NextFunction, Request, Response } from 'express'
 
-export default function authenticateMiddleware(req: Request, res: Response, next: NextFunction) {
+export default async function authenticateMiddleware(req: Request, res: Response, next: NextFunction) {
   const token =
     (req.headers['authorization']?.startsWith('Bearer ') ?? '')
       ? req.headers['authorization']?.split(' ')[1]
@@ -18,5 +19,11 @@ export default function authenticateMiddleware(req: Request, res: Response, next
     return
   }
   req.user = result.getValue() ?? undefined
+  const authService = new AuthService()
+  const isActiveAccount = await authService.isActiveAccount(req.user!.accountId)
+  if (!isActiveAccount.isSuccess) {
+    res.status(423).json(ResponseData.failure(423, 'ACCOUNT_NOT_ACTIVE', 'Account is not active'))
+    return
+  }
   next()
 }
