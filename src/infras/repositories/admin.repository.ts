@@ -14,26 +14,34 @@ export class AdminRepository extends BaseRepository<Admin> {
     gender: string,
     birthday: string,
     email: string,
-    phone: string,
-    password: string
+    phone: string
   ) {
-    this.manager.transaction(async (transaction) => {
-      const account = this.manager
-        .getRepository(Account)
-        .create({ email, phone, status: 'Active', password, roleId: 2 })
-        
-      const accountSaved = await this.manager.getRepository(Account).save(account)
-
-      const admin = this.manager.getRepository(Admin).create({
-        firstName,
-        lastName,
-        gender,
-        birthday: birthday,
-        accountId: accountSaved.accountId
+    await this.manager.transaction(async (transaction) => {
+      const formatter = new Intl.DateTimeFormat('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
       })
 
-      // Lưu đối tượng Admin vào cơ sở dữ liệu
-      await this.manager.getRepository(Account).save(admin)
+      const account = transaction.getRepository(Account).create({
+        email,
+        phone,
+        status: 'Active',
+        password: formatter.format(new Date(birthday)).replace(/\//g, ''),
+        roleId: 2
+      })
+
+      const accountSaved = await transaction.getRepository(Account).save(account)
+
+      await transaction.getRepository(Admin).save(
+        transaction.getRepository(Admin).create({
+          firstName,
+          lastName,
+          gender,
+          birthday: birthday,
+          accountId: accountSaved.accountId
+        })
+      )
     })
   }
 }

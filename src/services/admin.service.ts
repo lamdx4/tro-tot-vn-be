@@ -61,7 +61,7 @@ export default class AdminService {
     return Result.ok({ totalPendingPost, totalRejectedPostInWeek, totalApprovedPostInWeek })
   }
 
-  async resetPasswordOfModerator(password: any, moderatorId: any) {
+  async resetPasswordOfModerator(moderatorId: number) {
     const moderator = await this.adminRepository.findOne({ where: { adminId: moderatorId } })
     if (!moderator) {
       return Result.fail(404, 'MODERATOR_NOT_FOUND')
@@ -70,7 +70,12 @@ export default class AdminService {
     if (!account) {
       return Result.fail(404, 'ACCOUNT_NOT_FOUND')
     }
-    account.password = password
+    const formatter = new Intl.DateTimeFormat('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    })
+    account.password = formatter.format(new Date(moderator.birthday)).replace(/\//g, '')
     await this.accountRepository.save(account)
     return Result.ok('Reset password successfully')
   }
@@ -221,8 +226,7 @@ export default class AdminService {
     email: string,
     phone: string,
     gender: string,
-    birthday: Date,
-    password: string
+    birthday: Date
   ) {
     // Tìm kiếm tài khoản đã tồn tại dựa trên email và phone
     const birthDay = dayjs(birthday)
@@ -243,8 +247,7 @@ export default class AdminService {
       gender,
       birthdayString, // Sử dụng chuỗi ngày tháng đã chuyển đổi
       email,
-      phone,
-      password
+      phone
     )
 
     return Result.ok('User added as moderator successfully')

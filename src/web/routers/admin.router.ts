@@ -96,7 +96,6 @@ adminRouter.get(
 adminRouter.put(
   '/manager/:moderatorId/reset-password',
   getProfileModerator,
-  resetPasswordOfModerator,
   authenticateMiddleware,
   requireRoleMiddleware([RoleType.MANAGER]),
   adminController.resetPasswordOfModerator.bind(adminController)

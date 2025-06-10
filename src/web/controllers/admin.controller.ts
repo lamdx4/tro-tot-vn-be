@@ -18,7 +18,7 @@ class AdminController {
       console.log('newPassword', newPassword)
       const moderatorId = Number(req.params.moderatorId)
       console.log('moderatorId', moderatorId)
-      const result = await this.adminService.resetPasswordOfModerator(newPassword, moderatorId)
+      const result = await this.adminService.resetPasswordOfModerator(moderatorId)
       if (result.isSuccess) {
         res.status(200).json(ResponseData.success(result.getValue()))
       } else if (result.code === 404) {
@@ -146,7 +146,7 @@ class AdminController {
   //DONE
   async addModerator(req: Request, res: Response, next: NextFunction) {
     try {
-      const { firstName, lastName, email, phone, gender, birthday, password } = req.body
+      const { firstName, lastName, email, phone, gender, birthday } = req.body
       console.log('req.body', req.body)
       const result = await this.adminService.addModeratorsService(
         firstName,
@@ -154,8 +154,7 @@ class AdminController {
         email,
         phone,
         gender,
-        birthday,
-        password
+        birthday
       )
       if (result.isSuccess) {
         res.status(200).json(ResponseData.success(result.getValue()))
