@@ -5,4 +5,6 @@ export default interface ChangedProfileDto {
   email: string
   gender: string
   birthDate?: string
+  address?: string
+  avatarFile?: Express.Multer.File | null
 }

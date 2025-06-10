@@ -71,15 +71,10 @@ export class Customer {
   @OneToMany(() => PostViewHistory, (history) => history.customer)
   viewHistories: PostViewHistory[]
 
-  // @OneToMany(() => Appointment, (appointment) => appointment.requester)
-  // appointments: Appointment[]
-
   @OneToMany(() => SubscriptionAreaPost, (subscription) => subscription.customer)
   subscriptions: SubscriptionAreaPost[]
 
-  // @OneToOne(() => Participant, (participant) => participant.customer)
-  // participant: Participant
-
-  @OneToOne(() => MultimediaFile, (file) => file.customer)
-  avatarFile: MultimediaFile
+  @OneToOne(() => MultimediaFile, { nullable: true , cascade: true })
+  @JoinColumn({ name: 'avatar' })
+  avatarFile?: MultimediaFile
 }

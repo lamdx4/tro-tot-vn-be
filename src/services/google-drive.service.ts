@@ -112,25 +112,24 @@ export default class CloudDriveService {
    * @param buff The file content as a Buffer or Readable stream.
    */
   async uploadFile(file: Express.Multer.File): Promise<string | null> {
-    // const nameFile = 'file-' + Date.now()
     try {
       const filePath = path.resolve(file.path)
+      // Check if the file exists before attempting to upload
       if (!fs.existsSync(filePath)) {
-        console.error('File does not exist:', filePath)
         return null
       }
       const fileStream = createReadStream(filePath)
       const passThroughStream = new PassThrough()
       fileStream.pipe(passThroughStream)
-      console.log('Uploading file:', passThroughStream)
+
       const createResponse = await this.drive.files.create({
-        requestBody: { name: file.filename, mimeType: file.mimetype },
-        media: { body: file.stream, mimeType: file.mimetype }
+        requestBody: { name: file.originalname, mimeType: file.mimetype },
+        media: { body: passThroughStream, mimeType: file.mimetype }
       })
+
       const fileId = createResponse.data.id
       if (!fileId) {
-        console.error('No fileId returned after upload')
-        return null
+        throw new Error()
       }
       // Set file permissions for public access
       await this.drive.permissions.create({

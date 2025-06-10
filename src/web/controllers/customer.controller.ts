@@ -45,8 +45,10 @@ class CustomerController {
 
   updateMyProfile = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      console.log('updateMyProfile', req.file)
       const account = req.user
       const data = req.body as ChangedProfileDto
+      data.avatarFile = req.file
       const customerId = Number(account?.customer.customerId)
       const r = await this.customerService.updateMyProfile(customerId, data)
       if (r.isSuccess) {

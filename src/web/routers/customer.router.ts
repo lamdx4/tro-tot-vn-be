@@ -8,12 +8,24 @@ import addRateValidate from '../validator/add-rate.validate'
 import { param } from 'express-validator'
 import { validateRequest } from '../middlewares/validateRequest.middleware'
 import createSubscriptionValidate from '../validator/create-subscription.validate'
+import multer from 'multer'
 const customerRouter = express.Router()
 
 customerRouter.get('/my-profile', authenticateMiddleware, customerController.getMyProfile.bind(customerController))
 
 customerRouter.put(
   '/my-profile',
+  multer({
+    storage: multer.diskStorage({
+      destination: 'uploads/',
+      filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${file.originalname}`)
+      }
+    }),
+    limits: {
+      fileSize: 20 * 1024 * 1024 // Giới hạn kích thước file là 20MB
+    }
+  }).single('avatarFile'),
   updateMyProfile,
   authenticateMiddleware,
   customerController.updateMyProfile.bind(customerController)
