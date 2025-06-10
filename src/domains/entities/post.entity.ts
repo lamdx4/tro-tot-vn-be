@@ -60,12 +60,6 @@ export class Post {
   @Column({ type: 'nvarchar', length: 70, nullable: false })
   city: string
 
-  @Column({ type: 'decimal', precision: 10, scale: 8, nullable: true })
-  latitude: number
-
-  @Column({ type: 'decimal', precision: 11, scale: 8, nullable: true })
-  longitude: number
-
   @Column({
     type: 'varchar',
     length: 10,

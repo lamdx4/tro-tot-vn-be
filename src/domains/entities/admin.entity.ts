@@ -3,6 +3,7 @@ import { Account } from './account.entity'
 import { PostModerationHistory } from './post-moderator-history.entity'
 // import { Participant } from './participant.entity'
 import { Gender } from './enum/value-object'
+import { MultimediaFile } from './multimedia-file.entity'
 
 @Entity('Admin')
 @Check(`gender IN ('Male', 'Female')`)
@@ -18,7 +19,7 @@ export class Admin {
     type: 'varchar',
     length: 10,
     nullable: false,
-    default : Gender.MALE
+    default: Gender.MALE
   })
   gender: string
 
@@ -30,6 +31,9 @@ export class Admin {
 
   @Column({ type: 'date', nullable: false })
   birthday: Date
+
+  @Column({ type: 'int', nullable: true })
+  avatar: number
 
   @Column({
     type: 'date',
@@ -44,6 +48,7 @@ export class Admin {
   @OneToMany(() => PostModerationHistory, (history) => history.admin)
   moderationHistories: PostModerationHistory[]
 
-  // @OneToOne(() => Participant, (participant) => participant.admin)
-  // participant: Participant
+  @OneToOne(() => MultimediaFile, { nullable: true, cascade: true })
+  @JoinColumn({ name: 'avatar' })
+  avatarFile?: MultimediaFile
 }

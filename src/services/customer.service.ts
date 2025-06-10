@@ -11,6 +11,7 @@ import {
 import { Result } from '@/utils/data-types/result'
 import ChangedProfileDto from '@/web/controllers/dto/changed-profile.dto'
 import { LessThan, LessThanOrEqual, MoreThan } from 'typeorm'
+import CloudDriveService from './google-drive.service'
 
 export class CustomerService {
   private accountRepository: AccountRepository
@@ -177,7 +178,18 @@ export class CustomerService {
         return Result.fail(400, 'EMAIL_ALREADY_EXISTS')
       }
     }
-    const isSuccess = await this.customerRepository.updateProfile(customerId, data)
+    const isSuccess = await this.customerRepository.updateProfile(
+      customerId,
+      data,
+      () => {
+        if (data.avatarFile) return CloudDriveService.gI().uploadFile(data.avatarFile)
+        return Promise.resolve(null)
+      },
+      async (fileCloudId: string) => {
+        if (fileCloudId) await CloudDriveService.gI().delete(fileCloudId)
+        return Promise.resolve()
+      }
+    )
     if (!isSuccess) {
       return Result.fail(400, 'UPDATE_PROFILE_FAILED')
     }
@@ -219,6 +231,8 @@ export class CustomerService {
         bio: true,
         birthday: true,
         gender: true,
+        address: true,
+        avatar: true,
         account: {
           email: true,
           phone: true
@@ -263,7 +277,7 @@ export class CustomerService {
   }
   async getViewedPost(customerId: number) {
     const viewedPosts = await this.historyRepository.find({
-      where: { customerId},
+      where: { customerId },
       relations: {
         post: {
           multimediaFiles: { file: true }
@@ -342,5 +356,4 @@ export class CustomerService {
     await this.subscriptionRepository.delete({ customerId, subscriptionId })
     return Result.ok({})
   }
-  
 }
