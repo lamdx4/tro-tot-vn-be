@@ -49,6 +49,9 @@ export class Customer {
   @Column({ type: 'nvarchar', length: 30, nullable: true })
   address: string
 
+  @Column({ type: 'nvarchar', length: 150, nullable: true })
+  currentJob: string
+
   @Column({
     type: 'date',
     default: () => 'CURRENT_TIMESTAMP'

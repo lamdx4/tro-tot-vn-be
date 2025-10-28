@@ -5,6 +5,7 @@ import multiMediaRouter from './multimedia.router'
 import adminRouter from './admin.router'
 import postRouter from './post.router'
 import customerRouter from './customer.router'
+import searchRouter from './search.router'
 
 const routerConfig = express.Router()
 
@@ -19,5 +20,7 @@ routerConfig.use('/admin', adminRouter)
 routerConfig.use('/post', postRouter)
 
 routerConfig.use('/customer', customerRouter)
+
+routerConfig.use('/search', searchRouter)
 
 export default routerConfig
