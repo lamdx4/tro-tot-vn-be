@@ -3,6 +3,7 @@ import { PostStatus } from '@/domains/entities/enum/value-object'
 import { Post } from '@/domains/entities/post.entity'
 import { SubscriptionAreaPost } from '@/domains/entities/subscription-area-post.entity'
 import { MailService } from '@/services'
+import { ConfigService } from '@/services/config.service'
 import { EntitySubscriberInterface, EventSubscriber, UpdateEvent } from 'typeorm'
 
 @EventSubscriber()
@@ -33,6 +34,10 @@ export class CreateParticipantCustomerSubscriber implements EntitySubscriberInte
                 district: post.district
               }
             })
+            
+            const configService = ConfigService.gI()
+            const frontendUrl = configService.getOrThrow('FRONTEND_URL')
+            
             const mailService = new MailService()
             await mailService.createTransporter()
             for (const subscription of subscriptions) {
@@ -61,7 +66,7 @@ export class CreateParticipantCustomerSubscriber implements EntitySubscriberInte
                   html: `<h1>Có bài viết mới trong khu vực mà bạn đã đăng ký.</h1> 
                 </br> 
                 <p>${post.title}</p> <p>${post.postId}</p>
-                <a href="http://localhost:3000/posts/${post.postId}/detail">Xem bài viết</a>
+                <a href="${frontendUrl}/posts/${post.postId}/detail">Xem bài viết</a>
                 <p>Địa chỉ: ${post.district} ${post.city} </p>
                 <p>Giá: ${post.price}</p>
                 <p>Người đăng: ${customer.lastName} ${customer.firstName}</p>

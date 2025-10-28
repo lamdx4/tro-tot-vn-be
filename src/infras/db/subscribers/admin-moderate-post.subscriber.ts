@@ -4,6 +4,7 @@ import { PostModerationHistory } from '@/domains/entities/post-moderator-history
 import { Post } from '@/domains/entities/post.entity'
 import { SubscriptionAreaPost } from '@/domains/entities/subscription-area-post.entity'
 import { MailService } from '@/services'
+import { ConfigService } from '@/services/config.service'
 import { EntitySubscriberInterface, EventSubscriber, InsertEvent, UpdateEvent } from 'typeorm'
 
 @EventSubscriber()
@@ -33,6 +34,9 @@ export class AdminModeratePost implements EntitySubscriberInterface<PostModerati
       if (!history) {
         return
       }
+      const configService = ConfigService.gI()
+      const frontendUrl = configService.getOrThrow('FRONTEND_URL')
+      
       const mailService = new MailService()
       await mailService.createTransporter()
       if (history.post.status === PostStatus.APPROVED) {
@@ -51,7 +55,7 @@ export class AdminModeratePost implements EntitySubscriberInterface<PostModerati
             <p>Diện tích: ${history.post.acreage} m2</p>
             <p>Thời gian tạo: ${history.post.createdAt}</p>
             <p>Thời gian duyệt: ${history.execAt}</p>
-            <p> Xem chi tiết tại: <a href="http://localhost:3000/posts/${history.postId}/detail"> Đây</a> </p>
+            <p> Xem chi tiết tại: <a href="${frontendUrl}/posts/${history.postId}/detail"> Đây</a> </p>
             `
         })
         return

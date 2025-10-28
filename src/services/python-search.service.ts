@@ -27,7 +27,7 @@ class PythonSearchService {
 
   constructor() {
     const config = ConfigService.gI()
-    this.baseURL = config.get('SEARCH_SERVICE_URL') || 'http://localhost:8000'
+    this.baseURL = config.getOrThrow('SEARCH_SERVICE_URL')
     
     this.client = axios.create({
       baseURL: this.baseURL,

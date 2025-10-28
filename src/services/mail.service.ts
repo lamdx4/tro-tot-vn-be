@@ -22,7 +22,7 @@ export class MailService {
       service: 'Gmail',
       auth: {
         type: 'OAuth2',
-        user: 'djiahak@gmail.com',
+        user: ConfigService.gI().getOrThrow('MAIL_USER'),
         clientId: ConfigService.gI().getOrThrow('MAIL_CLIENT_ID'),
         clientSecret: ConfigService.gI().getOrThrow('MAIL_CLIENT_SECRET'),
         refreshToken: ConfigService.gI().getOrThrow('MAIL_REFRESH_TOKEN'),

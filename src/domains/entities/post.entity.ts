@@ -77,6 +77,9 @@ export class Post {
   })
   extendedAt: Date
 
+  @Column({ type: 'float', nullable: true })
+  aiModerationScore: number
+
   @ManyToOne(() => Customer, (customer) => customer.posts)
   @JoinColumn({ name: 'ownerId' })
   owner: Customer
