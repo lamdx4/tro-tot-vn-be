@@ -9,15 +9,23 @@ import { Result } from '@/utils/data-types/result'
 import { MoreThan } from 'typeorm'
 import { UpdatePostDto } from '@/web/controllers/dto/update-post.dto'
 import JWTService from './jwt.service'
+import ModerationService from './moderation.service'
+import { ConfigService } from './config.service'
 
 export default class PostService {
   private postRepository: PostRepository
   private cloudService: CloudDriveService
   private postViewHistoryRepository: PostViewHistoryRepository
+  private moderationService: ModerationService
+  private configService: ConfigService
+  private moderationThreshold: number
   constructor() {
     this.postRepository = new PostRepository()
     this.cloudService = CloudDriveService.gI()
     this.postViewHistoryRepository = new PostViewHistoryRepository()
+    this.moderationService = ModerationService.gI()
+    this.configService = ConfigService.gI()
+    this.moderationThreshold = Number(this.configService.getOrThrow('MODERATION_THRESHOLD'))
   }
 
   async searchPost(
@@ -83,6 +91,15 @@ export default class PostService {
     newVideo: Express.Multer.File
   ) {
     try {
+      // Check content moderation for edited content
+      const contentToCheck = `${dto.title} ${dto.description}`
+      const moderationResult = await this.moderationService.checkContent(contentToCheck)
+      
+      // Auto-reject if AI confidence >= threshold
+      if (moderationResult.prob_invalid >= this.moderationThreshold) {
+        return Result.fail(400, 'CONTENT_VIOLATION')
+      }
+
       const post = await this.postRepository.findOne({
         where: { postId, ownerId: customerId },
         relations: {
@@ -137,6 +154,7 @@ export default class PostService {
       post.interiorCondition = dto.interiorStatus
       post.acreage = Number(dto.acreage)
       post.extendedAt = new Date()
+      post.aiModerationScore = moderationResult.prob_invalid
       const mediaFile = listId.map((id) => {
         const file = new MultimediaFile()
         file.fileCloudId = id.fileId
@@ -420,6 +438,15 @@ export default class PostService {
   }
 
   async createPost(customer: Customer, dto: CreatePostDto, imgs: Express.Multer.File[], video?: Express.Multer.File) {
+    // Check content moderation before uploading files
+    const contentToCheck = `${dto.title} ${dto.description}`
+    const moderationResult = await this.moderationService.checkContent(contentToCheck)
+    
+    // Auto-reject if AI confidence >= threshold
+    if (moderationResult.prob_invalid >= this.moderationThreshold) {
+      return Result.fail(400, 'CONTENT_VIOLATION')
+    }
+
     const listId = await this.cloudService.uploadFiles(video ? [...imgs, video] : imgs)
     if (!listId) {
       throw new Error('Cannot upload files')
@@ -443,6 +470,7 @@ export default class PostService {
       post.ward = dto.ward
       post.interiorCondition = dto.interiorStatus
       post.acreage = Number(dto.acreage)
+      post.aiModerationScore = moderationResult.prob_invalid
       await this.postRepository.createPost(post, mediaFile)
       return Result.ok('Upload successfully')
     } catch (e) {
