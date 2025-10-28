@@ -12,6 +12,8 @@ import { Result } from '@/utils/data-types/result'
 import ChangedProfileDto from '@/web/controllers/dto/changed-profile.dto'
 import { LessThan, LessThanOrEqual, MoreThan } from 'typeorm'
 import CloudDriveService from './google-drive.service'
+import ModerationService from './moderation.service'
+import { ConfigService } from './config.service'
 
 export class CustomerService {
   private accountRepository: AccountRepository
@@ -21,6 +23,9 @@ export class CustomerService {
   private historyRepository: PostViewHistoryRepository
   private rateRepository: RateRepository
   private subscriptionRepository: SubscriptionAreaPostRepository
+  private moderationService: ModerationService
+  private configService: ConfigService
+  private moderationThreshold: number
 
   constructor() {
     this.accountRepository = new AccountRepository()
@@ -30,6 +35,9 @@ export class CustomerService {
     this.historyRepository = new PostViewHistoryRepository()
     this.rateRepository = new RateRepository()
     this.subscriptionRepository = new SubscriptionAreaPostRepository()
+    this.moderationService = ModerationService.gI()
+    this.configService = ConfigService.gI()
+    this.moderationThreshold = Number(this.configService.getOrThrow('MODERATION_THRESHOLD'))
   }
 
   async getRateFromPost(postId: number, cursor: Date | null, limit: number) {
@@ -89,6 +97,16 @@ export class CustomerService {
 
     if (isOwner) {
       return Result.fail(400, 'CANNOT_RATE_OWN_POST')
+    }
+
+    // Check content moderation for comment
+    if (comment && comment.trim()) {
+      const moderationResult = await this.moderationService.checkContent(comment)
+      
+      // Auto-reject if AI confidence >= threshold
+      if (moderationResult.prob_invalid >= this.moderationThreshold) {
+        return Result.fail(400, 'CONTENT_VIOLATION')
+      }
     }
 
     const rate = await this.rateRepository.findOne({
