@@ -228,7 +228,9 @@ export default class AuthService {
           birthday: true,
           gender: true,
           avatar: true,
-          address: true,
+          currentCity: true,
+          currentDistrict: true,
+          currentJob: true,
           bio: true
         }
       },

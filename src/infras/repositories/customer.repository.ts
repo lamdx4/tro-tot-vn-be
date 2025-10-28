@@ -47,7 +47,9 @@ export class CustomerRepository extends BaseRepository<Customer> {
               ? moment(data.birthDate, 'DD/MM/YYYY').toDate()
               : undefined,
             gender: data.gender,
-            address: data.address !== '' && data.address ? data.address : undefined,
+            currentCity: data.currentCity !== '' && data.currentCity ? data.currentCity : undefined,
+            currentDistrict: data.currentDistrict !== '' && data.currentDistrict ? data.currentDistrict : undefined,
+            currentJob: data.currentJob !== '' && data.currentJob ? data.currentJob : undefined,
             avatar: fileCloudId ? avatarFile?.fileId : undefined
           }
         )

@@ -249,7 +249,9 @@ export class CustomerService {
         bio: true,
         birthday: true,
         gender: true,
-        address: true,
+        currentCity: true,
+        currentDistrict: true,
+        currentJob: true,
         avatar: true,
         account: {
           email: true,

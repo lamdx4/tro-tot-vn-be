@@ -118,7 +118,9 @@ export default class AdminService {
           customerId: true,
           firstName: true,
           lastName: true,
-          address: true,
+          currentCity: true,
+          currentDistrict: true,
+          currentJob: true,
           avatar: true,
           joinedAt: true,
           account: {
