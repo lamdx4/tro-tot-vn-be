@@ -1,7 +1,7 @@
 import { pythonSearchService, PythonSearchParams } from './python-search.service'
-import { redisClient } from '@infras/redis/redis'
-import { PostRepository } from '@infras/repositories/post.repository'
-import { Post } from '@domains/entities/post.entity'
+import redisClient from '../infras/redis/redis'
+import { PostRepository } from '../infras/repositories/post.repository'
+import { Post } from '../domains/entities/post.entity'
 
 export interface SearchParams {
   query: string
@@ -138,7 +138,7 @@ class SearchService {
 
     // 3. Preserve Milvus ranking order
     const orderedPosts = postIds
-      .map(id => allPosts.find(p => p.id === id))
+      .map(id => allPosts.find(p => p.postId === id))
       .filter((p): p is Post => p !== undefined)
 
     // 4. Paginate in memory

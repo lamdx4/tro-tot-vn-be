@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
-import { searchService } from '@services/search.service'
-import { HttpStatusCode } from '@utils/data-types/http-status-code'
+import { searchService } from '../../services/search.service'
+import { HttpStatus } from '../../utils/data-types/http-status-code'
 
 export class SearchController {
   /**
@@ -25,7 +25,7 @@ export class SearchController {
 
       // Validate required query parameter
       if (!query || typeof query !== 'string') {
-        res.status(HttpStatusCode.BAD_REQUEST).json({
+        res.status(HttpStatus.BAD_REQUEST).json({
           success: false,
           message: 'Query parameter is required'
         })
@@ -50,7 +50,7 @@ export class SearchController {
       // Perform search
       const result = await searchService.search(searchParams)
 
-      res.status(HttpStatusCode.OK).json({
+      res.status(HttpStatus.OK).json({
         success: true,
         data: result.posts,
         pagination: result.pagination,
@@ -58,7 +58,7 @@ export class SearchController {
       })
     } catch (error) {
       console.error('[Search Controller] Error:', error)
-      res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: error instanceof Error ? error.message : 'Search failed'
       })
@@ -74,20 +74,20 @@ export class SearchController {
       const isHealthy = await searchService.healthCheck()
       
       if (isHealthy) {
-        res.status(HttpStatusCode.OK).json({
+        res.status(HttpStatus.OK).json({
           success: true,
           status: 'healthy',
           searchService: 'connected'
         })
       } else {
-        res.status(HttpStatusCode.SERVICE_UNAVAILABLE).json({
+        res.status(HttpStatus.SERVICE_UNAVAILABLE).json({
           success: false,
           status: 'unhealthy',
           searchService: 'disconnected'
         })
       }
     } catch (error) {
-      res.status(HttpStatusCode.INTERNAL_SERVER_ERROR).json({
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         status: 'error',
         message: error instanceof Error ? error.message : 'Health check failed'
