@@ -2,7 +2,6 @@ import { PostRepository } from '@/infras/repositories'
 import AdminService from '@/services/admin.service'
 import { ConfigService } from '@/services/config.service'
 import ResponseData from '@/utils/data-types/response'
-import { tr } from '@faker-js/faker/.'
 import { Request, Response, NextFunction } from 'express'
 
 class AdminController {

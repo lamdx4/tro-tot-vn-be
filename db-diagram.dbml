@@ -1,0 +1,204 @@
+// Bảng User
+table Account {
+  accountId INT [pk, increment] // ID , khóa chính, tự tăng
+  phone VARCHAR(12) [unique, not null] // Số điện thoại, duy nhất và không được để trống
+  password VARCHAR(60) [ not null]// Mật khẩu người dùng
+  roleId INT [not null, ref: > Role.roleId] // Vai trò của người dùng (VD: Customer, Admin, Admin)
+  status AccountStatus [default: "Active"] // Trạng thái của người dùng (VD: Active, Inactive)
+  email VARCHAR(60) [unique, not null] // Địa chỉ email, duy nhất và không được để trống
+}
+// Bảng UserStatus
+enum AccountStatus {
+  "InActive"
+  "Active"
+}
+
+table Role {
+  roleId INT [pk]
+  roleName VARCHAR(20) [not null, unique]
+  // "Manager"
+  // "Customer"
+  // "Customer"
+}
+
+table Permission {
+  permissionId INT [pk]
+  permissionName VARCHAR(40) [not null,unique]
+}
+
+table RolePermission {
+  roleId INT [not null, ref: > Role.roleId]
+  permissionId INT [ ref: > Permission.permissionId]
+  Indexes {
+    (permissionId,roleId) [pk]
+  }
+}
+
+// Bảng Admin
+table Admin {
+  adminId INT [pk, increment] // ID người giám sát, khóa chính, tự tăng
+  accountId INT [not null] // ID người dùng, không được để trống
+  firstName NVARCHAR(30) [not null]
+  lastName NVARCHAR(30) [not null]
+  avatar INT [ref: > MultimediaFile.fileId]
+  gender Gender // Giới tính của người dùng
+  birthday DATETIME 
+  joinedAt DATETIME [default: 'CURRENT_TIMESTAMP']
+}
+
+// Khóa ngoại từ Admin.accountId đến User.accountId
+Ref: Admin.accountId > Account.accountId
+
+// Bảng Customer
+table Customer {
+  customerId INT [pk, increment] // ID khách hàng, khóa chính, tự tăng
+  accountId INT [not null] // ID người dùng, không được để trống
+  gender Gender  // Giới tính của người dùng
+  firstName NVARCHAR(30) [not null]
+  lastName NVARCHAR(30) [not null]
+  avatar INT [ref: > MultimediaFile.fileId]
+  bio NVARCHAR(150) [default: ""] // Thông tin mô tả ngắn về người dùng
+  birthday DATETIME 
+  joinedAt DATETIME [default: 'CURRENT_TIMESTAMP']
+  isVerified tinyint [default: 1] // Trạng thái xác minh tài khoản (0: chưa xác minh, 1: đã xác minh)
+  address NVARCHAR(150) [default: null]
+}
+enum Gender {
+  Female
+  Male
+}
+// Khóa ngoại từ Customer.accountId đến User.accountId
+Ref: Customer.accountId > Account.accountId
+
+// Bảng Post
+table Post {
+  postId INT [pk, increment] // Mã bài đăng, khóa chính, tự tăng
+  ownerId INT [not null]  // Chủ sở hữu bài đăng (FK đến Customer)
+  title NVARCHAR(255)  [not null]  // Tiêu đề bài đăng
+  price INT [not null]  // Giá thuê
+  streetNumber NVARCHAR(70) [not null] // Số nhà (VD: 123A)
+  street NVARCHAR(70)  [not null] // Tên đường (VD: Nguyễn Văn Linh)
+  ward NVARCHAR(70) [not null] // Tên phường (VD: Phường Tân Phong)
+  district NVARCHAR(70) [not null] // Tên quận (VD: Quận 7)
+  city NVARCHAR(70)  [not null] // Tên thành phố (VD: TP. Hồ Chí Minh)
+  interiorCondition InteriorCondition // Tình trạng nội thất của bài đăng
+  acreage INT // Diện tích
+  description NVARCHAR(1000) // Mô tả chi tiết về bài đăng
+  createdAt DATETIME [default: `CURRENT_TIMESTAMP`] // Ngày tạo bài đăng=
+  extendedAt DATETIME [default: `CURRENT_TIMESTAMP`] // Ngày tạo bài đăng=
+  status PostStatus // Trạng thái bài đăng
+}
+Enum PostStatus {
+  "Pending"    //-- Đang chờ duyệt
+  "Approved"  // -- Đã duyệt 
+  "Rejected"  // -- Bị từ chối\
+  "Hidden" // 
+}
+
+table PostModerationHistory {
+  historyId INT [pk, increment]//-- Mã lịch sử, khóa chính, tự tăng
+  postId INT [not null]      //-- FK đến Post.postId
+  adminId INT [not null] //,-- Người thực hiện hành động (Admin, Admin, User,...)
+  actionType ActionType //, -- Loại hành động
+  reason NVARCHAR(255) [default: NULL] //,          -- Lý do thay đổi (nếu có)
+  execAt DATETIME [default: `CURRENT_TIMESTAMP`]// -- Thời gian thực hiện thay đổi
+}
+
+Ref: PostModerationHistory.postId > Post.postId
+Ref: PostModerationHistory.adminId > Admin.adminId 
+enum ActionType {
+  "Approved"
+  "Rejected"
+}
+
+table SavedPost {
+  postId INT [not null] // Bài đăng được xem (FK đến Post)
+  customerId INT [not null] // Người xem (FK đến Customer)
+  createdAt DATETIME [default: `CURRENT_TIMESTAMP`, not null] // Thời gian xem
+  Indexes {
+    (customerId, postId ) [pk]
+  }
+}
+
+Ref: SavedPost.customerId > Customer.customerId
+Ref: SavedPost.postId > Post.postId
+enum InteriorCondition {
+  Full 
+  None
+}
+
+// Khóa ngoại từ Post.ownerId đến Customer.customerId
+Ref: Post.ownerId > Customer.customerId
+
+
+// Bảng PostImage
+table PostMultimediaFile {
+  fileId INT [not null] // Mã hình ảnh, khóa chính
+  postId INT [not null] // ID bài đăng, không được để trống (FK đến Post)
+  Indexes {
+    (fileId, postId) [unique]
+  }
+}
+
+Ref: PostMultimediaFile.fileId > MultimediaFile.fileId
+
+table MultimediaFile {
+  fileId INT [pk]
+  fileCloudId VARCHAR(100) [not null, unique]
+  fileType MultimediaType
+  createdAt DATETIME [default: `CURRENT_TIMESTAMP`] // Ngày tạo đánh giá
+}
+
+enum MultimediaType {
+  "Video"
+  "Image"
+}
+
+// Khóa ngoại từ PostImage.postId đến Post.postId
+Ref: PostMultimediaFile.postId > Post.postId
+
+// Bảng Rate
+table Rate {
+  rateId INT [pk, increment] // Mã đánh giá, khóa chính
+  postId INT [not null] // ID bài đăng được đánh giá (FK đến Post)
+  raterId INT [not null] // Người đánh giá (FK đến Customer)
+  numRate INT [not null] // Số sao đánh giá
+  comment NVARCHAR(100) [default: null] // Bình luận về bài đăng, có thể để trống
+  createdAt DATETIME [default: `CURRENT_TIMESTAMP`] // Ngày tạo đánh giá
+  // reportTarget int [default: null, ref: > ReportTarget.targetId]
+  Indexes {
+    (raterId, postId) [unique]
+  }
+}
+
+// Khóa ngoại từ Rate.raterId đến Customer.customerId
+Ref: Rate.raterId > Customer.customerId
+
+// Khóa ngoại từ Rate.postId đến Post.postId
+Ref: Rate.postId > Post.postId
+
+// Bảng PostViewHistory
+table PostViewHistory {
+  // historyId INT [pk, increment] // Mã lịch sử, khóa chính, tự tăng
+  postId INT [not null] // Bài đăng được xem (FK đến Post)
+  customerId INT [not null] // Người xem (FK đến Customer)
+  viewedAt DATETIME [default: `CURRENT_TIMESTAMP`] // Thời gian xem
+  Indexes {
+    (customerId, postId ) [pk]
+  }
+}
+
+Ref: PostViewHistory.customerId > Customer.customerId
+Ref: PostViewHistory.postId > Post.postId
+
+table SubscriptionAreaPost {
+  subscriptionId INT [pk, increment]
+  customerId INT [not null]
+  city NVARCHAR(70)  [not null] // Tên thành phố (VD: TP. Hồ Chí Minh)
+  district NVARCHAR(70) [not null] // Tên quận (VD: Quận 7)
+  createdAt DATETIME  [default: "CURRENT_TIMESTAMP" , not null]  
+  indexes {
+    (city, customerId,district) [unique]
+  }
+}
+Ref: SubscriptionAreaPost.customerId > Customer.customerId
