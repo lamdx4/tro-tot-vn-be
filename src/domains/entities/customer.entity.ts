@@ -46,10 +46,13 @@ export class Customer {
   @Column({ type: 'int', nullable: true })
   avatar: number
 
-  @Column({ type: 'nvarchar', length: 30, nullable: true })
-  address: string
+  @Column({ type: 'nvarchar', length: 100, nullable: true })
+  currentCity: string
 
-  @Column({ type: 'nvarchar', length: 150, nullable: true })
+  @Column({ type: 'nvarchar', length: 100, nullable: true })
+  currentDistrict: string
+
+  @Column({ type: 'nvarchar', length: 30, nullable: true })
   currentJob: string
 
   @Column({
