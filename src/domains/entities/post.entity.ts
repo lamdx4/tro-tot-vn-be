@@ -42,7 +42,7 @@ export class Post {
   @Column({ type: 'nvarchar', length: 'MAX', default: '' })
   description: string
 
-  @Column({ type: 'int', nullable: false })
+  @Column({ type: 'bigint', nullable: false })
   price: number
 
   @Column({ type: 'nvarchar', length: 70, nullable: false })
