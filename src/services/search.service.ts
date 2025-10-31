@@ -113,6 +113,8 @@ class SearchService {
 
     // 1. Get post IDs (from cache or Python)
     const postIds = await this.getPostIds(params)
+    
+    console.log(`[Search Service] Got ${postIds.length} post IDs from Python:`, postIds.slice(0, 5))
 
     if (postIds.length === 0) {
       return {
@@ -132,9 +134,11 @@ class SearchService {
       .createQueryBuilder('post')
       .whereInIds(postIds)
       .leftJoinAndSelect('post.owner', 'owner')
-      .leftJoinAndSelect('post.postMultimediaFiles', 'postMultimediaFiles')
-      .leftJoinAndSelect('postMultimediaFiles.multimediaFile', 'multimediaFile')
+      .leftJoinAndSelect('post.multimediaFiles', 'postMultimediaFiles')
+      .leftJoinAndSelect('postMultimediaFiles.file', 'file')
       .getMany()
+    
+    console.log(`[Search Service] SQL returned ${allPosts.length} posts`)
 
     // 3. Preserve Milvus ranking order
     const orderedPosts = postIds
