@@ -6,6 +6,7 @@ import adminRouter from './admin.router'
 import postRouter from './post.router'
 import customerRouter from './customer.router'
 import searchRouter from './search.router'
+import locationRouter from './location.router'
 
 const routerConfig = express.Router()
 
@@ -22,5 +23,7 @@ routerConfig.use('/post', postRouter)
 routerConfig.use('/customer', customerRouter)
 
 routerConfig.use('/search', searchRouter)
+
+routerConfig.use('/location', locationRouter)
 
 export default routerConfig
