@@ -31,6 +31,7 @@ cleanEnv(process.env, {
     
     // Python Services - NO DEFAULTS (must be explicit)
     SEARCH_SERVICE_URL: str(),
+    RECOMMEND_SERVICE_URL: str(),
     
     // AI Moderation - NO DEFAULTS (must be explicit)
     MODERATION_SERVICE_URL: str(),

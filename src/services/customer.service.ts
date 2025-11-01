@@ -14,6 +14,7 @@ import { LessThan, LessThanOrEqual, MoreThan } from 'typeorm'
 import CloudDriveService from './google-drive.service'
 import ModerationService from './moderation.service'
 import { ConfigService } from './config.service'
+import InteractionLogService from './interaction-log.service'
 
 export class CustomerService {
   private accountRepository: AccountRepository
@@ -282,6 +283,11 @@ export class CustomerService {
       customerId: customerId,
       postId: postId
     })
+    
+    // Log to UserInteractionLog for recommendations
+    const interactionLogService = InteractionLogService.gI()
+    await interactionLogService.logSave(customerId, postId)
+    
     return Result.ok({})
   }
 
