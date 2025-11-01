@@ -11,6 +11,7 @@ import { UpdatePostDto } from '@/web/controllers/dto/update-post.dto'
 import JWTService from './jwt.service'
 import ModerationService from './moderation.service'
 import { ConfigService } from './config.service'
+import InteractionLogService from './interaction-log.service'
 
 export default class PostService {
   private postRepository: PostRepository
@@ -377,6 +378,10 @@ export default class PostService {
                       viewedAt: new Date()
                     }
                   )
+                
+                // Log to UserInteractionLog for recommendations
+                const interactionLogService = InteractionLogService.gI()
+                await interactionLogService.logView(account.customer.customerId, postId)
               }
             }
           }

@@ -6,6 +6,8 @@ import adminRouter from './admin.router'
 import postRouter from './post.router'
 import customerRouter from './customer.router'
 import searchRouter from './search.router'
+import recommendRouter from './recommend.router'
+import interactionRouter from './interaction.router'
 import locationRouter from './location.router'
 
 const routerConfig = express.Router()
@@ -23,6 +25,10 @@ routerConfig.use('/post', postRouter)
 routerConfig.use('/customer', customerRouter)
 
 routerConfig.use('/search', searchRouter)
+
+routerConfig.use('/recommend', recommendRouter)
+
+routerConfig.use('/interactions', interactionRouter)
 
 routerConfig.use('/location', locationRouter)
 
