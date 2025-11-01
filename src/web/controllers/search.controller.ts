@@ -9,6 +9,8 @@ export class SearchController {
    */
   async search(req: Request, res: Response): Promise<void> {
     try {
+      console.log('[Search Controller] Raw query params:', req.query)
+      
       const {
         query,
         city,
@@ -46,6 +48,8 @@ export class SearchController {
         page: page ? parseInt(page as string) : 1,
         pageSize: pageSize ? parseInt(pageSize as string) : 20
       }
+      
+      console.log('[Search Controller] Parsed params:', JSON.stringify(searchParams, null, 2))
 
       // Perform search
       const result = await searchService.search(searchParams)

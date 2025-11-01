@@ -88,6 +88,8 @@ class SearchService {
       limit: this.SEARCH_BUFFER
     }
 
+    console.log('[Search Service] Calling Python with params:', JSON.stringify(pythonParams, null, 2))
+
     const result = await pythonSearchService.search(pythonParams)
     
     // Cache the IDs
@@ -106,6 +108,8 @@ class SearchService {
    */
   async search(params: SearchParams): Promise<SearchResult> {
     const startTime = Date.now()
+    
+    console.log('[Search Service] Received params:', JSON.stringify(params, null, 2))
     
     // Default pagination
     const page = params.page || 1
