@@ -1,6 +1,6 @@
 import { Customer } from '@/domains/entities/customer.entity'
 import { Post } from '@/domains/entities/post.entity'
-import { AccountRepository, PostRepository, PostViewHistoryRepository } from '@/infras/repositories'
+import { AccountRepository, PostRepository, PostViewHistoryRepository, ModerationLogRepository } from '@/infras/repositories'
 import { CreatePostDto } from '@/web/controllers/dto/create-post.dto'
 import CloudDriveService from './google-drive.service'
 import { MultimediaFile } from '@/domains/entities/multimedia-file.entity'
@@ -18,6 +18,7 @@ export default class PostService {
   private cloudService: CloudDriveService
   private postViewHistoryRepository: PostViewHistoryRepository
   private moderationService: ModerationService
+  private moderationLogRepository: ModerationLogRepository
   private configService: ConfigService
   private moderationThreshold: number
   constructor() {
@@ -25,6 +26,7 @@ export default class PostService {
     this.cloudService = CloudDriveService.gI()
     this.postViewHistoryRepository = new PostViewHistoryRepository()
     this.moderationService = ModerationService.gI()
+    this.moderationLogRepository = new ModerationLogRepository()
     this.configService = ConfigService.gI()
     this.moderationThreshold = Number(this.configService.getOrThrow('MODERATION_THRESHOLD'))
   }
@@ -98,6 +100,18 @@ export default class PostService {
       
       // Auto-reject if AI confidence >= threshold
       if (moderationResult.prob_invalid >= this.moderationThreshold) {
+        // Log AI rejection for PhoBERT retraining
+        try {
+          await this.moderationLogRepository.logAIReject({
+            title: dto.title,
+            description: dto.description,
+            aiScore: moderationResult.prob_invalid,
+            aiThreshold: this.moderationThreshold
+          })
+        } catch (error) {
+          console.error('[ModerationLog] Failed to log AI rejection:', error)
+        }
+        
         return Result.fail(400, 'CONTENT_VIOLATION')
       }
 
@@ -448,12 +462,23 @@ export default class PostService {
     // Check content moderation before uploading files
     const contentToCheck = `${dto.title} ${dto.description}`
     const moderationResult = await this.moderationService.checkContent(contentToCheck)
-    
     // Auto-reject if AI confidence >= threshold
     if (moderationResult.prob_invalid >= this.moderationThreshold) {
+      // Log AI rejection for PhoBERT retraining
+      try {
+        await this.moderationLogRepository.logAIReject({
+          title: dto.title,
+          description: dto.description,
+          aiScore: moderationResult.prob_invalid,
+          aiThreshold: this.moderationThreshold
+        })
+      } catch (error) {
+        console.error('[ModerationLog] Failed to log AI rejection:', error)
+      }
+      
       return Result.fail(400, 'CONTENT_VIOLATION')
     }
-
+    
     const listId = await this.cloudService.uploadFiles(video ? [...imgs, video] : imgs)
     if (!listId) {
       throw new Error('Cannot upload files')

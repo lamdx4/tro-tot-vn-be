@@ -108,4 +108,19 @@ adminRouter.get(
   adminController.getStatistics.bind(adminController)
 )
 
+// Moderation analytics
+adminRouter.get(
+  '/moderation/stats',
+  authenticateMiddleware,
+  requireRoleMiddleware([RoleType.MANAGER]),
+  adminController.getModerationStats.bind(adminController)
+)
+
+adminRouter.get(
+  '/moderation/export',
+  authenticateMiddleware,
+  requireRoleMiddleware([RoleType.MANAGER]),
+  adminController.exportTrainingData.bind(adminController)
+)
+
 export default adminRouter

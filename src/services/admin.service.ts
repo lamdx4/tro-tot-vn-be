@@ -3,24 +3,30 @@ import {
   AccountRepository,
   AdminRepository,
   PostModerationHistoryRepository,
-  PostRepository
+  PostRepository,
+  ModerationLogRepository
 } from '@/infras/repositories'
 import { Result } from '@/utils/data-types/result'
 import dayjs from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
 import { Between } from 'typeorm'
+import { ConfigService } from './config.service'
 
 export default class AdminService {
   private postRepository: PostRepository
   private postModerateHistoryRepository: PostModerationHistoryRepository
   private adminRepository: AdminRepository
   private accountRepository: AccountRepository
+  private moderationLogRepository: ModerationLogRepository
+  private configService: ConfigService
 
   constructor() {
     this.postRepository = new PostRepository()
     this.postModerateHistoryRepository = new PostModerationHistoryRepository()
     this.adminRepository = new AdminRepository()
     this.accountRepository = new AccountRepository()
+    this.moderationLogRepository = new ModerationLogRepository()
+    this.configService = ConfigService.gI()
   }
 
   async getStatisticsForDashBoard() {
@@ -137,7 +143,7 @@ export default class AdminService {
     return Result.ok(postPending)
   }
 
-  async moderatePost(reviewerId: number, actionType: string, postId: number, reason: string) {
+  async moderatePost(reviewerId: number, actionType: string, postId: number, reason: string, isHateContent?: boolean) {
     if (actionType === PostStatus.REJECTED && (!reason || reason.trim() === '')) {
       return Result.fail(400, 'REQUIRED_REASON')
     }
@@ -149,6 +155,24 @@ export default class AdminService {
     if (!isSuccess) {
       return Result.fail(500, 'Failed to moderate post')
     }
+
+    // Log to ModerationLog if admin rejects for hate content
+    if (actionType === PostStatus.REJECTED && isHateContent === true) {
+      try {
+        const threshold = Number(this.configService.get('MODERATION_THRESHOLD') || 0.7)
+        await this.moderationLogRepository.logAdminReject({
+          title: post.title,
+          description: post.description,
+          aiScore: post.aiModerationScore || 0,
+          aiThreshold: threshold
+        })
+        console.log(`[ModerationLog] Logged admin rejection for hate content: postId=${postId}`)
+      } catch (error) {
+        console.error('[ModerationLog] Failed to log admin rejection:', error)
+        // Don't fail the whole operation if logging fails
+      }
+    }
+
     return Result.ok({})
   }
 
@@ -353,5 +377,21 @@ export default class AdminService {
       return Result.fail(500, 'Failed to update profile')
     }
     return Result.ok('Update profile successfully')
+  }
+
+  /**
+   * Get moderation statistics (AI vs Admin rejections)
+   */
+  async getModerationStats() {
+    const stats = await this.moderationLogRepository.getStatsByType()
+    return Result.ok(stats)
+  }
+
+  /**
+   * Export training data for PhoBERT retraining
+   */
+  async exportTrainingData(limit: number = 1000) {
+    const data = await this.moderationLogRepository.getTrainingData(limit)
+    return Result.ok(data)
   }
 }

@@ -21,7 +21,7 @@ export default class ModerationService {
     return this.instance || (this.instance = new this())
   }
 
-  async checkContent(text: string, threshold: number = 0.5): Promise<ModerationResult> {
+  async checkContent(text: string, threshold: number = 0.9): Promise<ModerationResult> {
     try {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
