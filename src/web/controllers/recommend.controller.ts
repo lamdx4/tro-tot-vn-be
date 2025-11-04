@@ -1,6 +1,8 @@
 import { Request, Response } from 'express'
 import { recommendService } from '../../services/recommend.service'
 import { HttpStatus } from '../../utils/data-types/http-status-code'
+import { Role } from '@/domains/entities/role.entity'
+import { RoleType } from '@/domains/entities/enum/value-object'
 
 export class RecommendController {
   /**
@@ -10,22 +12,15 @@ export class RecommendController {
   async getRecommendations(req: Request, res: Response): Promise<void> {
     const requestId = Math.random().toString(36).substring(7)
     console.log(`\n========== [Recommend Controller] START REQUEST ${requestId} ==========`)
-    
-    try {
-      // Get customer ID from authenticated user
-      // @ts-ignore - customer is set by auth middleware
-      const customerId = req.user?.customer?.customerId
-      console.log(`[Recommend Controller ${requestId}] User object:`, {
-        hasUser: !!req.user,
-        hasCustomer: !!req.user?.customer,
-        customerId: customerId
-      })
 
+    try {
+      const customerId = req.user?.customer?.customerId
       if (!customerId) {
-        console.log(`[Recommend Controller ${requestId}] ❌ No customerId found - UNAUTHORIZED`)
-        res.status(HttpStatus.UNAUTHORIZED).json({
-          success: false,
-          message: 'Customer authentication required'
+        res.status(HttpStatus.OK).json({
+          success: true,
+          data: [],
+          total: 0,
+          processingTimeMs: 0
         })
         return
       }
@@ -44,14 +39,16 @@ export class RecommendController {
       }
 
       console.log(`[Recommend Controller ${requestId}] 🔄 Calling recommendService.getRecommendations...`)
-      
+
       // Get recommendations
       const result = await recommendService.getRecommendations({
         customerId,
         limit
       })
 
-      console.log(`[Recommend Controller ${requestId}] ✅ Success! Returning ${result.posts.length} posts (total: ${result.total}, time: ${result.processingTimeMs}ms)`)
+      console.log(
+        `[Recommend Controller ${requestId}] ✅ Success! Returning ${result.posts.length} posts (total: ${result.total}, time: ${result.processingTimeMs}ms)`
+      )
       console.log(`========== [Recommend Controller] END REQUEST ${requestId} ==========\n`)
 
       res.status(HttpStatus.OK).json({
@@ -62,9 +59,12 @@ export class RecommendController {
       })
     } catch (error) {
       console.error(`[Recommend Controller ${requestId}] ❌ ERROR:`, error)
-      console.error(`[Recommend Controller ${requestId}] Error stack:`, error instanceof Error ? error.stack : 'No stack')
+      console.error(
+        `[Recommend Controller ${requestId}] Error stack:`,
+        error instanceof Error ? error.stack : 'No stack'
+      )
       console.log(`========== [Recommend Controller] END REQUEST ${requestId} (ERROR) ==========\n`)
-      
+
       // Handle specific error cases
       if (error instanceof Error) {
         if (error.message.includes('No interaction history')) {
@@ -77,7 +77,7 @@ export class RecommendController {
           })
           return
         }
-        
+
         if (error.message.includes('service unavailable')) {
           console.log(`[Recommend Controller ${requestId}] ⚠️ Python service unavailable`)
           res.status(HttpStatus.SERVICE_UNAVAILABLE).json({
@@ -102,7 +102,7 @@ export class RecommendController {
   async health(req: Request, res: Response): Promise<void> {
     try {
       const isHealthy = await recommendService.healthCheck()
-      
+
       if (isHealthy) {
         res.status(HttpStatus.OK).json({
           success: true,
@@ -125,4 +125,3 @@ export class RecommendController {
     }
   }
 }
-

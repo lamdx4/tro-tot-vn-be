@@ -53,9 +53,10 @@ class AdminController {
       const actionType = String(req.body.actionType)
       const postId = Number(req.params.postId)
       const reason = String(req.body.reason)
+      const isHateContent = req.body.isHateContent === true // Boolean from FE checkbox
       const reviewerId = Number(req.user?.admin.adminId)
 
-      const result = await this.adminService.moderatePost(reviewerId, actionType, postId, reason)
+      const result = await this.adminService.moderatePost(reviewerId, actionType, postId, reason, isHateContent)
       if (result.isSuccess) {
         res.status(200).json(ResponseData.success(result.getValue()))
       } else {
@@ -288,6 +289,48 @@ class AdminController {
               result.error ?? 'An unexpected error occurred'
             )
           )
+      }
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * GET /admin/moderation/stats
+   * Get statistics of AI vs Admin rejections
+   */
+  async getModerationStats(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await this.adminService.getModerationStats()
+      if (result.isSuccess) {
+        res.status(200).json(ResponseData.success(result.getValue()))
+      } else {
+        res.status(500).json(ResponseData.error(500, 'Failed to get stats', 'An unexpected error occurred'))
+      }
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * GET /admin/moderation/export?limit=1000
+   * Export training data for PhoBERT retraining
+   */
+  async exportTrainingData(req: Request, res: Response, next: NextFunction) {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 1000
+      const result = await this.adminService.exportTrainingData(limit)
+      
+      if (result.isSuccess) {
+        const data = result.getValue()
+        
+        // Return as JSON (admin can download as CSV from frontend)
+        res.status(200).json(ResponseData.success({
+          total: data.length,
+          data: data
+        }))
+      } else {
+        res.status(500).json(ResponseData.error(500, 'Failed to export data', 'An unexpected error occurred'))
       }
     } catch (error) {
       next(error)
