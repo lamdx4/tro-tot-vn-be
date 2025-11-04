@@ -10,6 +10,9 @@ export interface UserInteraction {
 export interface UserProfile {
   city?: string
   district?: string
+  birthday?: string
+  gender?: string
+  currentJob?: string
 }
 
 export interface PythonRecommendParams {
