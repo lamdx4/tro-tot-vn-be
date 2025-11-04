@@ -1,6 +1,7 @@
 import { pythonRecommendService, UserInteraction, UserProfile } from './python-recommend.service'
 import { PostRepository } from '../infras/repositories/post.repository'
 import { UserInteractionLogRepository } from '../infras/repositories/user-interaction-log.repository'
+import { CustomerRepository } from '../infras/repositories/customer.repository'
 import { Post } from '../domains/entities/post.entity'
 
 export interface RecommendParams {
@@ -17,10 +18,12 @@ export interface RecommendResult {
 class RecommendService {
   private postRepository: PostRepository
   private interactionLogRepository: UserInteractionLogRepository
+  private customerRepository: CustomerRepository
 
   constructor() {
     this.postRepository = new PostRepository()
     this.interactionLogRepository = new UserInteractionLogRepository()
+    this.customerRepository = new CustomerRepository()
   }
 
   /**
@@ -55,10 +58,21 @@ class RecommendService {
    * Build user profile from customer data
    */
   private async buildUserProfile(customerId: number): Promise<UserProfile> {
-    // Get customer's location preferences
-    // For now, return empty profile - can be enhanced later
-    // TODO: Get customer city/district from Customer entity
-    return {}
+    const customer = await this.customerRepository.findOne({
+      where: { customerId },
+      select: ['currentCity', 'currentDistrict', 'birthday', 'currentJob']
+    })
+
+    if (!customer) {
+      return {}
+    }
+
+    return {
+      city: customer.currentCity || undefined,
+      district: customer.currentDistrict || undefined,
+      birthday: customer.birthday ? String(customer.birthday).split('T')[0] : undefined,
+      currentJob: customer.currentJob || undefined
+    }
   }
 
   /**
