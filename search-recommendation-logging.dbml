@@ -1,0 +1,402 @@
+// ============================================
+// TRO TOT VN - AI IMPROVEMENT SCHEMA
+// Complete Database Schema for Training & Analytics
+// ============================================
+
+// ==================== CORE TABLES ====================
+
+Table Account {
+  accountId int [pk, increment]
+  phone varchar(12) [unique, not null]
+  password varchar(60) [not null]
+  email varchar(60) [unique, not null]
+  roleId int [not null]
+  status varchar(20) [not null, default: 'Active', note: 'Active, InActive, Banned']
+  
+  Note: 'User authentication and authorization'
+}
+
+Table Customer {
+  customerId int [pk, increment]
+  accountId int [not null, unique, ref: - Account.accountId]
+  isVerified tinyint [default: 1]
+  gender varchar(10) [not null, default: 'Male', note: 'Male, Female']
+  bio nvarchar(150) [default: '']
+  firstName nvarchar(30) [not null]
+  lastName nvarchar(30) [not null]
+  birthday date [null]
+  avatar int [null]
+  currentCity nvarchar(100) [null]
+  currentDistrict nvarchar(100) [null]
+  currentJob nvarchar(30) [null]
+  joinedAt date [default: `CURRENT_TIMESTAMP`]
+  
+  Indexes {
+    accountId [unique]
+  }
+  
+  Note: 'Customer profile information'
+}
+
+Table Post {
+  postId int [pk, increment]
+  ownerId int [not null, ref: > Customer.customerId]
+  status varchar(20) [not null, default: 'Pending', note: 'Pending, Approved, Rejected, Hidden, Suspended']
+  createdAt datetime [default: `CURRENT_TIMESTAMP`]
+  title nvarchar(70) [not null]
+  description nvarchar(max) [default: '']
+  price bigint [not null, note: 'Price >= 0']
+  streetNumber nvarchar(70) [not null]
+  street nvarchar(70) [not null]
+  ward nvarchar(70) [not null]
+  district nvarchar(70) [not null]
+  city nvarchar(70) [not null]
+  interiorCondition varchar(10) [not null, default: 'None', note: 'Full, None']
+  acreage int [not null, note: 'Acreage > 0']
+  extendedAt datetime [default: `CURRENT_TIMESTAMP`]
+  aiModerationScore float [null, note: 'PhoBERT hate content score']
+  
+  Indexes {
+    ownerId
+    status
+    (city, district)
+    createdAt
+  }
+  
+  Note: 'Rental property posts'
+}
+
+// ==================== USER INTERACTION TABLES ====================
+
+Table UserInteractionLog {
+  logId int [pk, increment]
+  customerId int [not null, ref: > Customer.customerId]
+  postId int [not null, ref: > Post.postId]
+  typeAction tinyint [not null, note: '1=view, 2=save, 3=contact']
+  createdAt datetime [default: `CURRENT_TIMESTAMP`]
+  
+  Indexes {
+    (customerId, postId, typeAction)
+    createdAt
+  }
+  
+  Note: 'User actions for building preference vectors'
+}
+
+Table SavedPost {
+  customerId int [pk, ref: > Customer.customerId]
+  postId int [pk, ref: > Post.postId]
+  createdAt datetime [default: `CURRENT_TIMESTAMP`]
+  
+  Note: 'User saved posts - strong positive signal'
+}
+
+Table PostViewHistory {
+  historyId int [pk, increment]
+  customerId int [not null, ref: > Customer.customerId]
+  postId int [not null, ref: > Post.postId]
+  viewedAt datetime [default: `CURRENT_TIMESTAMP`]
+  
+  Indexes {
+    (postId, customerId) [unique]
+  }
+  
+  Note: 'Unique post views per customer'
+}
+
+// ==================== AI MODERATION LOGGING ====================
+
+Table ModerationLog {
+  logId int [pk, increment]
+  capturedTitle nvarchar(500) [not null]
+  capturedDescription nvarchar(max) [not null]
+  aiScore float [not null, note: 'PhoBERT confidence score']
+  aiThreshold float [not null, note: 'Threshold at time of moderation']
+  moderationType varchar(20) [not null, note: 'AI_REJECT, ADMIN_REJECT']
+  moderatedAt datetime [default: `CURRENT_TIMESTAMP`]
+  
+  Indexes {
+    moderationType
+    moderatedAt
+  }
+  
+  Note: 'Training data for PhoBERT hate content detection - captures AI rejects and false negatives'
+}
+
+// ==================== SEARCH LOGGING FOR RANKING IMPROVEMENT ====================
+
+Table SearchLog {
+  logId int [pk, increment]
+  customerId int [null, note: 'NULL for anonymous users']
+  
+  // Search Query
+  query nvarchar(500) [not null]
+  
+  // Filters Applied
+  city nvarchar(100) [null]
+  district nvarchar(100) [null]
+  minPrice decimal(18,2) [null]
+  maxPrice decimal(18,2) [null]
+  minAcreage decimal(10,2) [null]
+  maxAcreage decimal(10,2) [null]
+  interiorCondition varchar(20) [null]
+  
+  // Results Metadata
+  resultCount int [not null, note: 'Total results returned from Milvus']
+  searchTimeMs float [not null, note: 'Hybrid search processing time']
+  
+  createdAt datetime [default: `CURRENT_TIMESTAMP`]
+  
+  Indexes {
+    customerId
+    createdAt
+    query
+  }
+  
+  Note: 'Main search event log - one row per search request'
+}
+
+Table SearchLogItem {
+  itemId int [pk, increment]
+  searchLogId int [not null, ref: > SearchLog.logId]
+  postId int [null, note: 'NULL if post deleted later - we keep snapshot']
+  position int [not null, note: '1-based ranking position']
+  
+  // POST SNAPSHOT - Immutable for training
+  capturedTitle nvarchar(500) [not null]
+  capturedDescription nvarchar(max) [not null]
+  capturedPrice decimal(18,2) [not null]
+  capturedAcreage decimal(10,2) [not null]
+  capturedCity nvarchar(100) [not null]
+  capturedDistrict nvarchar(100) [not null]
+  
+  Indexes {
+    searchLogId
+    postId
+    position
+  }
+  
+  Note: 'Search result items with immutable snapshots - Features for Learning-to-Rank'
+}
+
+Table SearchClick {
+  clickId int [pk, increment]
+  searchLogId int [not null, ref: > SearchLog.logId]
+  searchLogItemId int [not null, ref: > SearchLogItem.itemId]
+  clickedAt datetime [default: `CURRENT_TIMESTAMP`]
+  
+  Indexes {
+    searchLogId
+    searchLogItemId
+  }
+  
+  Note: 'User clicks on search results - Label=1 for clicked items'
+}
+
+// ==================== RECOMMENDATION LOGGING FOR MODEL IMPROVEMENT ====================
+
+Table RecommendationLog {
+  logId int [pk, increment]
+  customerId int [not null, ref: > Customer.customerId]
+  
+  // Algorithm Metadata
+  algorithm varchar(50) [not null, note: 'content_based, collaborative, hybrid']
+  processingTimeMs float [not null, note: 'Python service processing time']
+  dinEnabled bit [default: 0, note: 'Deep Interest Network feature flag']
+  
+  createdAt datetime [default: `CURRENT_TIMESTAMP`]
+  
+  Indexes {
+    customerId
+    createdAt
+    algorithm
+  }
+  
+  Note: 'Main recommendation event log - one row per recommendation request'
+}
+
+Table RecommendationLogItem {
+  itemId int [pk, increment]
+  recommendationLogId int [not null, ref: > RecommendationLog.logId]
+  postId int [null, note: 'NULL if post deleted - snapshot preserved']
+  position int [not null, note: '1-based ranking position']
+  
+  // POST SNAPSHOT - Immutable for training
+  capturedTitle nvarchar(500) [not null]
+  capturedDescription nvarchar(max) [not null]
+  capturedPrice decimal(18,2) [not null]
+  capturedAcreage decimal(10,2) [not null]
+  capturedCity nvarchar(100) [not null]
+  capturedDistrict nvarchar(100) [not null]
+  
+  // Recommendation Scores
+  score float [not null, note: 'Final weighted score from Python service']
+  reason varchar(50) [null, note: 'location_match, similar_to_saved_posts, content_similarity']
+  explanation nvarchar(500) [null, note: 'Vietnamese user-facing explanation']
+  
+  Indexes {
+    recommendationLogId
+    postId
+    position
+  }
+  
+  Note: 'Recommended items with scores and explanations - Features + Model outputs'
+}
+
+Table RecommendationClick {
+  clickId int [pk, increment]
+  recommendationLogId int [not null, ref: > RecommendationLog.logId]
+  recommendationLogItemId int [not null, ref: > RecommendationLogItem.itemId]
+  clickedAt datetime [default: `CURRENT_TIMESTAMP`]
+  
+  Indexes {
+    recommendationLogId
+    recommendationLogItemId
+  }
+  
+  Note: 'User clicks on recommendations - Label=1 for engagement'
+}
+
+// ==================== RELATIONSHIPS SUMMARY ====================
+// 
+// CORE:
+//   Account (1) -> (1) Customer
+//   Customer (1) -> (N) Post
+//
+// INTERACTIONS (for User Preference Vector):
+//   Customer (1) -> (N) UserInteractionLog
+//   Customer (1) -> (N) SavedPost
+//   Customer (1) -> (N) PostViewHistory
+//   Post (1) -> (N) UserInteractionLog
+//   Post (1) -> (N) SavedPost
+//   Post (1) -> (N) PostViewHistory
+//
+// SEARCH (for Learning-to-Rank):
+//   SearchLog (1) -> (N) SearchLogItem
+//   SearchLog (1) -> (N) SearchClick
+//   SearchLogItem (1) -> (N) SearchClick
+//
+// RECOMMENDATION (for Model Retraining):
+//   Customer (1) -> (N) RecommendationLog
+//   RecommendationLog (1) -> (N) RecommendationLogItem
+//   RecommendationLog (1) -> (N) RecommendationClick
+//   RecommendationLogItem (1) -> (N) RecommendationClick
+//
+// MODERATION (for PhoBERT Training):
+//   ModerationLog (standalone - no FK for snapshot integrity)
+
+// ==================== AI TRAINING USE CASES ====================
+
+// 1. SEARCH RANKING (Learning-to-Rank)
+//    Input Features:
+//      - query (text)
+//      - filters (city, district, price, acreage)
+//      - capturedTitle, capturedDescription (from SearchLogItem)
+//      - position (ranking bias)
+//    Label:
+//      - clicked = 1, not clicked = 0 (from SearchClick join)
+//    Model Goal:
+//      - Improve hybrid search ranking (dense + sparse BM25)
+//      - Learn which features users click given a query
+//
+// 2. RECOMMENDATION RANKING (CTR Prediction)
+//    Input Features:
+//      - User: customerId -> UserInteractionLog (preference vector)
+//      - Item: capturedTitle, capturedDescription, capturedPrice, etc.
+//      - Score: algorithm output, reason
+//      - Context: position, algorithm, dinEnabled
+//    Label:
+//      - clicked = 1, not clicked = 0 (from RecommendationClick join)
+//    Model Goal:
+//      - Improve recommendation algorithm
+//      - A/B test content_based vs collaborative vs hybrid
+//      - Optimize DIN (Deep Interest Network) impact
+//
+// 3. CONTENT MODERATION (PhoBERT Fine-tuning)
+//    Input Features:
+//      - capturedTitle + capturedDescription (text)
+//    Label:
+//      - AI_REJECT: Label=1 (hate content caught by AI)
+//      - ADMIN_REJECT: Label=1 (false negatives - AI missed, human caught)
+//    Model Goal:
+//      - Reduce false negatives (improve recall)
+//      - Balance precision/recall with threshold tuning
+//      - Retrain PhoBERT on Vietnamese hate content
+//
+// 4. CTR ANALYSIS & A/B TESTING
+//    Metrics:
+//      - Overall CTR = clicks / impressions
+//      - CTR by position (position bias analysis)
+//      - CTR by algorithm (recommendation performance)
+//      - CTR by query type (search quality)
+//      - Zero-result queries (search coverage)
+//      - Popular queries (product insights)
+//
+// 5. USER BEHAVIOR ANALYSIS
+//    Patterns:
+//      - View -> Save -> Contact conversion funnel
+//      - Time decay on interactions (recent vs old)
+//      - Location preferences (city, district patterns)
+//      - Price range preferences
+//      - Interior condition preferences
+
+// ==================== DATA FLOW ====================
+//
+// SEARCH:
+//   User submits query -> Python search-service (Milvus hybrid search)
+//   -> Node.js search.service.ts logs: SearchLog + SearchLogItem[] (with snapshots)
+//   -> User clicks result -> Frontend tracks -> searchClick.repository.logClick()
+//
+// RECOMMENDATION:
+//   User loads homepage -> Node.js calls Python recommend-service
+//   -> Python: UserInteractionLog -> preference vector -> content-based filtering
+//   -> Node.js recommend.service.ts logs: RecommendationLog + RecommendationLogItem[] (with snapshots)
+//   -> User clicks recommendation -> Frontend tracks -> recommendationClick.repository.logClick()
+//
+// MODERATION:
+//   User creates post -> Python moderation-service (PhoBERT)
+//   -> If AI rejects: moderationLog.logAIReject() + return error
+//   -> If AI passes: Save as Pending
+//   -> Admin rejects as hate content: moderationLog.logAdminReject() (false negative)
+
+// ==================== ANALYTICS QUERIES ====================
+
+// Search CTR:
+// SELECT 
+//   COUNT(DISTINCT sl.logId) as totalSearches,
+//   COUNT(sc.clickId) as totalClicks,
+//   CAST(COUNT(sc.clickId) AS FLOAT) / COUNT(DISTINCT sl.logId) as ctr
+// FROM SearchLog sl
+// LEFT JOIN SearchClick sc ON sl.logId = sc.searchLogId
+
+// CTR by Position (Position Bias):
+// SELECT 
+//   sli.position,
+//   COUNT(sli.itemId) as impressions,
+//   COUNT(sc.clickId) as clicks,
+//   CAST(COUNT(sc.clickId) AS FLOAT) / COUNT(sli.itemId) as ctr
+// FROM SearchLogItem sli
+// LEFT JOIN SearchClick sc ON sli.itemId = sc.searchLogItemId
+// GROUP BY sli.position
+// ORDER BY sli.position
+
+// Recommendation CTR by Algorithm:
+// SELECT 
+//   rl.algorithm,
+//   COUNT(DISTINCT rl.logId) as impressions,
+//   COUNT(rc.clickId) as clicks,
+//   CAST(COUNT(rc.clickId) AS FLOAT) / COUNT(DISTINCT rl.logId) as ctr
+// FROM RecommendationLog rl
+// LEFT JOIN RecommendationClick rc ON rl.logId = rc.recommendationLogId
+// GROUP BY rl.algorithm
+// ORDER BY ctr DESC
+
+// PhoBERT Training Data Export:
+// SELECT 
+//   capturedTitle,
+//   capturedDescription,
+//   moderationType,
+//   aiScore
+// FROM ModerationLog
+// WHERE moderatedAt >= DATEADD(month, -3, GETDATE())
+// ORDER BY moderatedAt DESC
