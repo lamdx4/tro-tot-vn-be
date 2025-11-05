@@ -1,0 +1,29 @@
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index } from 'typeorm'
+import { SearchLog } from './search-log.entity'
+import { SearchLogItem } from './search-log-item.entity'
+
+@Entity('SearchClick')
+@Index(['searchLogItemId'])
+export class SearchClick {
+  @PrimaryGeneratedColumn()
+  clickId: number
+
+  @Column({ type: 'int', nullable: false })
+  searchLogId: number
+
+  @Column({ type: 'int', nullable: false })
+  searchLogItemId: number
+
+  @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  clickedAt: Date
+
+  // Relations
+  @ManyToOne(() => SearchLog, searchLog => searchLog.clicks, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'searchLogId' })
+  searchLog: SearchLog
+
+  @ManyToOne(() => SearchLogItem, item => item.clicks, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'searchLogItemId' })
+  searchLogItem: SearchLogItem
+}
+
