@@ -18,7 +18,7 @@ export class SearchClick {
   clickedAt: Date
 
   // Relations
-  @ManyToOne(() => SearchLog, searchLog => searchLog.clicks, { onDelete: 'CASCADE' })
+  @ManyToOne(() => SearchLog, searchLog => searchLog.clicks, { onDelete: 'NO ACTION' })
   @JoinColumn({ name: 'searchLogId' })
   searchLog: SearchLog
 
