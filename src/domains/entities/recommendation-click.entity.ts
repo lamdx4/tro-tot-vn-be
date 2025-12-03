@@ -18,7 +18,7 @@ export class RecommendationClick {
   clickedAt: Date
 
   // Relations
-  @ManyToOne(() => RecommendationLog, log => log.clicks, { onDelete: 'CASCADE' })
+  @ManyToOne(() => RecommendationLog, log => log.clicks, { onDelete: 'NO ACTION' })
   @JoinColumn({ name: 'recommendationLogId' })
   recommendationLog: RecommendationLog
 
