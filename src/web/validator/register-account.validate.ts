@@ -55,6 +55,27 @@ const validateRegister = [
     .matches(/[a-z]/).withMessage('Mật khẩu phải chứa ít nhất một chữ thường')
     .matches(/\d/).withMessage('Mật khẩu phải chứa ít nhất một chữ số'),
 
+  // Validate currentCity (optional)
+  body('currentCity')
+    .optional({ nullable: true, checkFalsy: true })
+    .isString().withMessage('Thành phố phải là chuỗi ký tự')
+    .isLength({ max: 100 }).withMessage('Thành phố không được quá 100 ký tự')
+    .trim(),
+
+  // Validate currentDistrict (optional)
+  body('currentDistrict')
+    .optional({ nullable: true, checkFalsy: true })
+    .isString().withMessage('Quận/Huyện phải là chuỗi ký tự')
+    .isLength({ max: 100 }).withMessage('Quận/Huyện không được quá 100 ký tự')
+    .trim(),
+
+  // Validate currentJob (optional)
+  body('currentJob')
+    .optional({ nullable: true, checkFalsy: true })
+    .isString().withMessage('Nghề nghiệp phải là chuỗi ký tự')
+    .isLength({ max: 30 }).withMessage('Nghề nghiệp không được quá 30 ký tự')
+    .trim(),
+
   validateRequest
 ]
 

@@ -168,7 +168,10 @@ export default class AuthService {
     lastName: string,
     birthday: Date,
     gender: string,
-    password: string
+    password: string,
+    currentCity?: string,
+    currentDistrict?: string,
+    currentJob?: string
   ) {
     const existAccount = await this.accountRepository.findOne({
       where: [{ phone: phone }, { email: email }]
@@ -184,7 +187,10 @@ export default class AuthService {
       lastName,
       birthday,
       gender,
-      password
+      password,
+      currentCity,
+      currentDistrict,
+      currentJob
     )
 
     if ((await createUser).isSuccess) {

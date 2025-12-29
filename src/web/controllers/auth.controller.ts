@@ -7,7 +7,7 @@ class AuthController {
   private authService = new AuthService()
 
   async registerAccount(req: Request, res: Response, next: NextFunction) {
-    const { phone, email, firstName, lastName, birthday, gender, password } = req.body
+    const { phone, email, firstName, lastName, birthday, gender, password, currentCity, currentDistrict, currentJob } = req.body
     console.log('newUser', req.body)
     const newUser = await this.authService.registerAccount(
       phone,
@@ -16,7 +16,10 @@ class AuthController {
       lastName,
       birthday,
       gender,
-      password
+      password,
+      currentCity,
+      currentDistrict,
+      currentJob
     )
     if (newUser.isSuccess) {
       res.status(201).json(ResponseData.success('User registered successfully'))
