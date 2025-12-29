@@ -19,7 +19,10 @@ export class AccountRepository extends BaseRepository<Account> {
     lastName: string,
     birthday: Date,
     gender: string,
-    password: string
+    password: string,
+    currentCity?: string,
+    currentDistrict?: string,
+    currentJob?: string
   ) {
     // await AppDataSource.initialize();
     const queryRunner = AppDataSource.createQueryRunner()
@@ -34,7 +37,10 @@ export class AccountRepository extends BaseRepository<Account> {
         firstName,
         lastName,
         birthday,
-        accountId: saveAccount.accountId
+        accountId: saveAccount.accountId,
+        currentCity: currentCity || undefined,
+        currentDistrict: currentDistrict || undefined,
+        currentJob: currentJob || undefined
       })
       await queryRunner.manager.save(newCustomer)
 

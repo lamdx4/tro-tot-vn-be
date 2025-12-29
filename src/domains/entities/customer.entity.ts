@@ -80,7 +80,7 @@ export class Customer {
   @OneToMany(() => SubscriptionAreaPost, (subscription) => subscription.customer)
   subscriptions: SubscriptionAreaPost[]
 
-  @OneToOne(() => MultimediaFile, { nullable: true , cascade: true })
+  @OneToOne(() => MultimediaFile, { nullable: true, cascade: true })
   @JoinColumn({ name: 'avatar' })
   avatarFile?: MultimediaFile
 }
