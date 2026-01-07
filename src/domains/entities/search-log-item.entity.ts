@@ -17,6 +17,9 @@ export class SearchLogItem {
   @Column({ type: 'int', nullable: false })
   position: number
 
+  @Column({ type: 'float', nullable: true })
+  relevanceScore: number | null
+
   // SNAPSHOT (from Node.js SQL query)
   @Column({ type: 'nvarchar', length: 500, nullable: false })
   capturedTitle: string
