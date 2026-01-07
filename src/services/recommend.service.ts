@@ -98,17 +98,6 @@ class RecommendService {
       const userProfile = await this.buildUserProfile(params.customerId)
       console.log(`[Recommend Service] ✅ User profile:`, userProfile)
 
-      // DECISION POINT: Require minimum 5 interactions
-      if (vecHistory.length < 5) {
-        console.log(`[Recommend Service] 🔀 ROUTING: History size ${vecHistory.length} < 5 → INSUFFICIENT DATA`)
-        console.log('[Recommend Service] ⚠️ Returning empty - waiting for Prior Vectors implementation')
-        return {
-          posts: [],
-          total: 0,
-          processingTimeMs: Date.now() - startTime
-        }
-      }
-
       // HOT/WARM START: Use Python ML service
       console.log(`[Recommend Service] 🔀 ROUTING: History size ${vecHistory.length} >= 5 → HOT START (Python ML service)`)
 

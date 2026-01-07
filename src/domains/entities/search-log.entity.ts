@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, Index, OneToMany } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, Index, OneToMany, OneToOne } from 'typeorm'
 import { SearchLogItem } from './search-log-item.entity'
 import { SearchClick } from './search-click.entity'
+import { SearchFeedback } from './search-feedback.entity'
 
 @Entity('SearchLog')
 @Index(['customerId'])
@@ -53,4 +54,7 @@ export class SearchLog {
 
   @OneToMany(() => SearchClick, click => click.searchLog)
   clicks: SearchClick[]
+
+  @OneToOne(() => SearchFeedback, feedback => feedback.searchLog)
+  feedback: SearchFeedback | null
 }
