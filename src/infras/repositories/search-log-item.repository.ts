@@ -7,12 +7,13 @@ export class SearchLogItemRepository extends BaseRepository<SearchLogItem> {
   }
 
   /**
-   * Bulk create search log items
+   * Bulk log search result items
    */
-  async logItems(items: Array<{
+  async logSearchItems(data: Array<{
     searchLogId: number
     postId: number | null
     position: number
+    relevanceScore?: number | null
     capturedTitle: string
     capturedDescription: string
     capturedPrice: number
@@ -20,8 +21,20 @@ export class SearchLogItemRepository extends BaseRepository<SearchLogItem> {
     capturedCity: string
     capturedDistrict: string
   }>): Promise<SearchLogItem[]> {
-    const entities = items.map(item => this.create(item))
-    return this.save(entities)
+    const items = data.map(item => this.create({
+      searchLogId: item.searchLogId,
+      postId: item.postId,
+      position: item.position,
+      relevanceScore: item.relevanceScore || null,
+      capturedTitle: item.capturedTitle,
+      capturedDescription: item.capturedDescription,
+      capturedPrice: item.capturedPrice,
+      capturedAcreage: item.capturedAcreage,
+      capturedCity: item.capturedCity,
+      capturedDistrict: item.capturedDistrict
+    }))
+
+    return this.save(items)
   }
 }
 

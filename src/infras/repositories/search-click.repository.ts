@@ -6,19 +6,21 @@ export class SearchClickRepository extends BaseRepository<SearchClick> {
     super(SearchClick)
   }
 
-  /**
-   * Log a search click
-   */
   async logClick(data: {
     searchLogId: number
     searchLogItemId: number
   }): Promise<SearchClick> {
+    console.log('[SearchClickRepository] Creating click:', data)
+
     const click = this.create({
       searchLogId: data.searchLogId,
       searchLogItemId: data.searchLogItemId
     })
 
-    return this.save(click)
+    const saved = await this.save(click)
+    console.log(`[SearchClickRepository] Saved click ${saved.clickId}`)
+
+    return saved
   }
 
   /**
@@ -33,7 +35,7 @@ export class SearchClickRepository extends BaseRepository<SearchClick> {
       FROM SearchLog sl
       LEFT JOIN SearchClick sc ON sl.logId = sc.searchLogId
     `)
-    
+
     return result[0]
   }
 

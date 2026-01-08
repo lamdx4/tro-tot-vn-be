@@ -19,5 +19,21 @@ router.get('/', searchController.search.bind(searchController))
  */
 router.get('/health', searchController.health.bind(searchController))
 
+/**
+ * @route   POST /api/search/feedback
+ * @desc    Submit user feedback on search quality
+ * @access  Public
+ * @body    searchLogId, isHelpful, issues?, comment?
+ */
+router.post('/feedback', searchController.submitFeedback.bind(searchController))
+
+/**
+ * @route   POST /api/search/click
+ * @desc    Log user click on search result
+ * @access  Public
+ * @body    searchLogId, searchLogItemId
+ */
+router.post('/click', searchController.logClick.bind(searchController))
+
 export default router
 
