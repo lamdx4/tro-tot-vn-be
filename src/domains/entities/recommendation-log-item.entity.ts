@@ -40,7 +40,7 @@ export class RecommendationLogItem {
   @Column({ type: 'float', nullable: false })
   score: number
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   reason: string | null
 
   @Column({ type: 'nvarchar', length: 500, nullable: true })
