@@ -23,8 +23,16 @@ export class RecommendationLogItemRepository extends BaseRepository<Recommendati
     reason: string | null
     explanation: string | null
   }>): Promise<RecommendationLogItem[]> {
+    console.log(`[RecommendationLogItemRepository] Logging ${items.length} items`)
+    console.log(`[RecommendationLogItemRepository] Sample item:`, items[0])
+
     const entities = items.map(item => this.create(item))
-    return this.save(entities)
+    console.log(`[RecommendationLogItemRepository] Created ${entities.length} entities`)
+
+    const saved = await this.save(entities)
+    console.log(`[RecommendationLogItemRepository] Saved ${saved.length} items, first itemId: ${saved[0]?.itemId}`)
+
+    return saved
   }
 }
 

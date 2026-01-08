@@ -24,5 +24,16 @@ router.get(
  */
 router.get('/health', recommendController.health.bind(recommendController))
 
+/**
+ * @route   POST /api/recommend/click
+ * @desc    Log user click on recommendation
+ * @access  Private
+ */
+router.post(
+  '/click',
+  authenticateMiddleware,
+  recommendController.logClick.bind(recommendController)
+)
+
 export default router
 

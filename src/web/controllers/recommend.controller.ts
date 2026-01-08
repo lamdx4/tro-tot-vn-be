@@ -25,15 +25,27 @@ export class RecommendController {
         return
       }
 
-      // Parse limit parameter
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20
-      console.log(`[Recommend Controller ${requestId}] ✅ Customer ${customerId} requesting ${limit} recommendations`)
+      // Parse parameters
+      const page = req.query.page ? parseInt(req.query.page as string) : 1
+      const pageSize = req.query.pageSize ? parseInt(req.query.pageSize as string) : 20
+      const logId = req.query.logId ? parseInt(req.query.logId as string) : undefined
 
-      if (isNaN(limit) || limit < 1 || limit > 100) {
-        console.log(`[Recommend Controller ${requestId}] ❌ Invalid limit: ${limit}`)
+      console.log(`[Recommend Controller ${requestId}] ✅ Customer ${customerId} requesting page=${page}, pageSize=${pageSize}, logId=${logId || 'none'}`)
+
+      if (isNaN(page) || page < 1) {
+        console.log(`[Recommend Controller ${requestId}] ❌ Invalid page: ${page}`)
         res.status(HttpStatus.BAD_REQUEST).json({
           success: false,
-          message: 'Limit must be between 1 and 100'
+          message: 'Page must be >= 1'
+        })
+        return
+      }
+
+      if (isNaN(pageSize) || pageSize < 1 || pageSize > 50) {
+        console.log(`[Recommend Controller ${requestId}] ❌ Invalid pageSize: ${pageSize}`)
+        res.status(HttpStatus.BAD_REQUEST).json({
+          success: false,
+          message: 'PageSize must be between 1 and 50'
         })
         return
       }
@@ -43,18 +55,21 @@ export class RecommendController {
       // Get recommendations
       const result = await recommendService.getRecommendations({
         customerId,
-        limit
+        recommendationLogId: logId,
+        page,
+        pageSize
       })
 
       console.log(
-        `[Recommend Controller ${requestId}] ✅ Success! Returning ${result.posts.length} posts (total: ${result.total}, time: ${result.processingTimeMs}ms)`
+        `[Recommend Controller ${requestId}] ✅ Success! Returning ${result.posts.length} posts (page: ${result.pagination.page}, total: ${result.pagination.total}, time: ${result.processingTimeMs}ms)`
       )
       console.log(`========== [Recommend Controller] END REQUEST ${requestId} ==========\n`)
 
       res.status(HttpStatus.OK).json({
         success: true,
+        recommendationLogId: result.recommendationLogId,
         data: result.posts,
-        total: result.total,
+        pagination: result.pagination,
         processingTimeMs: result.processingTimeMs
       })
     } catch (error) {
@@ -121,6 +136,49 @@ export class RecommendController {
         success: false,
         status: 'error',
         message: error instanceof Error ? error.message : 'Health check failed'
+      })
+    }
+  }
+
+  /**
+   * POST /api/recommend/click
+   * Log user click on recommendation
+   */
+  async logClick(req: Request, res: Response): Promise<void> {
+    try {
+      const { recommendationLogId, recommendationLogItemId } = req.body
+
+      console.log('[Recommend Controller] Received click:', { recommendationLogId, recommendationLogItemId })
+
+      if (!recommendationLogId || !recommendationLogItemId) {
+        res.status(HttpStatus.BAD_REQUEST).json({
+          success: false,
+          message: 'recommendationLogId and recommendationLogItemId are required'
+        })
+        return
+      }
+
+      const { RecommendationClickRepository } = await import(
+        '../../infras/repositories/recommendation-click.repository'
+      )
+      const clickRepo = new RecommendationClickRepository()
+
+      const click = await clickRepo.logClick({
+        recommendationLogId,
+        recommendationLogItemId
+      })
+
+      console.log(`[Recommend Controller] ✅ Logged click ${click.clickId}`)
+
+      res.status(HttpStatus.OK).json({
+        success: true,
+        clickId: click.clickId
+      })
+    } catch (error) {
+      console.error('[Recommend Controller] ❌ Click logging error:', error)
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: 'Failed to log click'
       })
     }
   }
