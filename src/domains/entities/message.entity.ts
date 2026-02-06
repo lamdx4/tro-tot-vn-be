@@ -1,39 +1,44 @@
-// import { Entity, PrimaryGeneratedColumn, Column, Check, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm'
-// import { Customer } from './customer.entity'
-// import { Admin } from './admin.entity'
-// import { Participant } from './participant.entity'
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm'
+import { MessageType, MessageStatus } from './enum/value-object'
+import { Conversation } from './conversation.entity'
+import { Customer } from './customer.entity'
 
-// @Entity('Message')
-// export class Message {
-//   @PrimaryGeneratedColumn()
-//   messageId: number
+@Entity('Message')
+@Index(['conversationId', 'createdAt'])
+export class Message {
+  @PrimaryGeneratedColumn()
+  messageId: number
 
-//   @Column({ type: 'int', nullable: false })
-//   senderId: number
+  @Column({ type: 'int', nullable: false })
+  conversationId: number
 
-//   @Column({ type: 'int', nullable: false })
-//   receiverId: number
+  @Column({ type: 'int', nullable: false })
+  senderId: number
 
-//   @Column({ type: 'nvarchar', length: 150 })
-//   content: string
+  @Column({ type: 'nvarchar', length: 4000 })
+  content: string
 
-//   @Column({ type: 'tinyint', nullable: true })
-//   isReceiverRead: number
+  @Column({ type: 'nvarchar', length: 20, default: MessageType.TEXT })
+  messageType: string
 
-//   @Column({ type: 'tinyint', nullable: true })
-//   isReceiverReceived: number
+  @Column({ type: 'nvarchar', length: 20, default: MessageStatus.SENT })
+  status: string
 
-//   @Column({
-//     type: 'datetime',
-//     default: () => 'CURRENT_TIMESTAMP'
-//   })
-//   createdAt: Date
+  @CreateDateColumn()
+  createdAt: Date
 
-//   @ManyToOne(() => Participant, (participant) => participant.sentMessages)
-//   @JoinColumn({ name: 'senderId' })
-//   sender: Participant
+  @UpdateDateColumn()
+  updatedAt: Date
 
-//   @ManyToOne(() => Participant, (participant) => participant.receivedMessages)
-//   @JoinColumn({ name: 'receiverId' })
-//   receiver: Participant
-// }
+  @Column({ type: 'datetime', nullable: true })
+  deletedAt?: Date
+
+  // Relationships
+  @ManyToOne(() => Conversation, (conv) => conv.messages, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'conversationId' })
+  conversation: Conversation
+
+  @ManyToOne(() => Customer)
+  @JoinColumn({ name: 'senderId' })
+  sender: Customer
+}
