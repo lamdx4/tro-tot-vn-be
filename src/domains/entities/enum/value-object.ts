@@ -45,3 +45,27 @@ export enum RoleType {
   MODERATOR = 'Moderator',
   CUSTOMER = 'Customer'
 }
+
+// Chat-related enums
+export enum ConversationType {
+  DIRECT = 'Direct',
+  GROUP = 'Group'
+}
+
+export enum MessageType {
+  TEXT = 'Text',
+  IMAGE = 'Image',
+  FILE = 'File'
+}
+
+export enum MessageStatus {
+  SENT = 'Sent',
+  DELIVERED = 'Delivered',
+  READ = 'Read'
+}
+
+export enum ParticipantRole {
+  MEMBER = 'Member',
+  ADMIN = 'Admin'
+}
+
