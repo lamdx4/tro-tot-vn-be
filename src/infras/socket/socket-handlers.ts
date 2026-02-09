@@ -18,6 +18,7 @@ export class SocketHandlers {
    * Handle user connection
    */
   handleConnection(socket: Socket): void {
+    // TODO: jwt handler here
     const userId = socket.data.userId as number
 
     console.log(`[Socket] User connected: ${userId}`)
@@ -58,6 +59,7 @@ export class SocketHandlers {
       const { conversationId, content, messageType = 'Text' } = data
 
       // Verify user is in conversation
+      // TODO: using cache user<->conversation to avoid DB call
       const isMember = await this.chatService.isCustomerInConversation(conversationId, userId)
 
       if (!isMember) {
@@ -74,9 +76,6 @@ export class SocketHandlers {
         userId,
         { content, messageType, conversationId }
       )
-
-      // Get participants
-      const participants = await this.chatService.getConversationParticipants(conversationId)
 
       // Send to all participants
       const eventData: MessageSentEvent = {
