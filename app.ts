@@ -47,9 +47,13 @@ async function startApp() {
   // Create HTTP server for Socket.IO
   const httpServer = createServer(app)
 
-  // Initialize Socket.IO
+  // Initialize Socket.IO with SocketConfig
   const socketConfig = new SocketConfig(httpServer)
-  console.log('Socket.IO server initialized')
+  const io = socketConfig.getIO()
+
+  // Store io in app locals for access in controllers
+  app.locals.io = io
+  app.locals.socketConfig = socketConfig
 
   app.use(cors())
 
