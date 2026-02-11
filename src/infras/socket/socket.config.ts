@@ -1,39 +1,49 @@
 import { Server as HttpServer } from 'http'
 import { Server as SocketIOServer } from 'socket.io'
+import { Socket } from 'socket.io'
 import { SOCKET_EVENTS } from '@/utils/types/socket-events'
-import { ChatService, MessageService } from '@/services'
+import { SocketHandlers } from './socket-handlers'
 
+/**
+ * Socket.IO Configuration and Setup
+ *
+ * Responsibilities:
+ * - Initialize Socket.IO server on HTTP server
+ * - Setup authentication middleware
+ * - Register event handlers via SocketHandlers class
+ * - Provide access to Socket.IO instance
+ */
 export class SocketConfig {
   private io: SocketIOServer
-  private chatService: ChatService
-  private messageService: MessageService
+  private handlers: SocketHandlers
 
   constructor(httpServer: HttpServer) {
-    this.chatService = new ChatService()
-    this.messageService = new MessageService()
+    // Initialize handlers FIRST
+    this.handlers = new SocketHandlers()
 
     // Initialize Socket.IO server
     this.io = new SocketIOServer(httpServer, {
       cors: {
-        origin: '*', // Allow all origins for testing
+        origin: '*',
         methods: ['GET', 'POST'],
         credentials: true
       },
       transports: ['websocket', 'polling'],
-      allowEIO3: true // Allow Engine.IO v3 clients
+      allowEIO3: true
     })
 
+    console.log('[SocketConfig] Initializing Socket.IO server...')
     this.setupMiddleware()
     this.setupEventHandlers()
+    console.log('[SocketConfig] Socket.IO setup complete')
   }
 
   /**
    * Setup authentication middleware
    */
-  private setupMiddleware() {
-    this.io.use((socket, next) => {
-      // TODO: Add JWT authentication here
-      // For now, we'll pass through
+  private setupMiddleware(): void {
+    this.io.use((socket: Socket, next: Function) => {
+      // TODO: jwt handler here
       const userId = socket.handshake.auth.userId || socket.handshake.query.userId
 
       if (!userId) {
@@ -46,168 +56,65 @@ export class SocketConfig {
   }
 
   /**
-   * Setup all event handlers
+   * Setup all WebSocket event handlers
+   * Delegates to SocketHandlers class
    */
-  private setupEventHandlers() {
-    this.io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
+  private setupEventHandlers(): void {
+    this.io.on(SOCKET_EVENTS.CONNECTION, (socket: Socket) => {
       const userId = socket.data.userId as number
+      console.log(`[SocketConfig] User ${userId} connected`)
 
-      console.log(`User connected: ${userId}, Socket ID: ${socket.id}`)
+      // Use SocketHandlers for logic
+      this.handlers.handleConnection(socket)
 
-      // Join user's personal room for direct messages
-      socket.join(`user:${userId}`)
-
-      // Broadcast user online status
-      this.io.emit(SOCKET_EVENTS.USER_ONLINE, {
-        userId,
-        timestamp: new Date()
-      })
-
-      // Handle disconnect
-      socket.on(SOCKET_EVENTS.DISCONNECT, () => {
-        console.log(`User disconnected: ${userId}, Socket ID: ${socket.id}`)
-
-        this.io.emit(SOCKET_EVENTS.USER_OFFLINE, {
-          userId,
-          timestamp: new Date()
-        })
-      })
-
-      // Handle sending messages
-      socket.on(SOCKET_EVENTS.MESSAGE_SENT, async (data) => {
-        await this.handleMessageSent(socket, data)
-      })
-
-      // Handle message read
-      socket.on(SOCKET_EVENTS.MESSAGE_READ, async (data) => {
-        await this.handleMessageRead(socket, data)
-      })
-
-      // Handle typing start
-      socket.on(SOCKET_EVENTS.TYPING_START, (data) => {
-        this.handleTypingStart(socket, data)
-      })
-
-      // Handle typing stop
-      socket.on(SOCKET_EVENTS.TYPING_STOP, (data) => {
-        this.handleTypingStop(socket, data)
-      })
-
-      // Handle joining a conversation room
-      socket.on('join:conversation', (conversationId: number) => {
-        socket.join(`conversation:${conversationId}`)
-        console.log(`User ${userId} joined conversation:${conversationId}`)
-      })
-
-      // Handle leaving a conversation room
-      socket.on('leave:conversation', (conversationId: number) => {
-        socket.leave(`conversation:${conversationId}`)
-        console.log(`User ${userId} left conversation:${conversationId}`)
-      })
-    })
-  }
-
-  /**
-   * Handle message sent event
-   */
-  private async handleMessageSent(socket: any, data: any) {
-    try {
-      const userId = socket.data.userId as number
-      const { conversationId, content, messageType = 'Text' } = data
-
-      // Create message
-      const message = await this.messageService.sendMessage(
-        conversationId,
-        userId,
-        { content, messageType, conversationId }
+      // Message events
+      socket.on(SOCKET_EVENTS.MESSAGE_SENT, (data) =>
+        this.handlers.handleMessageSent(socket, data)
       )
 
-      // Get conversation participants
-      const participants = await this.chatService.getConversationParticipants(conversationId)
+      socket.on(SOCKET_EVENTS.MESSAGE_READ, (data) =>
+        this.handlers.handleMessageRead(socket, data)
+      )
 
-      // Send to all participants in the conversation
-      for (const participant of participants) {
-        const participantSocketId = this.getSocketIdByUserId(participant.customerId)
-        if (participantSocketId) {
-          this.io.to(`user:${participant.customerId}`).emit(
-            SOCKET_EVENTS.MESSAGE_RECEIVED,
-            {
-              ...message,
-              conversationId
-            }
-          )
-        }
-      }
+      // Typing events
+      socket.on(SOCKET_EVENTS.TYPING_START, (data) =>
+        this.handlers.handleTypingStart(socket, data)
+      )
 
-      // Acknowledge to sender
-      socket.emit('message:ack', { success: true, message })
-    } catch (error: any) {
-      socket.emit('message:error', { error: error.message })
-    }
-  }
+      socket.on(SOCKET_EVENTS.TYPING_STOP, (data) =>
+        this.handlers.handleTypingStop(socket, data)
+      )
 
-  /**
-   * Handle message read event
-   */
-  private async handleMessageRead(socket: any, data: any) {
-    try {
-      const { messageId, conversationId } = data
+      // Conversation events
+      socket.on('join:conversation', (conversationId: number) =>
+        // TODO: check really in conversation in DB
+        this.handlers.handleJoinConversation(socket, conversationId)
+      )
 
-      await this.messageService.markMessageAsRead(messageId)
+      socket.on('leave:conversation', (conversationId: number) =>
+         // TODO: check really in conversation in DB
+        this.handlers.handleLeaveConversation(socket, conversationId)
+      )
 
-      // Notify other participants
-      socket.to(`conversation:${conversationId}`).emit(SOCKET_EVENTS.MESSAGE_READ, {
-        messageId,
-        conversationId,
-        readAt: new Date()
+      // Disconnect event
+      socket.on(SOCKET_EVENTS.DISCONNECT, () => {
+        console.log(`[SocketConfig] User ${userId} disconnected`)
+        this.handlers.handleDisconnect(socket)
       })
-    } catch (error: any) {
-      socket.emit('message:error', { error: error.message })
-    }
-  }
-
-  /**
-   * Handle typing start event
-   */
-  private handleTypingStart(socket: any, data: any) {
-    const { conversationId } = data
-    const userId = socket.data.userId as number
-
-    socket.to(`conversation:${conversationId}`).emit(SOCKET_EVENTS.TYPING_START, {
-      conversationId,
-      userId,
-      isTyping: true
     })
   }
 
   /**
-   * Handle typing stop event
-   */
-  private handleTypingStop(socket: any, data: any) {
-    const { conversationId } = data
-    const userId = socket.data.userId as number
-
-    socket.to(`conversation:${conversationId}`).emit(SOCKET_EVENTS.TYPING_STOP, {
-      conversationId,
-      userId,
-      isTyping: false
-    })
-  }
-
-  /**
-   * Helper to get socket ID by user ID (simplified)
-   */
-  private getSocketIdByUserId(userId: number): string | null {
-    // In production, you'd maintain a userId -> socketId mapping
-    // For now, we use Socket.IO rooms
-    return `user:${userId}`
-  }
-
-  /**
-   * Get the Socket.IO server instance
+   * Get Socket.IO instance
    */
   public getIO(): SocketIOServer {
     return this.io
   }
-}
 
+  /**
+   * Get handlers instance
+   */
+  public getHandlers(): SocketHandlers {
+    return this.handlers
+  }
+}
