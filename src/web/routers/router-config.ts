@@ -9,6 +9,7 @@ import searchRouter from './search.router'
 import recommendRouter from './recommend.router'
 import interactionRouter from './interaction.router'
 import locationRouter from './location.router'
+import chatRouter from '@/web/routers/chat.routes'
 
 const routerConfig = express.Router()
 
@@ -31,5 +32,7 @@ routerConfig.use('/recommend', recommendRouter)
 routerConfig.use('/interactions', interactionRouter)
 
 routerConfig.use('/location', locationRouter)
+
+routerConfig.use('/chat', chatRouter)
 
 export default routerConfig
