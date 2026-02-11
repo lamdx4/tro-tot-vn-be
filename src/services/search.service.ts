@@ -1,5 +1,5 @@
 import { pythonSearchService, PythonSearchParams } from './python-search.service'
-import redisClient from '../infras/redis/redis'
+import { redisClient } from '../infras/redis/redis'
 import { PostRepository } from '../infras/repositories/post.repository'
 import { SearchLogRepository } from '../infras/repositories/search-log.repository'
 import { SearchLogItemRepository } from '../infras/repositories/search-log-item.repository'
