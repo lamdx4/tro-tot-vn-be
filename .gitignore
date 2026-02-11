@@ -3,3 +3,6 @@ dist/
 uploads/
 .env
 .env.local
+.env.prod
+.augment
+.claude-code
