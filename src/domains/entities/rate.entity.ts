@@ -31,7 +31,7 @@ export class Rate {
 
   @Column({
     type: 'datetime',
-    default: () => 'CURRENT_TIMESTAMP'
+    default: () => 'GETDATE()'
   })
   createdAt: Date
 

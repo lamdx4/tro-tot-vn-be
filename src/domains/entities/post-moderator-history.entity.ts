@@ -27,7 +27,7 @@ export class PostModerationHistory {
 
   @Column({
     type: 'datetime',
-    default: () => 'CURRENT_TIMESTAMP'
+    default: () => 'GETDATE()'
   })
   execAt: Date
 

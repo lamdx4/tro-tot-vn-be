@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # MS SQL Server Database
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: tro-tot-mssql
+    restart: unless-stopped
+    environment:
+      SA_PASSWORD: ${SA_PASSWORD:-YourStrong!Password123}
+      ACCEPT_EULA: Y
+      MSSQL_PID: Developer
+      MSSQL_DATABASE: tro_tot_db
+    ports:
+      - "${DOCKER_MSSQL_PORT:-1433}:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    networks:
+      - tro-tot-network
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${SA_PASSWORD:-YourStrong!Password123}", "-Q", "SELECT 1", "-l", "1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: tro-tot-redis
+    restart: unless-stopped
+    ports:
+      - "${DOCKER_REDIS_PORT:-6380}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - tro-tot-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mssql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  tro-tot-network:
+    driver: bridge
+

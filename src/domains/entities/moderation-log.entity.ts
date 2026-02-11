@@ -10,7 +10,7 @@ export class ModerationLog {
   @Column({ type: 'nvarchar', length: 500, nullable: false })
   capturedTitle: string
 
-  @Column({ type: 'nvarchar', length: 'MAX', nullable: false })
+  @Column({ type: 'nvarchar', length: 'MAX', nullable: false, default: '' })
   capturedDescription: string
 
   @Column({ type: 'float', nullable: false })
@@ -28,7 +28,7 @@ export class ModerationLog {
 
   @Column({
     type: 'datetime',
-    default: () => 'CURRENT_TIMESTAMP'
+    default: () => 'GETDATE()'
   })
   moderatedAt: Date
 }

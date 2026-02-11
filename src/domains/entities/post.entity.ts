@@ -32,14 +32,14 @@ export class Post {
 
   @Column({
     type: 'datetime',
-    default: () => 'CURRENT_TIMESTAMP'
+    default: () => 'GETDATE()'
   })
   createdAt: Date
 
   @Column({ type: 'nvarchar', length: 70, nullable: false })
   title: string
 
-  @Column({ type: 'nvarchar', length: 'MAX', default: '' })
+  @Column({ type: 'text', nullable: true, default: null })
   description: string
 
   @Column({ type: 'bigint', nullable: false })
@@ -73,7 +73,7 @@ export class Post {
 
   @Column({
     type: 'datetime',
-    default: () => 'CURRENT_TIMESTAMP'
+    default: () => 'GETDATE()'
   })
   extendedAt: Date
 

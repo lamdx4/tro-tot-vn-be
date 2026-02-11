@@ -14,7 +14,7 @@ export class SearchClick {
   @Column({ type: 'int', nullable: false })
   searchLogItemId: number
 
-  @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: 'datetime', default: () => 'GETDATE()' })
   clickedAt: Date
 
   // Relations

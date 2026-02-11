@@ -11,7 +11,7 @@ const AppDataSource = new DataSource({
   password: process.env.DB_PASSWORD!,
   database: process.env.DB_DATABASE!,
   entities: [path.join(__dirname, '../../domains/**/*.entity.{js,ts}')],
-  synchronize: false,
+  synchronize: true,
   ...(dbType === 'mssql' ? {
     options: {
       encrypt: true,

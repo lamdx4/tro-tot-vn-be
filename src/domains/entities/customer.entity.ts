@@ -56,8 +56,8 @@ export class Customer {
   currentJob: string
 
   @Column({
-    type: 'date',
-    default: () => 'CURRENT_TIMESTAMP'
+    type: 'datetime2',
+    nullable: false
   })
   joinedAt: Date
 

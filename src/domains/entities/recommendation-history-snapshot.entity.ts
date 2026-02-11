@@ -21,7 +21,7 @@ export class RecommendationHistorySnapshot {
     @Column({ type: 'nvarchar', length: 500, nullable: false })
     capturedTitle: string
 
-    @Column({ type: 'nvarchar', length: 'MAX', nullable: false })
+    @Column({ type: 'nvarchar', length: 'MAX', nullable: false, default: '' })
     capturedDescription: string
 
     @Column({ type: 'decimal', precision: 18, scale: 2, nullable: false })

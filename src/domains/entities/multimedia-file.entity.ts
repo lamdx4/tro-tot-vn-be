@@ -22,7 +22,7 @@ export class MultimediaFile {
 
   @Column({
     type: 'datetime',
-    default: () => 'CURRENT_TIMESTAMP'
+    default: () => 'GETDATE()'
   })
   createdAt: Date
 

@@ -19,10 +19,10 @@ export class RecommendationLog {
   @Column({ type: 'float', nullable: false })
   processingTimeMs: number
 
-  @Column({ type: 'bit', default: 0 })
+  @Column({ type: 'bit', default: () => '0' })
   dinEnabled: boolean
 
-  @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: 'datetime', default: () => 'GETDATE()' })
   createdAt: Date
 
   // Relations

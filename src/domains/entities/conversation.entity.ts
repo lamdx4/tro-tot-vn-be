@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn, Index } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, JoinColumn, Index } from 'typeorm'
 import { ConversationType } from './enum/value-object'
 import { Customer } from './customer.entity'
 import { Message } from './message.entity'
@@ -19,10 +19,16 @@ export class Conversation {
   @Column({ type: 'int', nullable: false })
   createdBy: number
 
-  @CreateDateColumn()
+  @Column({
+    type: 'datetime2',
+    nullable: false
+  })
   createdAt: Date
 
-  @UpdateDateColumn()
+  @Column({
+    type: 'datetime2',
+    nullable: false
+  })
   updatedAt: Date
 
   // Relationships

@@ -14,7 +14,7 @@ export class RecommendationClick {
   @Column({ type: 'int', nullable: false })
   recommendationLogItemId: number
 
-  @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: 'datetime', default: () => 'GETDATE()' })
   clickedAt: Date
 
   // Relations

@@ -45,7 +45,7 @@ export class SearchLog {
   @Column({ type: 'float', nullable: false })
   searchTimeMs: number
 
-  @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: 'datetime', default: () => 'GETDATE()' })
   createdAt: Date
 
   // Relations

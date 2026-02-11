@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index } from 'typeorm'
 import { MessageType, MessageStatus } from './enum/value-object'
 import { Conversation } from './conversation.entity'
 import { Customer } from './customer.entity'
@@ -24,10 +24,16 @@ export class Message {
   @Column({ type: 'nvarchar', length: 20, default: MessageStatus.SENT })
   status: string
 
-  @CreateDateColumn()
+  @Column({
+    type: 'datetime2',
+    nullable: false
+  })
   createdAt: Date
 
-  @UpdateDateColumn()
+  @Column({
+    type: 'datetime2',
+    nullable: false
+  })
   updatedAt: Date
 
   @Column({ type: 'datetime', nullable: true })

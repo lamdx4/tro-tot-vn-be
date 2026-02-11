@@ -36,8 +36,8 @@ export class Admin {
   avatar: number
 
   @Column({
-    type: 'date',
-    default: () => 'CURRENT_TIMESTAMP'
+    type: 'datetime2',
+    nullable: false
   })
   joinedAt: Date
 

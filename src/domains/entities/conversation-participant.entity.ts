@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, Index } from 'typeorm'
 import { ParticipantRole } from './enum/value-object'
 import { Conversation } from './conversation.entity'
 import { Customer } from './customer.entity'
@@ -19,7 +19,10 @@ export class ConversationParticipant {
   @Column({ type: 'nvarchar', length: 20, default: ParticipantRole.MEMBER })
   role: string
 
-  @CreateDateColumn()
+  @Column({
+    type: 'datetime2',
+    nullable: false
+  })
   joinedAt: Date
 
   @Column({ type: 'datetime', nullable: true })
