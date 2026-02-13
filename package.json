@@ -20,6 +20,8 @@
     "@types/moment": "^2.11.29",
     "@types/morgan": "^1.9.9",
     "@types/multer": "^1.4.12",
+    "@types/socket.io": "^3.0.1",
+    "cross-env": "^10.1.0",
     "eslint": "^9.21.0",
     "eslint-config-prettier": "^10.0.2",
     "eslint-plugin-prettier": "^5.2.3",
@@ -55,8 +57,11 @@
     "morgan": "^1.10.0",
     "mssql": "^11.0.1",
     "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.16.3",
     "nodemailer": "^6.10.0",
     "reflect-metadata": "^0.2.2",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
     "typeorm": "^0.3.21",
     "validator": "^13.12.0"
   }
