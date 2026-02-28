@@ -27,3 +27,4 @@ export * from './recommendation-click.repository'
 // Chat feature repositories
 export * from './conversation.repository'
 export * from './conversation-participant.repository'
+export * from './message-attachment.repository'
