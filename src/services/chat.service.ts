@@ -63,9 +63,14 @@ export class ChatService {
       createdBy
     })
 
-    // Add all participants
+    // Add the creator as a participant
+    await this.participantRepo.addParticipant(conversation.conversationId, createdBy)
+
+    // Add all participants from input
     for (const customerId of participantIds) {
-      await this.participantRepo.addParticipant(conversation.conversationId, customerId)
+      if (customerId !== createdBy) { // Don't add creator twice
+        await this.participantRepo.addParticipant(conversation.conversationId, customerId)
+      }
     }
 
     // Fetch the conversation with participants
