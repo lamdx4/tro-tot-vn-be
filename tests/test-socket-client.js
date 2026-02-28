@@ -16,6 +16,7 @@ let conversationId = null
 let sockets = {}
 let messageCount = 0
 let sentCount = 0
+let fileCount = 0
 
 const colors = {
   reset: '\x1b[0m',
@@ -98,6 +99,19 @@ function createUserSocket(userKey) {
     log(userKey, `✋ ${who}stopped typing`)
   })
 
+  socket.on('file:uploaded', (data) => {
+    log(userKey, `📤 File uploaded: ${data.fileName} (${data.fileUrl})`)
+  })
+
+  socket.on('file:sent', (data) => {
+    log(userKey, `📎 File sent: ${data.fileName} to conversation`)
+  })
+
+  socket.on('file:received', (data) => {
+    const from = data.senderId === USERS.USER_1.id ? 'Alice' : 'Bob'
+    log(userKey, `📥 [${from}] sent a file: ${data.fileName}`)
+  })
+
   return socket
 }
 
@@ -121,6 +135,33 @@ function sendTyping(userKey, duration = 2000) {
     setTimeout(() => {
       socket.emit('typing:stop', { conversationId })
     }, duration)
+  }
+}
+
+// Send message with file attachment (after HTTP upload)
+// Flow: 1) Upload file via HTTP  2) Send message:sent with attachments via socket
+function sendMessageWithFile(userKey, fileInfo, content = '') {
+  const socket = sockets[userKey]
+  if (socket && socket.connected) {
+    // fileInfo from HTTP upload response
+    const messageType = fileInfo.fileType === 'Image' ? 'Image' :
+                        fileInfo.fileType === 'Video' ? 'Video' : 'File'
+
+    socket.emit('message:sent', {
+      conversationId,
+      content: content || fileInfo.fileName,
+      messageType,
+      attachments: [{
+        fileName: fileInfo.fileName,
+        fileUrl: fileInfo.fileUrl,
+        fileType: fileInfo.fileType,
+        fileSize: fileInfo.fileSize,
+        mimeType: fileInfo.mimeType,
+        cloudFileId: fileInfo.cloudFileId
+      }]
+    })
+    fileCount++
+    log(userKey, `📎 Sent message with file: "${fileInfo.fileName}" (${messageType})`)
   }
 }
 
@@ -186,8 +227,50 @@ async function runTests() {
     }
     await new Promise(r => setTimeout(r, 1000))
 
-    // STEP 9: Leave Conversation
-    header('👋 STEP 9: Leaving Conversation')
+    // STEP 9: File Attachments (via HTTP upload + Socket message)
+    header('📎 STEP 9: File Attachments')
+
+    // Note: In production, files are uploaded via HTTP first, then message:sent with attachments
+    // Here we simulate the socket event after HTTP upload completes
+
+    // User 1 sends an image
+    log('USER_1', 'Sending an image message...')
+    sendMessageWithFile('USER_1', {
+      fileName: 'photo.jpg',
+      fileUrl: '/uploads/messages/photo.jpg',
+      fileType: 'Image',
+      fileSize: 1024000,
+      mimeType: 'image/jpeg',
+      cloudFileId: 'drive-abc123'
+    }, 'Check out this photo!')
+    await new Promise(r => setTimeout(r, 2000))
+
+    // User 2 sends a document
+    log('USER_2', 'Sending a document...')
+    sendMessageWithFile('USER_2', {
+      fileName: 'document.pdf',
+      fileUrl: '/uploads/messages/document.pdf',
+      fileType: 'File',
+      fileSize: 2048000,
+      mimeType: 'application/pdf',
+      cloudFileId: 'drive-def456'
+    })
+    await new Promise(r => setTimeout(r, 2000))
+
+    // User 1 sends a video
+    log('USER_1', 'Sending a video...')
+    sendMessageWithFile('USER_1', {
+      fileName: 'video.mp4',
+      fileUrl: '/uploads/messages/video.mp4',
+      fileType: 'Video',
+      fileSize: 10240000,
+      mimeType: 'video/mp4',
+      cloudFileId: 'drive-ghi789'
+    }, 'Here is the video you requested!')
+    await new Promise(r => setTimeout(r, 2000))
+
+    // STEP 10: Leave Conversation
+    header('👋 STEP 10: Leaving Conversation')
     log('USER_1', 'Leaving conversation...')
     sockets.USER_1.emit('leave:conversation', { conversationId })
     await new Promise(r => setTimeout(r, 1000))
@@ -198,7 +281,8 @@ async function runTests() {
 
     // SUMMARY
     header('📊 TEST SUMMARY')
-    logOk(`Total messages sent: ${sentCount}`)
+    logOk(`Total text messages sent: ${sentCount}`)
+    logOk(`Total files sent: ${fileCount}`)
     logOk(`Messages received: ${messageCount}`)
     logOk(`Users: 2 (Alice & Bob)`)
     logOk(`Conversation ID: ${conversationId}`)
