@@ -1,7 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index, OneToMany } from 'typeorm'
 import { MessageType, MessageStatus } from './enum/value-object'
 import { Conversation } from './conversation.entity'
 import { Customer } from './customer.entity'
+import { MessageAttachment } from './message-attachment.entity'
 
 @Entity('Message')
 @Index(['conversationId', 'createdAt'])
@@ -41,4 +42,8 @@ export class Message {
   @ManyToOne(() => Customer)
   @JoinColumn({ name: 'senderId' })
   sender: Customer
+
+  // Attachments for file messages
+  @OneToMany(() => MessageAttachment, (attachment) => attachment.message, { cascade: true })
+  attachments: MessageAttachment[]
 }

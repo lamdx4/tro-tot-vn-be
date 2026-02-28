@@ -90,6 +90,14 @@ export default class CloudDriveService {
   }
 
   /**
+   * Get public download URL for a file
+   */
+  async getFileUrl(fileId: string): Promise<string | null> {
+    const url = await this.getUrlFile(fileId)
+    return url ?? null
+  }
+
+  /**
    * Deletes a file from Google Drive.
    * @param id The id of the file to delete.
    */

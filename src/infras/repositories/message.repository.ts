@@ -9,6 +9,7 @@ export class MessageRepository extends BaseRepository<Message> {
   async getConversationMessages(conversationId: number, limit: number = 20, offset: number = 0) {
     return this.createQueryBuilder('msg')
       .leftJoinAndSelect('msg.sender', 'sender')
+      .leftJoinAndSelect('msg.attachments', 'attachments')
       .where('msg.conversationId = :conversationId', { conversationId })
       .andWhere('msg.deletedAt IS NULL')
       .orderBy('msg.createdAt', 'DESC')
@@ -44,6 +45,7 @@ export class MessageRepository extends BaseRepository<Message> {
     return this.createQueryBuilder('msg')
       .leftJoinAndSelect('msg.sender', 'sender')
       .leftJoinAndSelect('msg.conversation', 'conversation')
+      .leftJoinAndSelect('msg.attachments', 'attachments')
       .where('msg.messageId = :messageId', { messageId })
       .getOne()
   }

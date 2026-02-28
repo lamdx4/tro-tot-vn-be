@@ -69,3 +69,10 @@ export enum ParticipantRole {
   ADMIN = 'Admin'
 }
 
+// Attachment types for message attachments
+export enum AttachmentType {
+  IMAGE = 'Image',
+  VIDEO = 'Video',
+  FILE = 'File'
+}
+
