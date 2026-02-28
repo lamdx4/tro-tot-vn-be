@@ -1,7 +1,7 @@
 import { Server as HttpServer } from 'http'
 import { Server as SocketIOServer } from 'socket.io'
 import { Socket } from 'socket.io'
-import { SOCKET_EVENTS } from '@/utils/types/socket-events'
+import { SOCKET_EVENTS, FileUploadEvent, FileSentEvent } from '@/utils/types/socket-events'
 import { SocketHandlers } from './socket-handlers'
 
 /**
@@ -94,6 +94,15 @@ export class SocketConfig {
       socket.on('leave:conversation', (conversationId: number) =>
          // TODO: check really in conversation in DB
         this.handlers.handleLeaveConversation(socket, conversationId)
+      )
+
+      // File upload events
+      socket.on(SOCKET_EVENTS.FILE_UPLOAD, (data) =>
+        this.handlers.handleFileUpload(socket, data)
+      )
+
+      socket.on(SOCKET_EVENTS.FILE_SENT, (data) =>
+        this.handlers.handleFileSent(socket, data)
       )
 
       // Disconnect event

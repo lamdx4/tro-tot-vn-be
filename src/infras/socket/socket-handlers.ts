@@ -1,6 +1,7 @@
 import { Socket } from 'socket.io'
-import { SOCKET_EVENTS, MessageSentEvent, MessageReadEvent, TypingEvent } from '@/utils/types/socket-events'
-import { ChatService, MessageService } from '@/services'
+import { SOCKET_EVENTS, MessageSentEvent, MessageReadEvent, TypingEvent, FileUploadEvent, FileSentEvent } from '@/utils/types/socket-events'
+import { ChatService, MessageService, FileService } from '@/services'
+import { MessageType } from '@/domains/entities/enum/value-object'
 
 /**
  * Socket event handlers for chat functionality
@@ -8,10 +9,12 @@ import { ChatService, MessageService } from '@/services'
 export class SocketHandlers {
   private chatService: ChatService
   private messageService: MessageService
+  private fileService: FileService
 
   constructor() {
     this.chatService = new ChatService()
     this.messageService = new MessageService()
+    this.fileService = new FileService()
   }
 
   /**
@@ -206,6 +209,113 @@ export class SocketHandlers {
         timestamp: new Date()
       }
     )
+  }
+
+  /**
+   * Handle file upload via socket
+   * For small files sent directly through socket
+   */
+  async handleFileUpload(socket: Socket, data: FileUploadEvent): Promise<void> {
+    try {
+      const userId = socket.data.userId as number
+      const { conversationId, fileName, fileSize, mimeType, fileType } = data
+
+      // Verify user is in conversation
+      const isMember = await this.chatService.isCustomerInConversation(conversationId, userId)
+      if (!isMember) {
+        socket.emit('error', {
+          code: 'NOT_MEMBER',
+          message: 'You are not a member of this conversation'
+        })
+        return
+      }
+
+      // Generate file URL (in production, this would upload to cloud storage)
+      // For now, we'll use a local path
+      const fileUrl = `/uploads/messages/${Date.now()}-${fileName}`
+
+      // Emit upload acknowledgment with file info
+      socket.emit(SOCKET_EVENTS.FILE_UPLOADED, {
+        fileName,
+        fileUrl,
+        fileSize,
+        mimeType,
+        fileType,
+        uploadStatus: 'pending' // Client should now send the actual file via HTTP
+      })
+    } catch (error: any) {
+      console.error('[Socket] Error handling file upload:', error)
+      socket.emit('error', {
+        code: 'FILE_UPLOAD_ERROR',
+        message: error.message
+      })
+    }
+  }
+
+  /**
+   * Handle file message sent (after HTTP upload completes)
+   */
+  async handleFileSent(socket: Socket, data: FileSentEvent): Promise<void> {
+    try {
+      const userId = socket.data.userId as number
+      const { conversationId, content, attachments } = data
+
+      // Verify user is in conversation
+      const isMember = await this.chatService.isCustomerInConversation(conversationId, userId)
+      if (!isMember) {
+        socket.emit('error', {
+          code: 'NOT_MEMBER',
+          message: 'You are not a member of this conversation'
+        })
+        return
+      }
+
+      // Determine message type based on attachments
+      const messageType = attachments?.[0]?.fileType === 'Image' ? 'Image' : 'File'
+
+      // Get file name from first attachment for content fallback
+      const firstFileName = attachments?.[0]?.fileName || 'File'
+
+      // Create message with attachments using the service
+      const message = await this.messageService.sendMessageWithAttachments(
+        conversationId,
+        userId,
+        { conversationId, content: content || firstFileName, messageType },
+        attachments.map(att => ({
+          fileName: att.fileName,
+          fileUrl: att.fileUrl,
+          fileType: att.fileType,
+          fileSize: att.fileSize,
+          mimeType: att.mimeType
+        }))
+      )
+
+      // Send to all participants
+      const eventData: FileSentEvent = {
+        messageId: message.messageId,
+        conversationId: message.conversationId,
+        senderId: message.senderId,
+        content: message.content,
+        messageType: message.messageType,
+        attachments: message.attachments || [],
+        createdAt: message.createdAt
+      }
+
+      // Emit to conversation room
+      socket.to(`conversation:${conversationId}`).emit(
+        SOCKET_EVENTS.FILE_RECEIVED,
+        eventData
+      )
+
+      // Acknowledge to sender
+      socket.emit(SOCKET_EVENTS.FILE_SENT, eventData)
+    } catch (error: any) {
+      console.error('[Socket] Error sending file message:', error)
+      socket.emit('error', {
+        code: 'FILE_SEND_ERROR',
+        message: error.message
+      })
+    }
   }
 }
 
