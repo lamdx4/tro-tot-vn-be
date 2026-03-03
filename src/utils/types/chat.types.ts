@@ -27,6 +27,7 @@ export interface MessageDTO {
   createdAt: Date
   updatedAt?: Date
   deletedAt?: Date | null
+  attachments?: AttachmentDTO[]
 }
 
 export interface SendMessageInput {
@@ -70,5 +71,25 @@ export interface MessageQuery {
   limit?: number  // default: 20
   offset?: number // default: 0
   before?: number // message ID for cursor pagination
+}
+
+// DTOs for Message Attachment
+export interface AttachmentDTO {
+  attachmentId: number
+  messageId: number
+  fileName: string
+  fileUrl: string
+  fileType: string // 'Image', 'Video', 'File'
+  fileSize?: number
+  mimeType?: string
+  cloudFileId?: string
+  createdAt: Date
+}
+
+export interface SendMessageWithAttachmentsInput {
+  conversationId: number
+  content: string
+  messageType?: string  // default: 'Text'
+  attachments: Omit<AttachmentDTO, 'attachmentId' | 'messageId' | 'createdAt'>[]
 }
 

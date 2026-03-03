@@ -19,6 +19,12 @@ export const SOCKET_EVENTS = {
   MESSAGE_EDITED: 'message:edited',
   MESSAGE_DELETED: 'message:deleted',
 
+  // File upload events
+  FILE_UPLOAD: 'file:upload',
+  FILE_UPLOADED: 'file:uploaded',
+  FILE_SENT: 'file:sent',
+  FILE_RECEIVED: 'file:received',
+
   // Read receipt events
   MESSAGE_READ: 'message:read',
   MESSAGES_READ: 'messages:read',
@@ -57,6 +63,31 @@ export interface TypingEvent {
   conversationId: number
   userId: number
   isTyping: boolean
+}
+
+export interface FileUploadEvent {
+  conversationId: number
+  fileName: string
+  fileSize: number
+  mimeType: string
+  fileType: string // 'Image', 'Video', 'File'
+}
+
+export interface FileSentEvent {
+  messageId: number
+  conversationId: number
+  senderId: number
+  content: string
+  messageType: string
+  attachments: {
+    attachmentId: number
+    fileName: string
+    fileUrl: string
+    fileType: string
+    fileSize?: number
+    mimeType?: string
+  }[]
+  createdAt: Date
 }
 
 export interface UserStatusEvent {

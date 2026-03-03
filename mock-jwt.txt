@@ -1,0 +1,34 @@
+🔑 Generating tokens with 10 years expiration...
+
+ALICE (customerId: 1)
+----------------------------------------
+Access Token:
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50SWQiOjMsInBob25lIjoiMDkxMjM0NTY3OCIsInBhc3N3b3JkIjoicG9ybmh1Yi5jb20iLCJzdGF0dXMiOiJBY3RpdmUiLCJlbWFpbCI6ImFsaWNlQHRlc3QuY29tIiwicm9sZSI6eyJyb2xlSWQiOjEsInJvbGVOYW1lIjoiQ3VzdG9tZXIiLCJyb2xlUGVybWlzc2lvbnMiOltdfSwiY3VzdG9tZXIiOnsiY3VzdG9tZXJJZCI6MSwiZ2VuZGVyIjoiTWFsZSIsImJpbyI6IiIsImZpcnN0TmFtZSI6IkFsaWNlIiwibGFzdE5hbWUiOiJOZ3V5ZW4iLCJiaXJ0aGRheSI6IjE5OTUtMDEtMDEiLCJhdmF0YXIiOm51bGwsImN1cnJlbnRDaXR5IjpudWxsLCJjdXJyZW50RGlzdHJpY3QiOm51bGwsImN1cnJlbnRKb2IiOm51bGx9LCJhZG1pbiI6bnVsbCwiaWF0IjoxNzcyMjY2OTYwLCJleHAiOjIwODc2MjY5NjB9.mSukTPMUTq1bxn6XMKggGscqdrOYdy9NbAL0arfcsKI
+
+Refresh Token:
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50SWQiOjMsInBob25lIjoiMDkxMjM0NTY3OCIsInBhc3N3b3JkIjoicG9ybmh1Yi5jb20iLCJzdGF0dXMiOiJBY3RpdmUiLCJlbWFpbCI6ImFsaWNlQHRlc3QuY29tIiwicm9sZSI6eyJyb2xlSWQiOjEsInJvbGVOYW1lIjoiQ3VzdG9tZXIiLCJyb2xlUGVybWlzc2lvbnMiOltdfSwiY3VzdG9tZXIiOnsiY3VzdG9tZXJJZCI6MSwiZ2VuZGVyIjoiTWFsZSIsImJpbyI6IiIsImZpcnN0TmFtZSI6IkFsaWNlIiwibGFzdE5hbWUiOiJOZ3V5ZW4iLCJiaXJ0aGRheSI6IjE5OTUtMDEtMDEiLCJhdmF0YXIiOm51bGwsImN1cnJlbnRDaXR5IjpudWxsLCJjdXJyZW50RGlzdHJpY3QiOm51bGwsImN1cnJlbnRKb2IiOm51bGx9LCJhZG1pbiI6bnVsbCwiaWF0IjoxNzcyMjY2OTYwLCJleHAiOjI0MDI5ODY5NjB9.yJd2_4D19O8eygXow1x-I_3oXdwHMJRGHOGuQxa8rdM
+
+Token Info:
+  - Email: alice@test.com
+  - Customer ID: 1
+  - Expires At: 2036-02-26T08:22:40.000Z
+  - Expires In: 10.0 years
+
+============================================================
+
+BOB (customerId: 2)
+----------------------------------------
+Access Token:
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50SWQiOjQsInBob25lIjoiMDkxMjM0NTY3OSIsInBhc3N3b3JkIjoicG9ybmh1Yi5jb20iLCJzdGF0dXMiOiJBY3RpdmUiLCJlbWFpbCI6ImJvYkB0ZXN0LmNvbSIsInJvbGUiOnsicm9sZUlkIjoxLCJyb2xlTmFtZSI6IkN1c3RvbWVyIiwicm9sZVBlcm1pc3Npb25zIjpbXX0sImN1c3RvbWVyIjp7ImN1c3RvbWVySWQiOjIsImdlbmRlciI6IkZlbWFsZSIsImJpbyI6IiIsImZpcnN0TmFtZSI6IkJvYiIsImxhc3ROYW1lIjoiVHJhbiIsImJpcnRoZGF5IjoiMTk5MC0wNS0xNSIsImF2YXRhciI6bnVsbCwiY3VycmVudENpdHkiOm51bGwsImN1cnJlbnREaXN0cmljdCI6bnVsbCwiY3VycmVudEpvYiI6bnVsbH0sImFkbWluIjpudWxsLCJpYXQiOjE3NzIyNjY5NjAsImV4cCI6MjA4NzYyNjk2MH0.gO4KOvy97ctRe6RKqt_vDZNs-n_ax_i1EJB7dVwSiLw
+
+Token Info:
+  - Email: bob@test.com
+  - Customer ID: 2
+  - Expires At: 2036-02-26T08:22:40.000Z
+  - Expires In: 10.0 years
+
+============================================================
+
+📋 POSTMAN USAGE:
+Copy the access token and use in Authorization header:
+Authorization: Bearer <access_token>

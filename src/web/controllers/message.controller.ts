@@ -1,12 +1,18 @@
 import { Request, Response } from 'express'
-import { MessageService } from '@/services'
+import { MessageService, ChatService } from '@/services'
 import { SendMessageInput, EditMessageInput, MessageQuery } from '@/utils/types/chat.types'
+import { AttachmentType } from '@/domains/entities/enum/value-object'
+import CloudDriveService from '@/services/google-drive.service'
+import { SOCKET_EVENTS } from '@/utils/types/socket-events'
+import path from 'path'
 
 export class MessageController {
   private messageService: MessageService
+  private cloudDriveService: CloudDriveService
 
   constructor() {
     this.messageService = new MessageService()
+    this.cloudDriveService = CloudDriveService.gI()
   }
 
   async getMessages(req: Request, res: Response): Promise<void> {
@@ -47,16 +53,32 @@ export class MessageController {
   async sendMessage(req: Request, res: Response): Promise<void> {
     try {
       const { conversationId } = req.params
-      const userId = (req as any).user?.customerId || (req as any).user?.userId
-      
+      // JWT token contains nested customer object: req.user.customer.customerId
+      const userId = (req as any).user?.customer?.customerId || (req as any).user?.customerId || (req as any).user?.userId
+
       if (!userId) {
         res.status(401).json({ statusCode: 401, error: { code: 'UNAUTHORIZED', message: 'User not authenticated' } })
         return
       }
-      
+
       const input: SendMessageInput = req.body
       const message = await this.messageService.sendMessage(parseInt(conversationId), userId, input)
-      
+
+      // Emit Socket.IO event to conversation room
+      const io = (req as any).app?.locals?.io
+      if (io) {
+        const eventData = {
+          messageId: message.messageId,
+          conversationId: message.conversationId,
+          senderId: message.senderId,
+          content: message.content,
+          messageType: message.messageType,
+          createdAt: message.createdAt
+        }
+        // Emit to conversation room (exclude sender)
+        io.to(`conversation:${conversationId}`).emit(SOCKET_EVENTS.MESSAGE_RECEIVED, eventData)
+      }
+
       res.status(201).json({ statusCode: 201, data: message })
     } catch (error: any) {
       res.status(500).json({ statusCode: 500, error: { code: 'INTERNAL_SERVER_ERROR', message: error.message } })
@@ -90,6 +112,131 @@ export class MessageController {
       const { messageIds } = req.body
       await this.messageService.markMessagesAsRead(messageIds)
       res.status(200).json({ statusCode: 200, data: { success: true } })
+    } catch (error: any) {
+      res.status(500).json({ statusCode: 500, error: { code: 'INTERNAL_SERVER_ERROR', message: error.message } })
+    }
+  }
+
+  /**
+   * Upload file and send as message
+   * POST /conversations/:conversationId/files
+   */
+  async uploadFile(req: Request, res: Response): Promise<void> {
+    try {
+      const { conversationId } = req.params
+      // JWT token contains nested customer object: req.user.customer.customerId
+      const userId = (req as any).user?.customer?.customerId || (req as any).user?.customerId || (req as any).user?.userId
+
+      if (!userId) {
+        res.status(401).json({ statusCode: 401, error: { code: 'UNAUTHORIZED', message: 'User not authenticated' } })
+        return
+      }
+
+      if (!req.file) {
+        res.status(400).json({ statusCode: 400, error: { code: 'NO_FILE', message: 'No file uploaded' } })
+        return
+      }
+
+      const file = req.file
+      const content = req.body.content || ''
+
+      // Determine file type
+      let fileType: string
+      const mimeType = file.mimetype
+      if (mimeType.startsWith('image/')) {
+        fileType = AttachmentType.IMAGE
+      } else if (mimeType.startsWith('video/')) {
+        fileType = AttachmentType.VIDEO
+      } else {
+        fileType = AttachmentType.FILE
+      }
+
+      // Upload to cloud storage
+      const cloudFileId = await this.cloudDriveService.uploadFile(file)
+
+      // Generate public URL (or use cloud storage URL)
+      const fileUrl = `/uploads/messages/${path.basename(file.path)}`
+
+      // Create message with attachment
+      const message = await this.messageService.sendMessageWithAttachments(
+        parseInt(conversationId),
+        userId,
+        { conversationId: parseInt(conversationId), content, messageType: fileType },
+        [{
+          fileName: file.originalname,
+          fileUrl,
+          fileType,
+          fileSize: file.size,
+          mimeType: file.mimetype,
+          cloudFileId: cloudFileId ?? undefined
+        }]
+      )
+
+      // Emit Socket.IO event to conversation room
+      const io = (req as any).app?.locals?.io
+      if (io) {
+        const eventData = {
+          messageId: message.messageId,
+          conversationId: message.conversationId,
+          senderId: message.senderId,
+          content: message.content,
+          messageType: message.messageType,
+          attachments: message.attachments || [],
+          createdAt: message.createdAt
+        }
+        // Emit to conversation room (exclude sender)
+        io.to(`conversation:${conversationId}`).emit(SOCKET_EVENTS.FILE_RECEIVED, eventData)
+      }
+
+      res.status(201).json({ statusCode: 201, data: message })
+    } catch (error: any) {
+      console.error('[MessageController] Error uploading file:', error)
+      res.status(500).json({ statusCode: 500, error: { code: 'FILE_UPLOAD_ERROR', message: error.message } })
+    }
+  }
+
+  /**
+   * Get file download URL
+   * GET /files/:fileId/download
+   */
+  async getFileDownloadUrl(req: Request, res: Response): Promise<void> {
+    try {
+      const { fileId } = req.params
+
+      // Get file info from database
+      const attachments = await this.messageService.getMessageAttachments(parseInt(fileId))
+
+      if (!attachments || attachments.length === 0) {
+        res.status(404).json({ statusCode: 404, error: { code: 'NOT_FOUND', message: 'File not found' } })
+        return
+      }
+
+      const attachment = attachments[0]
+
+      // If we have a cloud file ID, get download URL from cloud storage
+      if (attachment.cloudFileId) {
+        const downloadUrl = await this.cloudDriveService.getFileUrl(attachment.cloudFileId)
+        res.status(200).json({
+          statusCode: 200,
+          data: {
+            downloadUrl,
+            fileName: attachment.fileName,
+            mimeType: attachment.mimeType,
+            fileSize: attachment.fileSize
+          }
+        })
+      } else {
+        // Local file
+        res.status(200).json({
+          statusCode: 200,
+          data: {
+            downloadUrl: attachment.fileUrl,
+            fileName: attachment.fileName,
+            mimeType: attachment.mimeType,
+            fileSize: attachment.fileSize
+          }
+        })
+      }
     } catch (error: any) {
       res.status(500).json({ statusCode: 500, error: { code: 'INTERNAL_SERVER_ERROR', message: error.message } })
     }

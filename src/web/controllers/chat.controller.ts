@@ -11,7 +11,8 @@ export class ConversationController {
 
   async getConversations(req: Request, res: Response): Promise<void> {
     try {
-      const userId = (req as any).user?.customerId || (req as any).user?.userId
+      // JWT token contains nested customer object: req.user.customer.customerId
+      const userId = (req as any).user?.customer?.customerId || (req as any).user?.customerId || (req as any).user?.userId
       if (!userId) {
         res.status(401).json({ statusCode: 401, error: { code: 'UNAUTHORIZED', message: 'User not authenticated' } })
         return
@@ -41,7 +42,12 @@ export class ConversationController {
 
   async createConversation(req: Request, res: Response): Promise<void> {
     try {
-      const userId = (req as any).user?.customerId || (req as any).user?.userId
+      // JWT token contains nested customer object: req.user.customer.customerId
+      const userId = (req as any).user?.customer?.customerId || (req as any).user?.customerId || (req as any).user?.userId
+      if (!userId) {
+        res.status(401).json({ statusCode: 401, error: { code: 'UNAUTHORIZED', message: 'User not authenticated' } })
+        return
+      }
       const input: CreateConversationInput = req.body
       const conversation = await this.chatService.createConversation(input, userId)
       res.status(201).json({ statusCode: 201, data: conversation })

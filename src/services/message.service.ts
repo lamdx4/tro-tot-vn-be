@@ -1,13 +1,16 @@
-import { MessageRepository } from '@/infras/repositories'
+import { MessageRepository, MessageAttachmentRepository } from '@/infras/repositories'
 import { Message } from '@/domains/entities/message.entity'
-import { SendMessageInput, MessageDTO, EditMessageInput, MessageQuery } from '@/utils/types/chat.types'
-import { MessageStatus, MessageType } from '@/domains/entities/enum/value-object'
+import { MessageAttachment } from '@/domains/entities/message-attachment.entity'
+import { SendMessageInput, MessageDTO, EditMessageInput, MessageQuery, AttachmentDTO } from '@/utils/types/chat.types'
+import { MessageStatus, MessageType, AttachmentType } from '@/domains/entities/enum/value-object'
 
 export class MessageService {
   private messageRepo: MessageRepository
+  private attachmentRepo: MessageAttachmentRepository
 
   constructor() {
     this.messageRepo = new MessageRepository()
+    this.attachmentRepo = new MessageAttachmentRepository()
   }
 
   /**
@@ -107,8 +110,98 @@ export class MessageService {
    */
   async getMessagesByIds(messageIds: number[]): Promise<MessageDTO[]> {
     const messages = await this.messageRepo.getMessagesByIds(messageIds)
-
     return messages.map(msg => this.toMessageDTO(msg))
+  }
+
+  /**
+   * Send a message with attachment(s)
+   */
+  async sendMessageWithAttachments(
+    conversationId: number,
+    senderId: number,
+    input: SendMessageInput,
+    attachments: Omit<AttachmentDTO, 'attachmentId' | 'messageId' | 'createdAt'>[]
+  ): Promise<MessageDTO> {
+    const { content, messageType = MessageType.TEXT } = input
+
+    // Determine message type based on attachments if not provided
+    let finalMessageType = messageType
+    if (attachments.length > 0 && messageType === MessageType.TEXT) {
+      const firstAttachment = attachments[0]
+      if (firstAttachment.fileType === AttachmentType.IMAGE) {
+        finalMessageType = MessageType.IMAGE
+      } else if (firstAttachment.fileType === AttachmentType.FILE) {
+        finalMessageType = MessageType.FILE
+      }
+    }
+
+    // Create message first
+    const message = await this.messageRepo.createMessage({
+      conversationId,
+      senderId,
+      content,
+      messageType: finalMessageType,
+      status: MessageStatus.SENT
+    })
+
+    // Create attachments
+    for (const attachment of attachments) {
+      await this.attachmentRepo.save({
+        messageId: message.messageId,
+        fileName: attachment.fileName,
+        fileUrl: attachment.fileUrl,
+        fileType: attachment.fileType,
+        fileSize: attachment.fileSize,
+        mimeType: attachment.mimeType,
+        cloudFileId: attachment.cloudFileId
+      })
+    }
+
+    // Fetch full message with relationships
+    const fullMessage = await this.messageRepo.findById(message.messageId)
+
+    return this.toMessageDTO(fullMessage!)
+  }
+
+  /**
+   * Get attachments for a message
+   */
+  async getMessageAttachments(messageId: number): Promise<AttachmentDTO[]> {
+    const attachments = await this.attachmentRepo.findByMessageId(messageId)
+    return attachments.map(att => this.toAttachmentDTO(att))
+  }
+
+  /**
+   * Get attachments for multiple messages
+   */
+  async getMessagesAttachments(messageIds: number[]): Promise<Map<number, AttachmentDTO[]>> {
+    const attachments = await this.attachmentRepo.findByMessageIds(messageIds)
+
+    const attachmentMap = new Map<number, AttachmentDTO[]>()
+    for (const att of attachments) {
+      const list = attachmentMap.get(att.messageId) || []
+      list.push(this.toAttachmentDTO(att))
+      attachmentMap.set(att.messageId, list)
+    }
+
+    return attachmentMap
+  }
+
+  /**
+   * Convert Attachment entity to DTO
+   */
+  private toAttachmentDTO(attachment: MessageAttachment): AttachmentDTO {
+    return {
+      attachmentId: attachment.attachmentId,
+      messageId: attachment.messageId,
+      fileName: attachment.fileName,
+      fileUrl: attachment.fileUrl,
+      fileType: attachment.fileType,
+      fileSize: attachment.fileSize,
+      mimeType: attachment.mimeType,
+      cloudFileId: attachment.cloudFileId,
+      createdAt: attachment.createdAt
+    }
   }
 
   /**
@@ -124,7 +217,8 @@ export class MessageService {
       status: message.status,
       createdAt: message.createdAt,
       updatedAt: message.updatedAt,
-      deletedAt: message.deletedAt
+      deletedAt: message.deletedAt,
+      attachments: message.attachments?.map(att => this.toAttachmentDTO(att)) || []
     }
   }
 }
