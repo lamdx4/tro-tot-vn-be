@@ -48,7 +48,7 @@ RUN mkdir -p uploads && chown nodeuser:nodejs uploads
 USER nodeuser
 
 # Expose the API port (Default for backend is usually 3000)
-EXPOSE 3000
+EXPOSE 3333
 
 # Start the application
 CMD ["node", "dist/app.js"]
