@@ -48,39 +48,37 @@ services:
       - "5349:5349/tcp"
       - "49152-49172:49152-49172/udp"  # RTP media ports range
     environment:
-      # Realm configuration
-      - TURNSERVER_ENABLED=true
+      # Coturn will use CLI arguments via command
       - LISTENING_PORT=3478
       - TLS_LISTENING_PORT=5349
       - MIN_PORT=49152
       - MAX_PORT=49172
-      # Authentication
-      - TURN_SECRET=tro-tot-secret-2024
-      # Logging
-      - LOG_FILE=/var/log/turnserver.log
-      - SYSLOG=true
-      # Additional settings
-      - lt-cred-mech
-      - use-auth-secret
-      - static-auth-secret=tro-tot-secret-2024
-      - realm=tro-tot.local
-      # STUN functionality
-      - STUN_ONLY=true
-      # Stability
-      - NO_STUN_UNAUTHENTICATED
-      - STUN-MASK=ALL
+      - REALM=tro-tot.local
+      # Use long-term credentials mechanism
+      - LT_CRED_MECH
+      # Use authentication secret (TURN_SECRET env var for dynamic passwords)
+      - USE_AUTH_SECRET
+      - STATIC_AUTH_SECRET=tro-tot-secret-2024
+    command: >
+      -n
+      --listening-port=3478
+      --tls-listening-port=5349
+      --min-port=49152
+      --max-port=49172
+      --server-name=tro-tot.local
+      --realm=tro-tot.local
+      --lt-cred-mech
+      --use-auth-secret
+      --static-auth-secret=tro-tot-secret-2024
+      --user=testuser:tro-tot-secret-2024
+      --log-file=stdout
+      --syslog
+      --stun-only
     volumes:
       - coturn_data:/var/lib/turn
-      - coturn_log:/var/log
     networks:
       - tro-tot-network
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "turnadmin", "-k", "-a", "-r", "tro-tot.local", "-u", "test-user", "-p", "test-pass"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
 
 networks:
   tro-tot-network:
@@ -90,4 +88,3 @@ volumes:
   mssql_data:
   redis_data:
   coturn_data:
-  coturn_log:
