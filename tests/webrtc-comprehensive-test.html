@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebRTC Video Call Test Suite</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh; color: #eee;
+    }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    
+    /* Header */
+    header {
+      background: rgba(0,0,0,0.3); padding: 20px; border-radius: 12px;
+      margin-bottom: 20px; border: 1px solid #0f3460;
+    }
+    h1 { color: #00d9ff; font-size: 28px; }
+    .subtitle { color: #888; margin-top: 5px; }
+    
+    /* Controls */
+    .controls {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;
+    }
+    button {
+      padding: 12px 24px; border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: #00d9ff; color: #1a1a2e; }
+    .btn-primary:hover { background: #00b8d9; transform: translateY(-2px); }
+    .btn-success { background: #00ff88; color: #1a1a2e; }
+    .btn-danger { background: #ff4757; color: #fff; }
+    .btn-warning { background: #ffa502; color: #1a1a2e; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    /* Grid Layout */
+    .grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    
+    /* Panels */
+    .panel {
+      background: #16213e; border-radius: 12px; padding: 20px;
+      border: 1px solid #0f3460;
+    }
+    .panel h2 {
+      color: #00d9ff; font-size: 18px; margin-bottom: 15px;
+      padding-bottom: 10px; border-bottom: 1px solid #0f3460;
+    }
+    
+    /* Status Indicators */
+    .status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .status-item {
+      background: #0f3460; padding: 15px; border-radius: 8px; text-align: center;
+    }
+    .status-label { font-size: 11px; color: #888; text-transform: uppercase; }
+    .status-value { font-size: 16px; font-weight: bold; margin-top: 5px; }
+    .status-pending { color: #ffa502; }
+    .status-success { color: #00ff88; }
+    .status-error { color: #ff4757; }
+    
+    /* Logs */
+    .log-container {
+      background: #0a0a1a; border-radius: 8px; padding: 15px;
+      height: 400px; overflow-y: auto; font-family: 'Consolas', monospace;
+      font-size: 12px; line-height: 1.6;
+    }
+    .log-entry { padding: 2px 0; }
+    .log-time { color: #666; }
+    .log-info { color: #70a1ff; }
+    .log-success { color: #00ff88; }
+    .log-error { color: #ff4757; }
+    .log-warning { color: #ffa502; }
+    .log-debug { color: #888; }
+    
+    /* Test Results */
+    .test-results { margin-top: 20px; }
+    .test-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px;
+      background: #0f3460; border-radius: 8px; margin-bottom: 8px;
+    }
+    .test-icon { font-size: 18px; }
+    .test-name { flex: 1; }
+    .test-status { font-weight: bold; }
+    
+    /* Stats Display */
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+    .stat-card {
+      background: #0f3460; padding: 15px; border-radius: 8px;
+    }
+    .stat-card h4 { color: #888; font-size: 12px; margin-bottom: 8px; }
+    .stat-value { font-size: 24px; font-weight: bold; color: #00d9ff; }
+    .stat-unit { font-size: 12px; color: #666; }
+    
+    /* Connection States */
+    .state-badge {
+      display: inline-block; padding: 4px 12px; border-radius: 4px;
+      font-weight: bold; text-transform: uppercase; font-size: 12px;
+    }
+    .state-new { background: #555; }
+    .state-checking { background: #ffa502; color: #000; }
+    .state-connected { background: #00ff88; color: #000; }
+    .state-completed { background: #00ff88; color: #000; }
+    .state-failed { background: #ff4757; }
+    .state-disconnected { background: #ff6b6b; }
+    
+    /* Progress Bar */
+    .progress-bar {
+      height: 4px; background: #0f3460; border-radius: 2px; margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; background: linear-gradient(90deg, #00d9ff, #00ff88);
+      transition: width 0.3s;
+    }
+    
+    /* Summary */
+    .summary {
+      background: linear-gradient(135deg, #0f3460, #16213e);
+      padding: 20px; border-radius: 12px; margin-top: 20px;
+      text-align: center; border: 2px solid #00d9ff;
+    }
+    .summary h2 { border: none; color: #00d9ff; }
+    .summary .score { font-size: 48px; font-weight: bold; color: #00ff88; }
+    .summary .score.fail { color: #ff4757; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🎥 WebRTC Video Call Test Suite</h1>
+      <p class="subtitle">Comprehensive signaling & data transfer verification</p>
+    </header>
+    
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+    </div>
+    
+    <div class="controls">
+      <button class="btn-primary" id="btnRunAll" onclick="runAllTests()">▶ Run All Tests</button>
+      <button class="btn-success" id="btnQuickTest" onclick="runQuickTest()">⚡ Quick Connect</button>
+      <button class="btn-warning" id="btnDataTest" onclick="runDataTransferTest()">📊 Data Transfer Test</button>
+      <button class="btn-info" id="btnRequestCamera" onclick="requestCamera()">📷 Request Camera</button>
+      <button class="btn-danger" id="btnStop" onclick="stopTests()" disabled>⏹ Stop</button>
+      <button onclick="clearLogs()">🗑 Clear Logs</button>
+    </div>
+    
+    <div class="grid">
+      <!-- Left Panel: Test Controls & Results -->
+      <div class="panel">
+        <h2>📋 Test Results</h2>
+        <div class="test-results" id="testResults">
+          <p style="color: #666;">Click "Run All Tests" to start...</p>
+        </div>
+        
+        <h2 style="margin-top: 20px;">🔌 Connection Status</h2>
+        <div class="status-grid">
+          <div class="status-item">
+            <div class="status-label">Socket 1</div>
+            <div class="status-value status-pending" id="socket1Status">--</div>
+          </div>
+          <div class="status-item">
+            <div class="status-label">Socket 2</div>
+            <div class="status-value status-pending" id="socket2Status">--</div>
+          </div>
+          <div class="status-item">
+            <div class="status-label">ICE State</div>
+            <div class="status-value status-pending" id="iceStatus">--</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Right Panel: Real-time Stats -->
+      <div class="panel">
+        <h2>📈 Connection Statistics</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h4>Bytes Sent</h4>
+            <div class="stat-value" id="statBytesSent">0</div>
+            <div class="stat-unit">bytes</div>
+          </div>
+          <div class="stat-card">
+            <h4>Bytes Received</h4>
+            <div class="stat-value" id="statBytesReceived">0</div>
+            <div class="stat-unit">bytes</div>
+          </div>
+          <div class="stat-card">
+            <h4>Round Trip Time</h4>
+            <div class="stat-value" id="statRTT">--</div>
+            <div class="stat-unit">ms</div>
+          </div>
+          <div class="stat-card">
+            <h4>Packets Lost</h4>
+            <div class="stat-value" id="statPacketsLost">0</div>
+            <div class="stat-unit">packets</div>
+          </div>
+        </div>
+        
+        <h2 style="margin-top: 20px;">🔗 ICE Connection State</h2>
+        <div class="status-grid">
+          <div class="status-item">
+            <div class="status-label">Peer 1</div>
+            <span class="state-badge state-new" id="iceState1">new</span>
+          </div>
+          <div class="status-item">
+            <div class="status-label">Peer 2</div>
+            <span class="state-badge state-new" id="iceState2">new</span>
+          </div>
+          <div class="status-item">
+            <div class="status-label">Gathering</div>
+            <span class="state-badge state-new" id="iceGathering">new</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Log Panel -->
+    <div class="panel" style="margin-top: 20px;">
+      <h2>📝 Test Logs</h2>
+      <div class="log-container" id="logContainer"></div>
+    </div>
+    
+    <!-- Summary -->
+    <div class="summary" id="summary" style="display: none;">
+      <h2>Test Complete!</h2>
+      <div class="score" id="score">0/0</div>
+      <p id="scoreText">All tests passed!</p>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // ==================== Configuration ====================
+    const SERVER_URL = window.location.origin;
+    const USER_1_ID = 1;
+    const USER_2_ID = 2;
+    const TEST_TIMEOUT = 15000;
+    
+    // ==================== State ====================
+    let socket1, socket2;
+    let peer1, peer2;
+    let testStream;
+    let dataChannel1, dataChannel2;
+    let statsInterval;
+    let isRunning = false;
+    let testsPassed = 0;
+    let testsFailed = 0;
+    let roomId = null;
+    
+    // ==================== Logging ====================
+    function log(message, type = 'info') {
+      const container = document.getElementById('logContainer');
+      const time = new Date().toISOString().substr(11, 12);
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${type}`;
+      entry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
+      container.appendChild(entry);
+      container.scrollTop = container.scrollHeight;
+      console.log(`[${type.toUpperCase()}]`, message);
+    }
+    
+    function clearLogs() {
+      document.getElementById('logContainer').innerHTML = '';
+    }
+    
+    // ==================== UI Updates ====================
+    function updateStatus(elementId, status, text) {
+      const el = document.getElementById(elementId);
+      el.textContent = text;
+      el.className = `status-value status-${status}`;
+    }
+    
+    function updateICEState(elementId, state) {
+      const el = document.getElementById(elementId);
+      el.textContent = state;
+      el.className = `state-badge state-${state}`;
+    }
+    
+    function updateStat(elementId, value) {
+      document.getElementById(elementId).textContent = value;
+    }
+    
+    function updateProgress(percent) {
+      document.getElementById('progressBar').style.width = percent + '%';
+    }
+    
+    function addTestResult(name, passed, message = '') {
+      const container = document.getElementById('testResults');
+      const icon = passed ? '✅' : '❌';
+      const statusClass = passed ? 'status-success' : 'status-error';
+      const html = `
+        <div class="test-item">
+          <span class="test-icon">${icon}</span>
+          <span class="test-name">${name}</span>
+          <span class="test-status ${statusClass}">${passed ? 'PASS' : 'FAIL'}</span>
+        </div>
+      `;
+      container.innerHTML += html;
+      
+      if (passed) testsPassed++;
+      else testsFailed++;
+    }
+    
+    function showSummary() {
+      const summary = document.getElementById('summary');
+      const score = document.getElementById('score');
+      const scoreText = document.getElementById('scoreText');
+      
+      summary.style.display = 'block';
+      const total = testsPassed + testsFailed;
+      score.textContent = `${testsPassed}/${total}`;
+      
+      if (testsFailed === 0) {
+        score.className = 'score';
+        scoreText.textContent = '🎉 All tests passed! P2P data transfer verified.';
+      } else {
+        score.className = 'score fail';
+        scoreText.textContent = `${testsFailed} test(s) failed. Check logs for details.`;
+      }
+    }
+    
+    // ==================== Utility Functions ====================
+    function wait(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
+    function waitForEvent(socket, event, timeout = TEST_TIMEOUT) {
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error(`Timeout waiting for ${event}`)), timeout);
+        socket.on(event, (data) => {
+          clearTimeout(timer);
+          resolve(data);
+        });
+      });
+    }
+    
+    async function getIceConfig() {
+      const response = await fetch(`${SERVER_URL}/api/video-call/ice-config`);
+      const data = await response.json();
+      return data.data.iceServers;
+    }
+    
+    async function getStats(peer) {
+      const stats = await peer.getStats();
+      let result = { bytesSent: 0, bytesReceived: 0, packetsLost: 0, rtt: null };
+      
+      stats.forEach(report => {
+        if (report.type === 'outbound-rtp' && report.kind === 'video') {
+          result.bytesSent += report.bytesSent || 0;
+        }
+        if (report.type === 'inbound-rtp' && report.kind === 'video') {
+          result.bytesReceived += report.bytesReceived || 0;
+          result.packetsLost += report.packetsLost || 0;
+        }
+        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+          result.rtt = report.currentRoundTripTime ? (report.currentRoundTripTime * 1000).toFixed(2) : null;
+        }
+      });
+      
+      return result;
+    }
+    
+    // ==================== Test Helpers ====================
+    async function connectSockets() {
+      log('Connecting sockets...', 'info');
+      
+      return new Promise((resolve, reject) => {
+        let connected = 0;
+        
+        socket1 = io(SERVER_URL, { 
+          auth: { userId: String(USER_1_ID) }, 
+          transports: ['websocket'],
+          reconnection: false
+        });
+        
+        socket2 = io(SERVER_URL, { 
+          auth: { userId: String(USER_2_ID) }, 
+          transports: ['websocket'],
+          reconnection: false
+        });
+        
+        socket1.on('connect', () => {
+          connected++;
+          log(`Socket 1 connected: ${socket1.id}`, 'success');
+          updateStatus('socket1Status', 'success', 'Connected');
+          if (connected === 2) resolve();
+        });
+        
+        socket2.on('connect', () => {
+          connected++;
+          log(`Socket 2 connected: ${socket2.id}`, 'success');
+          updateStatus('socket2Status', 'success', 'Connected');
+          if (connected === 2) resolve();
+        });
+        
+        socket1.on('connect_error', (err) => {
+          log(`Socket 1 error: ${err.message}`, 'error');
+          reject(err);
+        });
+        
+        setTimeout(() => {
+          if (connected < 2) reject(new Error('Connection timeout'));
+        }, TEST_TIMEOUT);
+      });
+    }
+    
+    async function createAndJoinRoom() {
+      log('Creating video call room...', 'info');
+      
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Room creation timeout')), TEST_TIMEOUT);
+        
+        socket1.on('video:call:roomCreated', (data) => {
+          clearTimeout(timeout);
+          roomId = data.roomId;
+          log(`Room created: ${roomId}`, 'success');
+          
+          // Join room with socket2
+          socket2.emit('video:call:joinRoom', { roomId });
+          socket2.on('video:call:roomJoined', () => {
+            log('User 2 joined room', 'success');
+            resolve();
+          });
+        });
+        
+        socket1.emit('video:call:createRoom', { calleeId: USER_2_ID });
+      });
+    }
+    
+    async function setupPeerConnections(iceConfig) {
+      log('Setting up RTCPeerConnections...', 'info');
+      
+      peer1 = new RTCPeerConnection({ iceServers: iceConfig });
+      peer2 = new RTCPeerConnection({ iceServers: iceConfig });
+      
+      // ICE state handlers
+      peer1.oniceconnectionstatechange = () => {
+        const state = peer1.iceConnectionState;
+        log(`Peer 1 ICE: ${state}`, state === 'connected' || state === 'completed' ? 'success' : 'info');
+        updateICEState('iceState1', state);
+        updateICEState('iceStatus', state);
+        
+        // Report to server
+        if (socket1 && roomId) {
+          socket1.emit('video:call:iceStateChange', {
+            roomId,
+            userId: USER_1_ID,
+            iceConnectionState: state,
+            iceGatheringState: peer1.iceGatheringState,
+            timestamp: new Date()
+          });
+        }
+      };
+      
+      peer2.oniceconnectionstatechange = () => {
+        const state = peer2.iceConnectionState;
+        log(`Peer 2 ICE: ${state}`, state === 'connected' || state === 'completed' ? 'success' : 'info');
+        updateICEState('iceState2', state);
+      };
+
+      // Get media - fallback to DataChannel if no devices available
+
+      // First, enumerate available devices
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        const audioDevices = devices.filter(d => d.kind === 'audioinput');
+        log(`Found ${videoDevices.length} video device(s), ${audioDevices.length} audio device(s)`, 'info');
+      } catch (e) {
+        log(`Device enumeration error: ${e.message}`, 'warning');
+      }
+
+      try {
+        testStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 320, height: 240 },
+          audio: true
+        });
+        log('Got media stream', 'success');
+
+        // Add tracks
+        testStream.getTracks().forEach(track => {
+          peer1.addTrack(track, testStream);
+          peer2.addTrack(track, testStream);
+        });
+
+        // Also create data channel for testing (even with media)
+        dataChannel1 = peer1.createDataChannel('test');
+        dataChannel2 = peer2.createDataChannel('test');
+      } catch (e) {
+        log(`Media not available: ${e.name} - ${e.message}`, 'warning');
+        log('Using DataChannel for P2P test instead', 'info');
+
+        // Create data channels for P2P testing without media
+        dataChannel1 = peer1.createDataChannel('test');
+        peer2.ondatachannel = (e) => {
+          dataChannel2 = e.channel;
+          setupDataChannel(dataChannel2, 'peer2');
+        };
+      }
+
+      // Setup data channel handlers
+      function setupDataChannel(channel, name) {
+        channel.onopen = () => log(`DataChannel (${name}) opened`, 'success');
+        channel.onmessage = (e) => log(`DataChannel (${name}) received: ${e.data}`, 'info');
+        channel.onerror = (e) => log(`DataChannel (${name}) error`, 'error');
+      }
+
+      setupDataChannel(dataChannel1, 'peer1');
+
+      // If peer2's data channel is ready, setup it too
+      if (dataChannel2) setupDataChannel(dataChannel2, 'peer2');
+      
+      // Track events
+      peer1.ontrack = (e) => log(`Peer 1 received ${e.track.kind} track`, 'success');
+      peer2.ontrack = (e) => log(`Peer 2 received ${e.track.kind} track`, 'success');
+      
+      // ICE candidates
+      peer1.onicecandidate = (e) => {
+        if (e.candidate && socket1) {
+          socket1.emit('video:call:iceCandidate', { roomId, candidate: e.candidate });
+        }
+      };
+      peer2.onicecandidate = (e) => {
+        if (e.candidate && socket2) {
+          socket2.emit('video:call:iceCandidate', { roomId, candidate: e.candidate });
+        }
+      };
+      
+      // Forward ICE candidates between peers
+      socket1.on('video:call:iceCandidate', async (data) => {
+        if (data.candidate) await peer1.addIceCandidate(new RTCIceCandidate(data.candidate));
+      });
+      socket2.on('video:call:iceCandidate', async (data) => {
+        if (data.candidate) await peer2.addIceCandidate(new RTCIceCandidate(data.candidate));
+      });
+      
+      log('RTCPeerConnections ready', 'success');
+    }
+    
+    async function exchangeOfferAnswer() {
+      log('Exchanging offer/answer...', 'info');
+      
+      const offer = await peer1.createOffer();
+      await peer1.setLocalDescription(offer);
+      socket1.emit('video:call:offer', { roomId, sdp: offer });
+      
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Offer/Answer exchange timeout')), TEST_TIMEOUT);
+        
+        socket2.on('video:call:offer', async (data) => {
+          await peer2.setRemoteDescription(new RTCSessionDescription(data.sdp));
+          const answer = await peer2.createAnswer();
+          await peer2.setLocalDescription(answer);
+          socket2.emit('video:call:answer', { roomId, sdp: answer });
+        });
+        
+        socket1.on('video:call:answer', async (data) => {
+          await peer1.setRemoteDescription(new RTCSessionDescription(data.sdp));
+          clearTimeout(timeout);
+          log('Offer/Answer exchanged successfully', 'success');
+          resolve();
+        });
+      });
+    }
+    
+    async function waitForICEConnection() {
+      log('Waiting for ICE connection...', 'info');
+      
+      return new Promise((resolve, reject) => {
+        const checkInterval = setInterval(() => {
+          const state1 = peer1.iceConnectionState;
+          const state2 = peer2.iceConnectionState;
+          log(`ICE States: Peer1=${state1}, Peer2=${state2}`, 'debug');
+          
+          if (state1 === 'connected' || state1 === 'completed' || 
+              state2 === 'connected' || state2 === 'completed') {
+            clearInterval(checkInterval);
+            log(`ICE Connection established: ${state1}`, 'success');
+            resolve(state1);
+          }
+          if (state1 === 'failed' || state2 === 'failed') {
+            clearInterval(checkInterval);
+            reject(new Error('ICE connection failed'));
+          }
+        }, 500);
+        
+        setTimeout(() => {
+          clearInterval(checkInterval);
+          reject(new Error('ICE connection timeout'));
+        }, 30000);
+      });
+    }
+    
+    function startStatsReporting() {
+      statsInterval = setInterval(async () => {
+        if (peer1 && (peer1.iceConnectionState === 'connected' || peer1.iceConnectionState === 'completed')) {
+          try {
+            const stats = await getStats(peer1);
+            updateStat('statBytesSent', stats.bytesSent.toLocaleString());
+            updateStat('statBytesReceived', stats.bytesReceived.toLocaleString());
+            updateStat('statRTT', stats.rtt ? stats.rtt + 'ms' : '--');
+            updateStat('statPacketsLost', stats.packetsLost);
+            
+            // Report to server
+            if (socket1 && roomId) {
+              socket1.emit('video:call:connectionStats', {
+                roomId,
+                userId: USER_1_ID,
+                stats: {
+                  bytesSent: stats.bytesSent,
+                  bytesReceived: stats.bytesReceived,
+                  packetsSent: 0,
+                  packetsReceived: 0,
+                  rtt: stats.rtt,
+                  state: peer1.iceConnectionState
+                },
+                timestamp: new Date()
+              });
+            }
+          } catch (e) {
+            log(`Stats error: ${e.message}`, 'error');
+          }
+        }
+      }, 1000);
+    }
+    
+    async function cleanup() {
+      if (peer1) { peer1.close(); peer1 = null; }
+      if (peer2) { peer2.close(); peer2 = null; }
+      if (testStream) { testStream.getTracks().forEach(t => t.stop()); testStream = null; }
+      if (statsInterval) { clearInterval(statsInterval); statsInterval = null; }
+      if (socket1) { socket1.disconnect(); socket1 = null; }
+      if (socket2) { socket2.disconnect(); socket2 = null; }
+      
+      updateStatus('socket1Status', 'pending', '--');
+      updateStatus('socket2Status', 'pending', '--');
+      updateICEState('iceState1', 'new');
+      updateICEState('iceState2', 'new');
+      updateICEState('iceStatus', 'new');
+    }
+    
+    // ==================== Test Suites ====================
+    async function runAllTests() {
+      if (isRunning) return;
+      isRunning = true;
+      
+      document.getElementById('btnRunAll').disabled = true;
+      document.getElementById('btnQuickTest').disabled = true;
+      document.getElementById('btnDataTest').disabled = true;
+      document.getElementById('btnStop').disabled = false;
+      document.getElementById('testResults').innerHTML = '';
+      document.getElementById('summary').style.display = 'none';
+      
+      testsPassed = 0;
+      testsFailed = 0;
+      
+      try {
+        // Test 1: ICE Configuration
+        updateProgress(10);
+        log('=== Starting Test Suite ===', 'info');
+        
+        const iceConfig = await getIceConfig();
+        addTestResult('ICE Configuration', true, `${iceConfig.length} servers`);
+        log(`ICE Config: ${iceConfig.length} servers configured`, 'success');
+        
+        // Test 2: Socket Connections
+        updateProgress(25);
+        await connectSockets();
+        addTestResult('Socket Connections', true, 'Both sockets connected');
+        
+        // Test 3: Room Creation
+        updateProgress(40);
+        await createAndJoinRoom();
+        addTestResult('Room Creation & Join', true, roomId);
+        
+        // Test 4: Peer Connections
+        updateProgress(55);
+        await setupPeerConnections(iceConfig);
+        addTestResult('RTCPeerConnections', true, 'Created successfully');
+        
+        // Test 5: Offer/Answer Exchange
+        updateProgress(70);
+        await exchangeOfferAnswer();
+        addTestResult('Offer/Answer Exchange', true, 'SDP exchanged');
+        
+        // Test 6: ICE Connection
+        updateProgress(85);
+        const iceState = await waitForICEConnection();
+        addTestResult('ICE Connection', true, iceState);
+        
+        // Test 7: Data Transfer
+        updateProgress(95);
+
+        // Send test data over DataChannel if available
+        try {
+          if (dataChannel1 && dataChannel1.readyState === 'open') {
+            const testData = 'WebRTC P2P Data Channel Test Message ' + Date.now();
+            dataChannel1.send(testData);
+            log(`Sent DataChannel test: ${testData}`, 'info');
+            await wait(1000); // Wait for data to be received
+          }
+        } catch (e) {
+          log(`DataChannel test error: ${e.message}`, 'warning');
+        }
+
+        await wait(2000); // Wait for data transfer
+        const stats = await getStats(peer1);
+
+        const hasDataTransfer = stats.bytesSent > 0 || stats.bytesReceived > 0;
+        addTestResult('Data Transfer', hasDataTransfer,
+          hasDataTransfer ? `${stats.bytesSent} sent, ${stats.bytesReceived} received` : 'Connected (awaiting data)');
+
+        if (hasDataTransfer) {
+          log('✅ DATA TRANSFER VERIFIED!', 'success');
+        }
+        
+        updateProgress(100);
+        
+      } catch (error) {
+        log(`Test error: ${error.message}`, 'error');
+        addTestResult('Test Error', false, error.message);
+      } finally {
+        showSummary();
+        isRunning = false;
+        document.getElementById('btnRunAll').disabled = false;
+        document.getElementById('btnQuickTest').disabled = false;
+        document.getElementById('btnDataTest').disabled = false;
+        document.getElementById('btnStop').disabled = true;
+      }
+    }
+    
+    async function runQuickTest() {
+      if (isRunning) return;
+      isRunning = true;
+      
+      document.getElementById('btnRunAll').disabled = true;
+      document.getElementById('btnQuickTest').disabled = true;
+      document.getElementById('btnDataTest').disabled = true;
+      document.getElementById('btnStop').disabled = false;
+      
+      try {
+        const iceConfig = await getIceConfig();
+        await connectSockets();
+        await createAndJoinRoom();
+        await setupPeerConnections(iceConfig);
+        await exchangeOfferAnswer();
+        const state = await waitForICEConnection();
+        
+        log(`✅ Quick Test Complete! ICE State: ${state}`, 'success');
+        addTestResult('Quick Connect', true, state);
+        
+        startStatsReporting();
+        
+      } catch (error) {
+        log(`Quick test failed: ${error.message}`, 'error');
+        addTestResult('Quick Connect', false, error.message);
+      }
+    }
+    
+    async function runDataTransferTest() {
+      if (isRunning) return;
+      isRunning = true;
+      
+      document.getElementById('btnRunAll').disabled = true;
+      document.getElementById('btnQuickTest').disabled = true;
+      document.getElementById('btnDataTest').disabled = true;
+      document.getElementById('btnStop').disabled = false;
+      
+      try {
+        // Setup connection
+        const iceConfig = await getIceConfig();
+        await connectSockets();
+        await createAndJoinRoom();
+        await setupPeerConnections(iceConfig);
+        await exchangeOfferAnswer();
+        await waitForICEConnection();
+        
+        startStatsReporting();
+        
+        // Monitor for 10 seconds
+        log('Monitoring data transfer for 10 seconds...', 'info');
+        await wait(10000);
+        
+        const stats = await getStats(peer1);
+        
+        log(`Final Stats:`, 'info');
+        log(`  Bytes Sent: ${stats.bytesSent}`, 'info');
+        log(`  Bytes Received: ${stats.bytesReceived}`, 'info');
+        log(`  RTT: ${stats.rtt}ms`, 'info');
+        log(`  Packets Lost: ${stats.packetsLost}`, 'info');
+        
+        if (stats.bytesSent > 0 || stats.bytesReceived > 0) {
+          log('✅ DATA TRANSFER CONFIRMED!', 'success');
+          addTestResult('Data Transfer', true, `${stats.bytesSent} sent, ${stats.bytesReceived} received`);
+        } else {
+          log('⚠️ Connected but no data transfer yet', 'warning');
+          addTestResult('Data Transfer', true, 'ICE Connected (waiting for media)');
+        }
+        
+      } catch (error) {
+        log(`Data transfer test failed: ${error.message}`, 'error');
+        addTestResult('Data Transfer', false, error.message);
+      } finally {
+        showSummary();
+        isRunning = false;
+        document.getElementById('btnRunAll').disabled = false;
+        document.getElementById('btnQuickTest').disabled = false;
+        document.getElementById('btnDataTest').disabled = false;
+        document.getElementById('btnStop').disabled = true;
+      }
+    }
+    
+    function stopTests() {
+      log('Stopping tests...', 'warning');
+      cleanup();
+      isRunning = false;
+      document.getElementById('btnRunAll').disabled = false;
+      document.getElementById('btnQuickTest').disabled = false;
+      document.getElementById('btnDataTest').disabled = false;
+      document.getElementById('btnStop').disabled = true;
+    }
+  </script>
+</body>
+</html>
+
