@@ -10,6 +10,7 @@ import recommendRouter from './recommend.router'
 import interactionRouter from './interaction.router'
 import locationRouter from './location.router'
 import chatRouter from '@/web/routers/chat.routes'
+import videoCallRouter from './video-call.router'
 
 const routerConfig = express.Router()
 
@@ -34,5 +35,7 @@ routerConfig.use('/interactions', interactionRouter)
 routerConfig.use('/location', locationRouter)
 
 routerConfig.use('/chat', chatRouter)
+
+routerConfig.use('/video-call', videoCallRouter)
 
 export default routerConfig
