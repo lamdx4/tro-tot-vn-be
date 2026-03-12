@@ -54,8 +54,8 @@ export class SocketConfig {
         return next(new Error('Authentication error: User ID required'))
       }
 
-      // Convert to number for consistent comparison with database IDs
-      socket.data.userId = parseInt(String(userId), 10)
+      // Keep userId as string for video call handler (supports both "user1" and numeric IDs)
+      socket.data.userId = String(userId)
       next()
     })
   }
@@ -71,6 +71,9 @@ export class SocketConfig {
 
       // Use SocketHandlers for logic
       this.handlers.handleConnection(socket)
+
+      // Register socket for video call handler (enables direct notifications to user)
+      this.videoCallHandler.handleConnection(socket)
 
       // Message events
       socket.on(SOCKET_EVENTS.MESSAGE_SENT, (data) =>
@@ -111,54 +114,65 @@ export class SocketConfig {
       )
 
       // Video call events
-      socket.on(VIDEO_CALL_EVENTS.GET_ICE_CONFIG, () =>
+      socket.on(VIDEO_CALL_EVENTS.GET_ICE_CONFIG, (data) => {
+        console.log(`[Socket] Received GET_ICE_CONFIG from user ${userId}`)
         this.videoCallHandler.handleGetIceConfig(socket)
-      )
+      })
 
-      socket.on(VIDEO_CALL_EVENTS.CREATE_ROOM, (data) =>
+      socket.on(VIDEO_CALL_EVENTS.CREATE_ROOM, (data) => {
+        console.log(`[Socket] Received CREATE_ROOM from user ${userId}:`, data)
         this.videoCallHandler.handleCreateRoom(socket, data)
-      )
+      })
 
-      socket.on(VIDEO_CALL_EVENTS.JOIN_ROOM, (data) =>
+      socket.on(VIDEO_CALL_EVENTS.JOIN_ROOM, (data) => {
+        console.log(`[Socket] Received JOIN_ROOM from user ${userId}:`, data)
         this.videoCallHandler.handleJoinRoom(socket, data)
-      )
+      })
 
-      socket.on(VIDEO_CALL_EVENTS.LEAVE_ROOM, (data) =>
+      socket.on(VIDEO_CALL_EVENTS.LEAVE_ROOM, (data) => {
+        console.log(`[Socket] Received LEAVE_ROOM from user ${userId}:`, data)
         this.videoCallHandler.handleLeaveRoom(socket, data)
-      )
+      })
 
-      socket.on(VIDEO_CALL_EVENTS.OFFER, (data) =>
+      socket.on(VIDEO_CALL_EVENTS.OFFER, (data) => {
+        console.log(`[Socket] Received OFFER from user ${userId}:`, data)
         this.videoCallHandler.handleOffer(socket, data)
-      )
+      })
 
-      socket.on(VIDEO_CALL_EVENTS.ANSWER, (data) =>
+      socket.on(VIDEO_CALL_EVENTS.ANSWER, (data) => {
+        console.log(`[Socket] Received ANSWER from user ${userId}:`, data)
         this.videoCallHandler.handleAnswer(socket, data)
-      )
+      })
 
-      socket.on(VIDEO_CALL_EVENTS.ICE_CANDIDATE, (data) =>
+      socket.on(VIDEO_CALL_EVENTS.ICE_CANDIDATE, (data) => {
+        console.log(`[Socket] Received ICE_CANDIDATE from user ${userId}`)
         this.videoCallHandler.handleIceCandidate(socket, data)
-      )
+      })
 
-      socket.on(VIDEO_CALL_EVENTS.CALL_ACCEPTED, (data) =>
+      socket.on(VIDEO_CALL_EVENTS.CALL_ACCEPTED, (data) => {
+        console.log(`[Socket] Received CALL_ACCEPTED from user ${userId}:`, data)
         this.videoCallHandler.handleCallAccepted(socket, data)
-      )
+      })
 
-      socket.on(VIDEO_CALL_EVENTS.CALL_REJECTED, (data) =>
+      socket.on(VIDEO_CALL_EVENTS.CALL_REJECTED, (data) => {
+        console.log(`[Socket] Received CALL_REJECTED from user ${userId}:`, data)
         this.videoCallHandler.handleCallRejected(socket, data)
-      )
+      })
 
-      socket.on(VIDEO_CALL_EVENTS.CALL_ENDED, (data) =>
+      socket.on(VIDEO_CALL_EVENTS.CALL_ENDED, (data) => {
+        console.log(`[Socket] Received CALL_ENDED from user ${userId}:`, data)
         this.videoCallHandler.handleCallEnded(socket, data)
-      )
+      })
 
       // Connection state monitoring events
-      socket.on('video:call:iceStateChange', (data) =>
+      socket.on('video:call:iceStateChange', (data) => {
+        console.log(`[Socket] Received iceStateChange from user ${userId}:`, data)
         this.videoCallHandler.handleIceStateChange(socket, data)
-      )
+      })
 
-      socket.on('video:call:connectionStats', (data) =>
+      socket.on('video:call:connectionStats', (data) => {
         this.videoCallHandler.handleConnectionStats(socket, data)
-      )
+      })
 
       // Disconnect event
       socket.on(SOCKET_EVENTS.DISCONNECT, () => {

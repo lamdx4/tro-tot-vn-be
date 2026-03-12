@@ -20,9 +20,10 @@ export interface IceServersResponse {
  */
 export interface VideoCallRoom {
   roomId: string
-  participants: number[] // User IDs
+  participants: string[] // User IDs - original invited list (never mutated after creation)
+  activeParticipants: Set<string> // Track who is currently connected
   createdAt: Date
-  createdBy: number
+  createdBy: string
   isActive: boolean
 }
 
@@ -60,7 +61,9 @@ export const VIDEO_CALL_EVENTS = {
 
   // Connection state
   PEER_CONNECTED: 'video:call:peerConnected',
-  PEER_DISCONNECTED: 'video:call:peerDisconnected'
+  PEER_DISCONNECTED: 'video:call:peerDisconnected',
+  ICE_STATE_CHANGED: 'video:call:iceStateChanged',
+  PEER_STATS: 'video:call:peerStats'
 } as const
 
 // Payload types for signaling events
@@ -83,7 +86,7 @@ export interface IceConfigEvent {
  * Create a video call room
  */
 export interface CreateRoomEvent {
-  calleeId: number // The user being called
+  calleeId: string // The user being called
 }
 
 /**
@@ -91,8 +94,8 @@ export interface CreateRoomEvent {
  */
 export interface RoomCreatedEvent {
   roomId: string
-  callerId: number
-  calleeId: number
+  callerId: string
+  calleeId: string
   createdAt: Date
 }
 
@@ -108,7 +111,7 @@ export interface JoinRoomEvent {
  */
 export interface RoomJoinedEvent {
   roomId: string
-  participants: number[]
+  participants: string[]
   joinedAt: Date
 }
 
@@ -124,7 +127,7 @@ export interface LeaveRoomEvent {
  */
 export interface RoomLeftEvent {
   roomId: string
-  userId: number
+  userId: string
   leftAt: Date
 }
 
@@ -133,7 +136,7 @@ export interface RoomLeftEvent {
  */
 export interface RoomParticipantJoinedEvent {
   roomId: string
-  userId: number
+  userId: string
   timestamp: Date
 }
 
@@ -142,7 +145,7 @@ export interface RoomParticipantJoinedEvent {
  */
 export interface RoomParticipantLeftEvent {
   roomId: string
-  userId: number
+  userId: string
   timestamp: Date
 }
 
@@ -152,7 +155,7 @@ export interface RoomParticipantLeftEvent {
 export interface OfferEvent {
   roomId: string
   offer: RTCSessionDescriptionInit
-  from: number // sender userId
+  from: string // sender userId
 }
 
 /**
@@ -161,7 +164,7 @@ export interface OfferEvent {
 export interface AnswerEvent {
   roomId: string
   answer: RTCSessionDescriptionInit
-  from: number // sender userId
+  from: string // sender userId
 }
 
 /**
@@ -170,7 +173,7 @@ export interface AnswerEvent {
 export interface IceCandidateEvent {
   roomId: string
   candidate: RTCIceCandidateInit
-  from: number // sender userId
+  from: string // sender userId
 }
 
 /**
@@ -178,8 +181,8 @@ export interface IceCandidateEvent {
  */
 export interface CallRequestEvent {
   roomId: string
-  callerId: number
-  calleeId: number
+  callerId: string
+  calleeId: string
   timestamp: Date
 }
 
@@ -188,8 +191,8 @@ export interface CallRequestEvent {
  */
 export interface CallAcceptedEvent {
   roomId: string
-  callerId: number
-  calleeId: number
+  callerId: string
+  calleeId: string
   acceptedAt: Date
 }
 
@@ -198,8 +201,8 @@ export interface CallAcceptedEvent {
  */
 export interface CallRejectedEvent {
   roomId: string
-  callerId: number
-  calleeId: number
+  callerId: string
+  calleeId: string
   reason?: string
   rejectedAt: Date
 }
@@ -209,7 +212,7 @@ export interface CallRejectedEvent {
  */
 export interface CallEndedEvent {
   roomId: string
-  endedBy: number
+  endedBy: string
   reason?: string
   endedAt: Date
 }
@@ -229,7 +232,7 @@ export interface CallErrorEvent {
  */
 export interface PeerConnectionEvent {
   roomId: string
-  peerUserId: number
+  peerUserId: string
   state: 'connected' | 'disconnected'
   timestamp: Date
 }
@@ -239,7 +242,7 @@ export interface PeerConnectionEvent {
  */
 export interface IceConnectionStateEvent {
   roomId: string
-  userId: number
+  userId: string
   iceConnectionState: RTCIceConnectionState
   iceGatheringState: RTCIceGatheringState
   timestamp: Date
@@ -250,12 +253,13 @@ export interface IceConnectionStateEvent {
  */
 export interface ConnectionStatsEvent {
   roomId: string
-  userId: number
+  userId: string
   stats: {
     bytesSent: number
     bytesReceived: number
     packetsSent: number
     packetsReceived: number
+    packetsLost: number | null // Actual measured value from WebRTC stats
     rtt: number | null
     state: string
   }

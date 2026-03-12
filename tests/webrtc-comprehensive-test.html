@@ -200,7 +200,7 @@
     <div class="room-config">
       <div class="field" style="max-width:90px">
         <label>My User ID</label>
-        <input type="number" id="inputUserId" value="1" min="1" />
+        <input type="text" id="inputUserId" value="user1" placeholder="Enter user ID..." />
       </div>
       <div class="field" style="flex:1">
         <label>Room ID <span style="color:#555;font-size:9px">(blank = create new)</span></label>
@@ -344,9 +344,28 @@ const ICE_TIMEOUT  = 30000;
 function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function getIceConfig() {
-  const res  = await fetch(`${SERVER_URL}/api/video-call/ice-config`);
-  const data = await res.json();
-  return data.data.iceServers;
+  const url = `${SERVER_URL}/api/video-call/ice-config`;
+  console.log('Fetching ICE config from:', url);
+  console.log('SERVER_URL =', SERVER_URL);
+  console.log('window.location.origin =', window.location.origin);
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
+    console.log('Response status:', res.status, res.statusText);
+    console.log('Response headers:', res.headers.entries());
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`ICE config failed: ${res.status} ${res.statusText} - ${text}`);
+    }
+    const data = await res.json();
+    console.log('ICE config received:', data);
+    return data.data.iceServers;
+  } catch (e) {
+    console.error('Fetch error:', e);
+    throw e;
+  }
 }
 
 async function getPeerStats(peer) {
@@ -383,6 +402,8 @@ let livePeer     = null;
 let liveStream   = null;
 let liveStatsInt = null;
 let liveRoomId   = null;
+let liveOfferSent = false; // Track if offer has been sent (reset on rejoin)
+let liveDataChannel = null; // Track DataChannel for proper cleanup
 
 function liveLog(msg, type = 'info') {
   const c = document.getElementById('liveLogContainer');
@@ -405,6 +426,59 @@ function copyRoomId() {
   if (id && id !== '—') navigator.clipboard.writeText(id).then(() => liveLog('Room ID copied!', 'success'));
 }
 
+// ── Cleanup Connection ────────────────────────────────────────────
+async function cleanupConnection() {
+  // Reset offer state
+  liveOfferSent = false;
+
+  // Clean up DataChannel first
+  if (liveDataChannel) {
+    liveDataChannel.close();
+    liveDataChannel = null;
+  }
+
+  // Clean up existing peer connection
+  if (livePeer) {
+    livePeer.close();
+    livePeer = null;
+  }
+
+  // Clean up existing socket - remove all listeners
+  if (liveSocket) {
+    liveSocket.removeAllListeners();
+    liveSocket.disconnect();
+    liveSocket = null;
+  }
+
+  // Stop media stream
+  if (liveStream) {
+    liveStream.getTracks().forEach(t => t.stop());
+    liveStream = null;
+  }
+
+  // Clear intervals
+  if (liveStatsInt) {
+    clearInterval(liveStatsInt);
+    liveStatsInt = null;
+  }
+
+  // Clear remote video
+  document.getElementById('remoteVideo').srcObject = null;
+  document.getElementById('localVideo').srcObject = null;
+
+  // Clear state
+  liveRoomId = null;
+  liveOfferSent = false;
+  liveDataChannel = null;
+
+  // Reset badges
+  setBadge('liveIceState', 'new');
+  setBadge('liveDcState', 'new');
+
+  // Wait for cleanup to complete
+  await new Promise(resolve => setTimeout(resolve, 100));
+}
+
 function addParticipant(userId) {
   const list = document.getElementById('participantsList');
   if (list.querySelector(`[data-uid="${userId}"]`)) return;
@@ -418,8 +492,11 @@ function addParticipant(userId) {
 
 // ── Main Quick Connect ──────────────────────────────────────────
 async function runQuickTest() {
-  const userId    = parseInt(document.getElementById('inputUserId').value) || 1;
+  const userId    = document.getElementById('inputUserId').value || 'user1';
   const roomInput = document.getElementById('inputRoomId').value.trim();
+
+  // Clean up any existing connection first
+  await cleanupConnection();
 
   document.getElementById('btnQuickTest').disabled = true;
   document.getElementById('btnHangUp').disabled    = false;
@@ -451,9 +528,80 @@ async function runQuickTest() {
       setTimeout(() => reject(new Error('Socket timeout')), TEST_TIMEOUT);
     });
 
+    // Listen for error events
+    liveSocket.on('video:call:error', (data) => {
+      // CALLEE_OFFLINE is expected when callee isn't online - show as warning
+      if (data.code === 'CALLEE_OFFLINE') {
+        liveLog(`ℹ️ Callee offline - room created, waiting for them to join...`, 'warning');
+      } else {
+        liveLog(`❌ Error: ${data.code} - ${data.message}`, 'error');
+      }
+    });
+
+    liveSocket.on('video:call:roomError', (data) => {
+      liveLog(`❌ Room Error: ${data.code} - ${data.message}`, 'error');
+    });
+
+    // Listen for call ended event - when other user leaves, room is deleted
+    liveSocket.on('video:call:ended', (data) => {
+      liveLog(`📴 Call ended by ${data.endedBy}: ${data.reason}`, 'warning');
+      liveLog(`🔄 Please create a new room to call again`, 'info');
+
+      // Full cleanup - disconnect socket, close peer, stop streams
+      // Clean up DataChannel first
+      if (liveDataChannel) {
+        liveDataChannel.close();
+        liveDataChannel = null;
+      }
+      if (livePeer) {
+        livePeer.close();
+        livePeer = null;
+      }
+      if (liveStream) {
+        liveStream.getTracks().forEach(t => t.stop());
+        liveStream = null;
+      }
+      if (liveSocket) {
+        liveSocket.removeAllListeners();
+        liveSocket.disconnect();
+        liveSocket = null;
+      }
+      if (liveStatsInt) {
+        clearInterval(liveStatsInt);
+        liveStatsInt = null;
+      }
+
+      // Reset all state
+      liveRoomId = null;
+      liveOfferSent = false;
+      liveDataChannel = null;
+
+      // Reset UI
+      document.getElementById('remoteVideo').srcObject = null;
+      document.getElementById('localVideo').srcObject = null;
+      document.getElementById('activeRoomId').textContent = '—';
+      document.getElementById('inputRoomId').value = '';
+      document.getElementById('mySocketId').textContent = '—';
+      document.getElementById('myUserId').textContent = '—';
+      document.getElementById('myRole').textContent = '—';
+      document.getElementById('myConnState').textContent = '—';
+      document.getElementById('liveSocketStatus').textContent = '--';
+      document.getElementById('liveSocketStatus').className = 'status-value s-pending';
+      setBadge('liveIceState', 'new');
+      setBadge('liveDcState', 'new');
+      document.getElementById('participantsList').innerHTML = '<span style="color:#555;font-size:13px">No participants yet...</span>';
+      document.getElementById('btnQuickTest').disabled = false;
+      document.getElementById('btnHangUp').disabled = true;
+    });
+
     // 3. Create peer
     livePeer = new RTCPeerConnection({ iceServers: iceConfig });
     setupLivePeer(livePeer, userId);
+
+    // Listen for ICE state changes (for connection status updates)
+    liveSocket.on('video:call:iceStateChanged', data => {
+      liveLog(`ICE State: ${data.iceConnectionState}`, 'info');
+    });
 
     // 4. Try to get media (graceful fallback)
     try {
@@ -466,6 +614,43 @@ async function runQuickTest() {
       liveLog(`No camera/mic (${e.name}) — DataChannel only`, 'warning');
     }
 
+    // Handle incoming call request (for callee) - listen BEFORE joinRoom
+    // Server emits: video:call:request { roomId, callerId, calleeId, timestamp }
+    liveSocket.on('video:call:request', async data => {
+      liveLog(`📞 Incoming call from User ${data.callerId}!`, 'warning');
+      liveRoomId = data.roomId;
+      document.getElementById('activeRoomId').textContent = liveRoomId;
+      document.getElementById('myRole').textContent = 'Callee (answerer)';
+
+      // Join the room automatically
+      liveSocket.emit('video:call:joinRoom', { roomId: liveRoomId });
+
+      // Wait for room joined confirmation
+      liveSocket.once('video:call:roomJoined', joinData => {
+        liveLog(`Joined room! Participants: [${joinData.participants?.join(', ')}]`, 'success');
+        // Add caller to participants list
+        addParticipant(data.callerId);
+      });
+
+      // Wait for offer from caller
+      liveSocket.once('video:call:offer', async offerData => {
+        liveLog(`Received offer from User ${offerData.from} — creating answer...`, 'info');
+        try {
+          await livePeer.setRemoteDescription(new RTCSessionDescription(offerData.offer));
+          const answer = await livePeer.createAnswer();
+          await livePeer.setLocalDescription(answer);
+          liveSocket.emit('video:call:answer', { roomId: liveRoomId, answer: answer });
+          liveLog('Answer sent!', 'success');
+        } catch (err) { liveLog(`Answer error: ${err.message}`, 'error'); }
+      });
+
+      // Listen for peerConnected to know caller is ready
+      liveSocket.on('video:call:peerConnected', peerData => {
+        liveLog(`Peer User ${peerData.peerUserId} is connected`, 'success');
+        addParticipant(peerData.peerUserId);
+      });
+    });
+
     // 5. Create or Join room
     if (roomInput) {
       // ── JOIN existing room ──────────────────────────
@@ -477,6 +662,38 @@ async function runQuickTest() {
       liveSocket.emit('video:call:joinRoom', { roomId: liveRoomId });
       liveSocket.once('video:call:roomJoined', data => {
         liveLog(`Joined room! Participants: [${data.participants?.join(', ')}]`, 'success');
+        // Show all existing participants
+        if (data.participants) {
+          data.participants.forEach(p => {
+            if (p !== userId) addParticipant(p);
+          });
+        }
+      });
+
+      // Listen for peerConnected events - other users joining
+      // When joining a room with existing peers, we may need to send offer
+      liveSocket.on('video:call:peerConnected', peerData => {
+        liveLog(`Peer User ${peerData.peerUserId} is connected`, 'success');
+        addParticipant(peerData.peerUserId);
+
+        // If we're the joiner and there's already a peer, send offer
+        if (!liveOfferSent && livePeer) {
+          liveOfferSent = true;
+          (async () => {
+            try {
+              // Track DataChannel globally for proper cleanup
+              liveDataChannel = livePeer.createDataChannel('chat');
+              liveDataChannel.onopen    = () => { liveLog('DataChannel open!', 'success'); setBadge('liveDcState', 'open'); };
+              liveDataChannel.onmessage = e => liveLog(`DataChannel msg: ${e.data}`, 'info');
+              liveDataChannel.onclose   = () => { setBadge('liveDcState', 'closed'); liveDataChannel = null; };
+
+              const offer = await livePeer.createOffer();
+              await livePeer.setLocalDescription(offer);
+              liveSocket.emit('video:call:offer', { roomId: liveRoomId, offer: offer });
+              liveLog('Offer sent as joiner!', 'success');
+            } catch (err) { liveLog(`Offer error: ${err.message}`, 'error'); }
+          })();
+        }
       });
 
       // Wait for offer from the creator (use .once — we only answer once)
@@ -499,8 +716,8 @@ async function runQuickTest() {
       document.getElementById('myRole').textContent = 'Creator (offerer)';
 
       // calleeId must be a DIFFERENT user that will join later
-      // We use userId+1 so user 1 calls user 2, user 3 calls user 4, etc.
-      const calleeId = userId + 1;
+      // For string userIds like "user1", we create "user2", etc.
+      const calleeId = userId.replace(/(\d+)$/, m => String(parseInt(m) + 1));
       liveSocket.emit('video:call:createRoom', { calleeId });
 
       const roomData = await new Promise((resolve, reject) => {
@@ -516,18 +733,18 @@ async function runQuickTest() {
 
       // When the peer joins, server emits: video:call:peerConnected  { roomId, peerUserId }
       // Note: server ALSO re-emits peerConnected on each ICE state change, so guard with a flag
-      let offerSent = false;
+      // Use global liveOfferSent so it can be reset on rejoin
       liveSocket.on('video:call:peerConnected', async data => {
-        if (offerSent) return; // only send offer once
-        offerSent = true;
+        if (liveOfferSent) return; // only send offer once
+        liveOfferSent = true;
         liveLog(`🔔 Peer User ${data.peerUserId} joined — sending offer...`, 'success');
         addParticipant(data.peerUserId);
         try {
           // Create DataChannel (must be done before createOffer)
-          const dc = livePeer.createDataChannel('chat');
-          dc.onopen    = () => { liveLog('DataChannel open! You can exchange data.', 'success'); setBadge('liveDcState', 'open'); };
-          dc.onmessage = e => liveLog(`DataChannel msg: ${e.data}`, 'info');
-          dc.onclose   = () => setBadge('liveDcState', 'closed');
+          liveDataChannel = livePeer.createDataChannel('chat');
+          liveDataChannel.onopen    = () => { liveLog('DataChannel open! You can exchange data.', 'success'); setBadge('liveDcState', 'open'); };
+          liveDataChannel.onmessage = e => liveLog(`DataChannel msg: ${e.data}`, 'info');
+          liveDataChannel.onclose   = () => { setBadge('liveDcState', 'closed'); liveDataChannel = null; };
 
           const offer = await livePeer.createOffer();
           await livePeer.setLocalDescription(offer);
@@ -617,27 +834,37 @@ function setupLivePeer(peer, userId) {
   peer.ontrack = e => {
     liveLog(`Received ${e.track.kind} track from peer!`, 'success');
     const remoteVideo = document.getElementById('remoteVideo');
-    if (!remoteVideo.srcObject) remoteVideo.srcObject = new MediaStream();
+    // Reset the stream - create fresh MediaStream for each new connection
+    remoteVideo.srcObject = new MediaStream();
     remoteVideo.srcObject.addTrack(e.track);
+    remoteVideo.play().catch(e => console.log('Auto-play blocked:', e.message));
   };
 
   // Remote DataChannel
   peer.ondatachannel = e => {
-    const dc = e.channel;
-    dc.onopen    = () => { liveLog('Remote DataChannel open!', 'success'); setBadge('liveDcState', 'open'); };
-    dc.onmessage = ev => liveLog(`DataChannel msg: ${ev.data}`, 'info');
-    dc.onclose   = () => setBadge('liveDcState', 'closed');
+    liveDataChannel = e.channel;
+    liveDataChannel.onopen    = () => { liveLog('Remote DataChannel open!', 'success'); setBadge('liveDcState', 'open'); };
+    liveDataChannel.onmessage = ev => liveLog(`DataChannel msg: ${ev.data}`, 'info');
+    liveDataChannel.onclose   = () => { setBadge('liveDcState', 'closed'); liveDataChannel = null; };
   };
 }
 
 // ── Hang Up ─────────────────────────────────────────────────────
 async function hangUp() {
   if (liveSocket && liveRoomId) liveSocket.emit('video:call:leaveRoom', { roomId: liveRoomId });
+
+  // Clean up DataChannel first
+  if (liveDataChannel) {
+    liveDataChannel.close();
+    liveDataChannel = null;
+  }
   if (livePeer)    { livePeer.close();   livePeer   = null; }
   if (liveStream)  { liveStream.getTracks().forEach(t => t.stop()); liveStream = null; }
   if (liveStatsInt){ clearInterval(liveStatsInt); liveStatsInt = null; }
   if (liveSocket)  { liveSocket.disconnect(); liveSocket = null; }
   liveRoomId = null;
+  liveOfferSent = false;
+  liveDataChannel = null;
 
   document.getElementById('localVideo').srcObject  = null;
   document.getElementById('remoteVideo').srcObject = null;
@@ -729,7 +956,8 @@ async function autoCreateRoom() {
       autoRoomId = data.roomId;
       autoLog(`Room: ${autoRoomId}. Socket B joining...`, 'success');
       sockB.emit('video:call:joinRoom', { roomId: autoRoomId });
-      // Server emits peerConnected to creator; roomJoined to joiner
+      // Server emits peerConnected to creator when joiner arrives
+      // Also emit peerConnected to joiner if creator is already in room
       sockB.once('video:call:roomJoined', () => { autoLog('Socket B joined.', 'success'); resolve(); });
     });
     sockA.emit('video:call:createRoom', { calleeId: AUTO_USER_B });
@@ -754,6 +982,19 @@ async function autoSetupPeers(iceConfig) {
   };
   peerA.onicegatheringstatechange = () => autoSetIce('autoGathering', peerA.iceGatheringState);
 
+  // Listen for peerConnected events to know when to create offer
+  let peerConnectedReceived = { a: false, b: false };
+
+  sockA.on('video:call:peerConnected', (data) => {
+    autoLog(`Socket A: peerConnected - peer: ${data.peerUserId}`, 'info');
+    peerConnectedReceived.a = true;
+  });
+
+  sockB.on('video:call:peerConnected', (data) => {
+    autoLog(`Socket B: peerConnected - peer: ${data.peerUserId}`, 'info');
+    peerConnectedReceived.b = true;
+  });
+
   try {
     autoStream = await navigator.mediaDevices.getUserMedia({ video:{width:320,height:240}, audio:true });
     autoStream.getTracks().forEach(t => { peerA.addTrack(t, autoStream); peerB.addTrack(t, autoStream); });
@@ -771,6 +1012,24 @@ async function autoSetupPeers(iceConfig) {
   peerB.onicecandidate = e => { if(e.candidate) sockB.emit('video:call:iceCandidate',{roomId:autoRoomId,candidate:e.candidate}); };
   sockA.on('video:call:iceCandidate', async d => { if(d.candidate && peerA) await peerA.addIceCandidate(new RTCIceCandidate(d.candidate)).catch(()=>{}); });
   sockB.on('video:call:iceCandidate', async d => { if(d.candidate && peerB) await peerB.addIceCandidate(new RTCIceCandidate(d.candidate)).catch(()=>{}); });
+
+  // Wait for peerConnected events before resolving
+  await new Promise((resolve) => {
+    const checkInterval = setInterval(() => {
+      if (peerConnectedReceived.a && peerConnectedReceived.b) {
+        clearInterval(checkInterval);
+        autoLog('Both sockets received peerConnected - ready for SDP exchange', 'success');
+        resolve();
+      }
+    }, 100);
+
+    // Timeout after 5 seconds
+    setTimeout(() => {
+      clearInterval(checkInterval);
+      autoLog('Warning: peerConnected timeout - proceeding anyway', 'warning');
+      resolve();
+    }, 5000);
+  });
 }
 
 async function autoExchangeSDP() {
