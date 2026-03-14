@@ -17,11 +17,14 @@ export interface IceServersResponse {
 /**
  * Video Call Room
  * Represents a 1-on-1 video call room
+ *
+ * NOTE: Using string[] instead of Set<string> for JSON serialization with Redis
+ * All room state is stored in Redis as single source of truth for horizontal scaling
  */
 export interface VideoCallRoom {
   roomId: string
   participants: string[] // User IDs - original invited list (never mutated after creation)
-  activeParticipants: Set<string> // Track who is currently connected
+  activeParticipants: string[] // Track who is currently connected (replaces Set<string>)
   createdAt: Date
   createdBy: string
   isActive: boolean

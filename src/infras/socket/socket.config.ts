@@ -5,6 +5,7 @@ import { SOCKET_EVENTS, FileUploadEvent, FileSentEvent } from '@/utils/types/soc
 import { SocketHandlers } from './socket-handlers'
 import { VideoCallHandler } from './video-call-handler'
 import { VIDEO_CALL_EVENTS } from '@/utils/types/webrtc-signaling'
+import { saveUserConnection, removeUserConnection } from '@/infras/redis/connection-cache'
 
 /**
  * Socket.IO Configuration and Setup
@@ -36,6 +37,9 @@ export class SocketConfig {
       allowEIO3: true
     })
 
+    // Set Socket.IO instance for VideoCallHandler to emit to user rooms
+    this.videoCallHandler.setIO(this.io)
+
     console.log('[SocketConfig] Initializing Socket.IO server...')
     this.setupMiddleware()
     this.setupEventHandlers()
@@ -65,7 +69,7 @@ export class SocketConfig {
    * Delegates to SocketHandlers class
    */
   private setupEventHandlers(): void {
-    this.io.on(SOCKET_EVENTS.CONNECTION, (socket: Socket) => {
+    this.io.on(SOCKET_EVENTS.CONNECTION, async (socket: Socket) => {
       const userId = socket.data.userId as number
       console.log(`[SocketConfig] User ${userId} connected`)
 
@@ -74,6 +78,14 @@ export class SocketConfig {
 
       // Register socket for video call handler (enables direct notifications to user)
       this.videoCallHandler.handleConnection(socket)
+
+      // Save user connection to Redis for persistent tracking
+      try {
+        await saveUserConnection(String(userId), socket.id)
+        console.log(`[SocketConfig] Saved user connection to Redis: userId=${userId}, socketId=${socket.id}`)
+      } catch (error) {
+        console.error(`[SocketConfig] Failed to save user connection to Redis:`, error)
+      }
 
       // Message events
       socket.on(SOCKET_EVENTS.MESSAGE_SENT, (data) =>
@@ -154,14 +166,14 @@ export class SocketConfig {
         this.videoCallHandler.handleCallAccepted(socket, data)
       })
 
-      socket.on(VIDEO_CALL_EVENTS.CALL_REJECTED, (data) => {
+      socket.on(VIDEO_CALL_EVENTS.CALL_REJECTED, async (data) => {
         console.log(`[Socket] Received CALL_REJECTED from user ${userId}:`, data)
-        this.videoCallHandler.handleCallRejected(socket, data)
+        await this.videoCallHandler.handleCallRejected(socket, data)
       })
 
-      socket.on(VIDEO_CALL_EVENTS.CALL_ENDED, (data) => {
+      socket.on(VIDEO_CALL_EVENTS.CALL_ENDED, async (data) => {
         console.log(`[Socket] Received CALL_ENDED from user ${userId}:`, data)
-        this.videoCallHandler.handleCallEnded(socket, data)
+        await this.videoCallHandler.handleCallEnded(socket, data)
       })
 
       // Connection state monitoring events
@@ -175,10 +187,20 @@ export class SocketConfig {
       })
 
       // Disconnect event
-      socket.on(SOCKET_EVENTS.DISCONNECT, () => {
+      socket.on(SOCKET_EVENTS.DISCONNECT, async () => {
         console.log(`[SocketConfig] User ${userId} disconnected`)
-        this.handlers.handleDisconnect(socket)
-        this.videoCallHandler.handleDisconnect(socket)
+
+        // Await async disconnect handlers for proper cleanup
+        await this.handlers.handleDisconnect(socket)
+        await this.videoCallHandler.handleDisconnect(socket)
+
+        // Remove user connection from Redis (already handled in videoCallHandler but needed for chat-only users)
+        try {
+          await removeUserConnection(socket.id)
+          console.log(`[SocketConfig] Removed user connection from Redis: userId=${userId}, socketId=${socket.id}`)
+        } catch (error) {
+          console.error(`[SocketConfig] Failed to remove user connection from Redis:`, error)
+        }
       })
     })
   }

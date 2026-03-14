@@ -1,5 +1,4 @@
-import { Socket } from 'socket.io'
-import { randomUUID } from 'crypto'
+import { Socket, Server as SocketIOServer } from 'socket.io'
 import {
   VIDEO_CALL_EVENTS,
   IceServerConfig,
@@ -20,74 +19,56 @@ import {
   CallRejectedEvent,
   CallEndedEvent,
   CallErrorEvent,
-  RoomErrorEvent,
   IceConnectionStateEvent,
   ConnectionStatsEvent
 } from '@/utils/types/webrtc-signaling'
 import { env } from '@/preload-env'
+import {
+  saveUserConnection,
+  removeUserConnection,
+  updateUserRoom,
+  removeUserFromRoom,
+  getUserBySocket,
+  // Room state management - Redis as single source of truth
+  saveRoom,
+  deleteRoom,
+  addUserToRoom,
+  removeUserFromRoomParticipants,
+  deactivateRoom,
+  getVideoCallRoom,
+  getAllVideoCallRooms
+} from '@/infras/redis/connection-cache'
 
 /**
  * VideoCallHandler - Handles 1-on-1 video call signaling via Socket.IO
- *
- * Responsibilities:
- * - ICE server configuration delivery
- * - Room management for video calls
- * - WebRTC signaling (offer/answer/ICE candidate exchange)
- * - Call state management
  */
 export class VideoCallHandler {
-  // In-memory room storage (in production, use Redis for scalability)
-  private rooms: Map<string, VideoCallRoom> = new Map()
-  // Track socket to room mapping
-  private socketRooms: Map<string, string> = new Map()
-  // Track userId to socket mapping (for direct notifications)
-  // Use array to support multiple sockets per user
-  private userSockets: Map<string, Set<Socket>> = new Map()
-  // Track room cleanup timeouts to prevent race conditions
   private roomCleanupTimeouts: Map<string, NodeJS.Timeout> = new Map()
-  // Fix 3: Debug flag for sensitive data logging
-  private readonly isDebug = true // Force debug logging for video call debugging
+  private readonly isDebug: boolean
+  private io: SocketIOServer | null = null
 
   constructor() {
-    if (this.isDebug) {
-      console.log('[VideoCallHandler] Initialized')
-    }
+    this.isDebug = process.env.NODE_ENV !== 'production'
   }
 
-  // FIX 2: Register socket on connection
-  // FIX C: Unsafe userId truthy check - use explicit undefined/null check
+  setIO(io: SocketIOServer): void {
+    this.io = io
+  }
+
   /**
-   * Handle new socket connection - register user socket immediately
-   * This ensures callee is reachable even before they create or join any room
+   * Handle new socket connection - register user socket and join personal room
    */
-  handleConnection(socket: Socket): void {
+  async handleConnection(socket: Socket): Promise<void> {
     const userId = socket.data.userId as string
     if (userId !== undefined && userId !== null) {
-      // Clean up any existing sockets for this user first to avoid duplicates
-      this.cleanupUserSockets(userId)
+      // Join user's personal room for direct notifications
+      socket.join(`user:${userId}`)
 
-      this.addUserSocket(userId, socket)
-      if (this.isDebug) {
-        console.log('[VideoCallHandler] Socket connected for user:', userId)
-      }
-    }
-  }
-
-  /**
-   * Clean up stale sockets for a user before adding new one
-   */
-  private cleanupUserSockets(userId: string): void {
-    const sockets = this.userSockets.get(userId)
-    if (sockets) {
-      // Remove disconnected sockets
-      for (const s of sockets) {
-        if (!s.connected) {
-          sockets.delete(s)
-        }
-      }
-      // If no sockets left, remove the entry
-      if (sockets.size === 0) {
-        this.userSockets.delete(userId)
+      // Save user-socket mapping to Redis for persistence
+      try {
+        await saveUserConnection(userId, socket.id)
+      } catch (error) {
+        console.error('[VideoCallHandler] Failed to save connection to Redis:', error)
       }
     }
   }
@@ -112,7 +93,6 @@ export class VideoCallHandler {
   private buildIceServers(): IceServerConfig[] {
     const iceServers: IceServerConfig[] = []
 
-    // Add STUN servers from config (with null check)
     const stunUrlsEnv = env.STUN_SERVER_URLS
     if (stunUrlsEnv) {
       const stunUrls = stunUrlsEnv.split(',')
@@ -124,7 +104,6 @@ export class VideoCallHandler {
       }
     }
 
-    // Add TURN server if configured
     if (env.TURN_SERVER_IP && env.TURN_USERNAME && env.TURN_CREDENTIAL) {
       const turnUrls = [
         `turn:${env.TURN_SERVER_IP}:${env.TURN_SERVER_PORT}?transport=udp`,
@@ -140,7 +119,6 @@ export class VideoCallHandler {
         })
       }
 
-      // Also add STUN for this server
       iceServers.push({
         urls: `stun:${env.TURN_SERVER_IP}:${env.TURN_SERVER_PORT}`
       })
@@ -155,11 +133,10 @@ export class VideoCallHandler {
   /**
    * Create a new video call room
    */
-  handleCreateRoom(socket: Socket, data: CreateRoomEvent): void {
+  async handleCreateRoom(socket: Socket, data: CreateRoomEvent): Promise<void> {
     const callerId = socket.data.userId as string
     const { calleeId } = data
 
-    // Fix 1: Missing userId validation
     if (!callerId) {
       this.emitError(socket, 'UNAUTHORIZED', 'User not authenticated')
       return
@@ -183,47 +160,59 @@ export class VideoCallHandler {
       console.log(`[VideoCallHandler] CreateRoom - caller: ${callerId}, callee: ${calleeId}`)
     }
 
-    // Generate unique room ID
     const roomId = this.generateRoomId(callerId, calleeId)
 
-    // Check if room already exists
-    if (this.rooms.has(roomId)) {
-      const existingRoom = this.rooms.get(roomId)!
-      if (existingRoom.isActive) {
-        // Room exists and is active - join instead
-        this.handleJoinRoom(socket, { roomId })
-        return
-      }
+    // Check if room exists in Redis
+    const existingRoom = await getVideoCallRoom(roomId)
+
+    if (existingRoom?.isActive) {
+      await saveUserConnection(callerId, socket.id, roomId)
+      await this.handleJoinRoom(socket, { roomId })
+      return
     }
 
-    // Create new room
-    // FIX 5: Initialize activeParticipants Set
-    const room: VideoCallRoom = {
-      roomId,
-      participants: [callerId, calleeId],
-      activeParticipants: new Set<string>([callerId]),
-      createdAt: new Date(),
-      createdBy: callerId,
-      isActive: true
+    const createdAt = new Date()
+
+    // Save room to Redis
+    try {
+      await saveRoom({
+        roomId,
+        participants: [callerId, calleeId],
+        activeParticipants: [callerId],
+        isActive: true,
+        createdBy: callerId,
+        createdAt: createdAt.toISOString()
+      })
+    } catch (error) {
+      console.error('[VideoCallHandler] Failed to save room to Redis:', error)
     }
 
-    this.rooms.set(roomId, room)
-    this.socketRooms.set(socket.id, roomId)
-    this.addUserSocket(callerId, socket)
+    // Save user-room relationship to Redis
+    try {
+      await saveUserConnection(callerId, socket.id, roomId)
+    } catch (error) {
+      console.error('[VideoCallHandler] Failed to save connection to Redis:', error)
+    }
 
-    // Join socket to room
     socket.join(roomId)
 
-    // Notify caller
     const response: RoomCreatedEvent = {
       roomId,
       callerId,
       calleeId,
-      createdAt: room.createdAt
+      createdAt
     }
     socket.emit(VIDEO_CALL_EVENTS.ROOM_CREATED, response)
 
-    // Send call request to callee
+    // Create minimal room object for notifyCallee
+    const room: VideoCallRoom = {
+      roomId,
+      participants: [callerId, calleeId],
+      activeParticipants: [callerId],
+      createdAt,
+      createdBy: callerId,
+      isActive: true
+    }
     this.notifyCallee(room, calleeId, callerId)
 
     if (this.isDebug) {
@@ -234,10 +223,9 @@ export class VideoCallHandler {
   /**
    * Join an existing video call room
    */
-  handleJoinRoom(socket: Socket, data: JoinRoomEvent): void {
+  async handleJoinRoom(socket: Socket, data: JoinRoomEvent): Promise<void> {
     const userId = socket.data.userId as string
 
-    // Add validation for userId
     if (!userId) {
       this.emitError(socket, 'UNAUTHORIZED', 'User not authenticated')
       return
@@ -249,61 +237,61 @@ export class VideoCallHandler {
       console.log(`[VideoCallHandler] JoinRoom - userId: ${userId}, roomId: ${roomId}`)
     }
 
-    const room = this.rooms.get(roomId)
+    // Get room from Redis
+    const room = await getVideoCallRoom(roomId)
 
     if (!room) {
-      if (this.isDebug) {
-        console.log(`[VideoCallHandler] JoinRoom - ROOM NOT FOUND: ${roomId}`)
-      }
-      const error: RoomErrorEvent = {
-        code: 'ROOM_NOT_FOUND',
-        message: 'Room not found'
-      }
-      socket.emit(VIDEO_CALL_EVENTS.ROOM_NOT_FOUND, error)
+      this.emitError(socket, 'ROOM_NOT_FOUND', 'Room not found')
       return
     }
 
     if (!room.isActive) {
-      if (this.isDebug) {
-        console.log(`[VideoCallHandler] JoinRoom - ROOM NOT ACTIVE: ${roomId}`)
-      }
       this.emitError(socket, 'ROOM_NOT_ACTIVE', 'This call has ended')
       return
     }
 
-    if (this.isDebug) {
-      console.log(`[VideoCallHandler] JoinRoom - room found, isActive: ${room.isActive}, activeParticipants:`, [...(room.activeParticipants ?? [])])
+    // Only allow users in room.participants
+    if (!room.participants.includes(userId)) {
+      this.emitError(socket, 'NOT_INVITED', 'You are not invited to this call')
+      return
     }
 
-    // Don't modify participants array - it's the original invited list
-    // activeParticipants tracks who's currently in the room
-
-    if (this.socketRooms.has(socket.id)) {
-      // Already in a room, leave first
-      console.log(`[VideoCallHandler] JoinRoom - socket already in room, leaving first`)
-      this.handleLeaveRoom(socket, { roomId: this.socketRooms.get(socket.id)! })
+    // Check if user is already in a room via Redis
+    try {
+      const existingMapping = await getUserBySocket(socket.id)
+      if (existingMapping?.roomId && existingMapping.roomId !== roomId) {
+        await this.handleLeaveRoom(socket, { roomId: existingMapping.roomId })
+      }
+    } catch (error) {
+      console.error('[VideoCallHandler] Failed to check existing room in Redis:', error)
     }
 
-    // FIX 7: Clear cleanup timeout on re-join
     const existingTimeout = this.roomCleanupTimeouts.get(roomId)
     if (existingTimeout) {
       clearTimeout(existingTimeout)
       this.roomCleanupTimeouts.delete(roomId)
     }
 
-    // FIX 5: Join room - handle multi-socket scenario and add to activeParticipants
-    // FIX D: Guard activeParticipants may be undefined
-    this.socketRooms.set(socket.id, roomId)
-    this.addUserSocket(userId, socket)
-    room.activeParticipants ??= new Set<string>()
-    room.activeParticipants.add(userId)
+    // Update Redis with room membership
+    try {
+      await updateUserRoom(socket.id, roomId)
+    } catch (error) {
+      console.error(`[VideoCallHandler] Failed to update Redis:`, error)
+    }
+
+    // Add user to active participants in Redis
+    try {
+      await addUserToRoom(roomId, userId)
+    } catch (error) {
+      console.error('[VideoCallHandler] Failed to sync room to Redis:', error)
+    }
+
     socket.join(roomId)
 
     if (this.isDebug) {
-      console.log(`[VideoCallHandler] User ${userId} joined room ${roomId}. Active participants:`, [...room.activeParticipants])
+      console.log(`[VideoCallHandler] User ${userId} joined room ${roomId}. Active participants:`, room.activeParticipants)
     }
 
-    // Notify other participant
     const participantEvent: RoomParticipantJoinedEvent = {
       roomId,
       userId,
@@ -311,20 +299,15 @@ export class VideoCallHandler {
     }
     socket.to(roomId).emit(VIDEO_CALL_EVENTS.ROOM_PARTICIPANT_JOINED, participantEvent)
 
-    // Send room info to joining user
     const response: RoomJoinedEvent = {
       roomId,
-      participants: [...room.activeParticipants], // Use activeParticipants, not participants
+      participants: room.activeParticipants,
       joinedAt: new Date()
     }
     socket.emit(VIDEO_CALL_EVENTS.ROOM_JOINED, response)
 
-    // Notify the other peer that connection can begin
-    // Use activeParticipants to find who else is in the room
-    const activeList = [...room.activeParticipants]
-    const otherParticipant = activeList.find(p => p !== userId)
+    const otherParticipant = room.activeParticipants.find(p => p !== userId)
     if (otherParticipant) {
-      // Send PEER_CONNECTED to the other participant (User1) - telling them User2 has joined
       const peerConnectedEvent = {
         roomId,
         peerUserId: userId,
@@ -335,8 +318,6 @@ export class VideoCallHandler {
         console.log(`[VideoCallHandler] Sent PEER_CONNECTED to room ${roomId}: User ${userId} joined, notifying peer ${otherParticipant}`)
       }
 
-      // Send PEER_CONNECTED to the joining user (User2) - telling them User1 is already in the room
-      // This is CRITICAL for triggering the offer creation from the joiner
       const existingPeerEvent = {
         roomId,
         peerUserId: otherParticipant,
@@ -356,30 +337,35 @@ export class VideoCallHandler {
   /**
    * Leave a video call room
    */
-  handleLeaveRoom(socket: Socket, data: LeaveRoomEvent): void {
+  async handleLeaveRoom(socket: Socket, data: LeaveRoomEvent): Promise<void> {
     const userId = socket.data.userId as string
     const { roomId } = data
 
-    const room = this.rooms.get(roomId)
+    // Get room from Redis
+    const room = await getVideoCallRoom(roomId)
 
     if (!room) {
-      return // Room might already be deleted
+      return
     }
 
-    // FIX 5: Remove from activeParticipants instead of filtering participants
-    // (participants is the original invited list, never mutate it)
-    // FIX D: Guard activeParticipants may be undefined
-    room.activeParticipants ??= new Set<string>()
-    room.activeParticipants.delete(userId)
-    this.socketRooms.delete(socket.id)
-    this.removeUserSocket(userId, socket)
+    const allParticipants = room.participants
+
+    // Remove user from active participants in Redis
+    try {
+      await removeUserFromRoomParticipants(roomId, userId)
+    } catch (error) {
+      console.error('[VideoCallHandler] Failed to sync leave to Redis:', error)
+    }
+
     socket.leave(roomId)
 
-    // When ANY user leaves, end the call for EVERYONE and delete the room
-    // Room ID will no longer be valid - must create new room
-    room.isActive = false
+    // Remove user from room in Redis
+    try {
+      await removeUserFromRoom(socket.id, roomId)
+    } catch (error) {
+      console.error(`[VideoCallHandler] Failed to update Redis on leave:`, error)
+    }
 
-    // Build call ended payload BEFORE deleting room
     const callEndedPayload = {
       roomId,
       endedBy: userId,
@@ -387,21 +373,21 @@ export class VideoCallHandler {
       endedAt: new Date()
     } as CallEndedEvent
 
-    // Get remaining participants BEFORE deleting room
-    const remainingParticipants = Array.from(room.activeParticipants)
+    // Delete room from Redis
+    try {
+      await deleteRoom(roomId)
+    } catch (error) {
+      console.error('[VideoCallHandler] Failed to delete room from Redis:', error)
+    }
 
-    // Delete the room IMMEDIATELY - room ID is no longer valid
-    this.rooms.delete(roomId)
-
-    // Clear any cleanup timeout
     const existingTimeout = this.roomCleanupTimeouts.get(roomId)
     if (existingTimeout) {
       clearTimeout(existingTimeout)
       this.roomCleanupTimeouts.delete(roomId)
     }
 
-    // Notify remaining participants AFTER deleting room
-    for (const participantId of remainingParticipants) {
+    // Notify all participants
+    for (const participantId of allParticipants) {
       if (participantId === userId) continue
       this.emitToUserSockets(participantId, VIDEO_CALL_EVENTS.CALL_ENDED, callEndedPayload)
     }
@@ -410,7 +396,6 @@ export class VideoCallHandler {
       console.log(`[VideoCallHandler] Room ${roomId} ended - user ${userId} left. Room deleted.`)
     }
 
-    // Send confirmation to leaving user
     socket.emit(VIDEO_CALL_EVENTS.ROOM_LEFT, {
       roomId,
       userId,
@@ -425,146 +410,110 @@ export class VideoCallHandler {
   /**
    * Handle WebRTC Offer
    */
-  handleOffer(socket: Socket, data: OfferEvent): void {
+  async handleOffer(socket: Socket, data: OfferEvent): Promise<void> {
     const userId = socket.data.userId as string
     const { roomId, offer } = data
 
-    // Input validation - ensure offer is a valid object with required fields
     if (!offer || typeof offer !== 'object' || !offer.type || !offer.sdp) {
       this.emitError(socket, 'INVALID_OFFER', 'Invalid offer payload')
       return
     }
 
-    const room = this.rooms.get(roomId)
+    const room = await getVideoCallRoom(roomId)
 
     if (!room) {
       this.emitError(socket, 'ROOM_NOT_FOUND', 'Room not found')
       return
     }
 
-    // FIX F: Check activeParticipants, not participants (participants never changes)
-    const active = room.activeParticipants ?? new Set()
-    if (!active.has(userId)) {
-      if (this.isDebug) {
-        console.log(`[VideoCallHandler] handleOffer - USER ${userId} NOT FOUND in activeParticipants!`)
-      }
+    if (!room.activeParticipants.includes(userId)) {
       this.emitError(socket, 'USER_NOT_IN_ROOM', 'You are not in this room')
       return
     }
 
-    // Forward offer to the other participant
     socket.to(roomId).emit(VIDEO_CALL_EVENTS.OFFER, {
       roomId,
       offer,
       from: userId
     })
-
-    if (this.isDebug) {
-      console.log(`[VideoCallHandler] Forwarded OFFER in room ${roomId} from ${userId}`)
-    }
   }
 
   /**
    * Handle WebRTC Answer
    */
-  handleAnswer(socket: Socket, data: AnswerEvent): void {
+  async handleAnswer(socket: Socket, data: AnswerEvent): Promise<void> {
     const userId = socket.data.userId as string
     const { roomId, answer } = data
 
-    // Input validation - ensure answer is a valid object with required fields
     if (!answer || typeof answer !== 'object' || !answer.type || !answer.sdp) {
       this.emitError(socket, 'INVALID_ANSWER', 'Invalid answer payload')
       return
     }
 
-    const room = this.rooms.get(roomId)
+    const room = await getVideoCallRoom(roomId)
 
     if (!room) {
       this.emitError(socket, 'ROOM_NOT_FOUND', 'Room not found')
       return
     }
 
-    // FIX F: Check activeParticipants, not participants (participants never changes)
-    const active = room.activeParticipants ?? new Set()
-    if (!active.has(userId)) {
-      if (this.isDebug) {
-        console.log(`[VideoCallHandler] handleAnswer - USER ${userId} NOT FOUND in activeParticipants!`)
-      }
+    if (!room.activeParticipants.includes(userId)) {
       this.emitError(socket, 'USER_NOT_IN_ROOM', 'You are not in this room')
       return
     }
 
-    // Forward answer to the other participant
     socket.to(roomId).emit(VIDEO_CALL_EVENTS.ANSWER, {
       roomId,
       answer,
       from: userId
     })
-
-    if (this.isDebug) {
-      console.log(`[VideoCallHandler] Forwarded answer in room ${roomId}`)
-    }
   }
 
   /**
    * Handle ICE Candidate
    */
-  handleIceCandidate(socket: Socket, data: IceCandidateEvent): void {
+  async handleIceCandidate(socket: Socket, data: IceCandidateEvent): Promise<void> {
     const userId = socket.data.userId as string
     const { roomId, candidate } = data
 
-    // Input validation - standardize error handling
     if (!roomId) {
       this.emitError(socket, 'INVALID_ROOM_ID', 'Room ID is required')
       return
     }
 
-    const room = this.rooms.get(roomId)
+    const room = await getVideoCallRoom(roomId)
 
     if (!room) {
       this.emitError(socket, 'ROOM_NOT_FOUND', 'Room not found')
       return
     }
 
-    // FIX F: Check activeParticipants, not participants (participants never changes)
-    const active = room.activeParticipants ?? new Set()
-    if (!active.has(userId)) {
-      if (this.isDebug) {
-        console.log(`[VideoCallHandler] handleIceCandidate - USER ${userId} NOT FOUND in activeParticipants!`)
-      }
+    if (!room.activeParticipants.includes(userId)) {
       this.emitError(socket, 'USER_NOT_IN_ROOM', 'You are not in this room')
       return
     }
 
-    // Forward ICE candidate to the other participant
     socket.to(roomId).emit(VIDEO_CALL_EVENTS.ICE_CANDIDATE, {
       roomId,
       candidate,
       from: userId
     })
-
-    if (this.isDebug) {
-      console.log(`[VideoCallHandler] Forwarded ICE candidate in room ${roomId}`)
-    }
   }
 
   /**
    * Handle call acceptance
    */
-  handleCallAccepted(socket: Socket, data: { roomId: string }): void {
+  async handleCallAccepted(socket: Socket, data: { roomId: string }): Promise<void> {
     const userId = socket.data.userId as string
     const { roomId } = data
 
-    const room = this.rooms.get(roomId)
+    const room = await getVideoCallRoom(roomId)
 
     if (!room) {
       this.emitError(socket, 'ROOM_NOT_FOUND', 'Room not found')
       return
     }
 
-    // FIX 6: Deliver CALL_ACCEPTED via userSockets fallback
-    // FIX B: Remove socket.to() to avoid double-emit, only use userSockets direct delivery
-    // FIX G: Use emitToUserSockets helper
     const callAcceptedPayload: CallAcceptedEvent = {
       roomId,
       callerId: room.createdBy,
@@ -572,30 +521,22 @@ export class VideoCallHandler {
       acceptedAt: new Date()
     }
 
-    // Only notify directly to caller's sockets via userSockets (no socket.to)
     this.emitToUserSockets(room.createdBy, VIDEO_CALL_EVENTS.CALL_ACCEPTED, callAcceptedPayload)
-
-    if (this.isDebug) {
-      console.log(`[VideoCallHandler] Call accepted in room ${roomId}`)
-    }
   }
 
   /**
    * Handle call rejection
    */
-  handleCallRejected(socket: Socket, data: { roomId: string; reason?: string }): void {
+  async handleCallRejected(socket: Socket, data: { roomId: string; reason?: string }): Promise<void> {
     const userId = socket.data.userId as string
     const { roomId, reason } = data
 
-    const room = this.rooms.get(roomId)
+    const room = await getVideoCallRoom(roomId)
 
     if (!room) {
       return
     }
 
-    // FIX 6: Deliver CALL_REJECTED via userSockets fallback
-    // FIX B: Remove socket.to() to avoid double-emit, only use userSockets direct delivery
-    // FIX G: Use emitToUserSockets helper
     const callRejectedPayload: CallRejectedEvent = {
       roomId,
       callerId: room.createdBy,
@@ -604,56 +545,43 @@ export class VideoCallHandler {
       rejectedAt: new Date()
     }
 
-    // Only notify directly to caller's sockets via userSockets (no socket.to)
     this.emitToUserSockets(room.createdBy, VIDEO_CALL_EVENTS.CALL_REJECTED, callRejectedPayload)
 
-    // FIX E: Cleanup socketRooms and schedule room deletion
-    room.isActive = false
-
-    // Cleanup socketRooms for all participants
-    for (const participantId of room.participants) {
-      const sockets = this.userSockets.get(participantId)
-      if (sockets) {
-        for (const s of sockets) {
-          this.socketRooms.delete(s.id)
-          s.leave(roomId)
-        }
-      }
+    // Mark room as inactive in Redis
+    try {
+      await deactivateRoom(roomId)
+    } catch (error) {
+      console.error('[VideoCallHandler] Failed to deactivate room in Redis:', error)
     }
 
-    // Schedule room deletion
     const existingTimeout = this.roomCleanupTimeouts.get(roomId)
     if (existingTimeout) {
       clearTimeout(existingTimeout)
     }
-    const timeout = setTimeout(() => {
-      this.rooms.delete(roomId)
-      this.roomCleanupTimeouts.delete(roomId)
-      if (this.isDebug) {
-        console.log(`[VideoCallHandler] Room ${roomId} cleaned up after rejection`)
+    const timeout = setTimeout(async () => {
+      try {
+        await deleteRoom(roomId)
+      } catch (error) {
+        console.error('[VideoCallHandler] Failed to delete room from Redis:', error)
       }
+      this.roomCleanupTimeouts.delete(roomId)
     }, 60000)
     this.roomCleanupTimeouts.set(roomId, timeout)
-
-    if (this.isDebug) {
-      console.log(`[VideoCallHandler] Call rejected in room ${roomId}`)
-    }
   }
 
   /**
    * Handle call end
    */
-  handleCallEnded(socket: Socket, data: { roomId: string; reason?: string }): void {
+  async handleCallEnded(socket: Socket, data: { roomId: string; reason?: string }): Promise<void> {
     const userId = socket.data.userId as string
     const { roomId, reason } = data
 
-    const room = this.rooms.get(roomId)
+    const room = await getVideoCallRoom(roomId)
 
     if (!room) {
       return
     }
 
-    // Build call ended payload
     const callEndedPayload: CallEndedEvent = {
       roomId,
       endedBy: userId,
@@ -661,91 +589,77 @@ export class VideoCallHandler {
       endedAt: new Date()
     }
 
-    // Get remaining participants BEFORE deleting room
-    const remainingParticipants = Array.from(room.activeParticipants ?? [])
+    const allParticipants = room.participants
 
-    // Delete the room IMMEDIATELY - room ID is no longer valid
-    this.rooms.delete(roomId)
+    // Delete room from Redis
+    try {
+      await deleteRoom(roomId)
+    } catch (error) {
+      console.error('[VideoCallHandler] Failed to delete room from Redis:', error)
+    }
 
-    // Clear any cleanup timeout
     const existingTimeout = this.roomCleanupTimeouts.get(roomId)
     if (existingTimeout) {
       clearTimeout(existingTimeout)
       this.roomCleanupTimeouts.delete(roomId)
     }
 
-    // Notify remaining participants AFTER deleting room
-    for (const participantId of remainingParticipants) {
+    // Notify all participants
+    for (const participantId of allParticipants) {
       if (participantId === userId) continue
-      this.emitToUserSockets(participantId, VIDEO_CALL_EVENTS.CALL_ENDED, callEndedPayload)
-    }
-
-    // Cleanup socketRooms for all participants
-    for (const participantId of room.participants) {
-      const sockets = this.userSockets.get(participantId)
-      if (sockets) {
-        for (const participantSocket of sockets) {
-          this.socketRooms.delete(participantSocket.id)
-          participantSocket.leave(roomId)
-        }
+      if (this.io) {
+        this.io.to(`user:${participantId}`).emit(VIDEO_CALL_EVENTS.CALL_ENDED, callEndedPayload)
       }
-    }
-
-    if (this.isDebug) {
-      console.log(`[VideoCallHandler] Call ended in room ${roomId} - room deleted immediately`)
     }
   }
 
   /**
-   * Handle user disconnect - clean up
+   * Handle user disconnect
    */
-  handleDisconnect(socket: Socket): void {
+  async handleDisconnect(socket: Socket): Promise<void> {
     const userId = socket.data?.userId as string | undefined
-    const roomId = this.socketRooms.get(socket.id)
+
+    // Get room from Redis
+    let roomId: string | undefined
+    try {
+      const userMapping = await getUserBySocket(socket.id)
+      roomId = userMapping?.roomId
+    } catch (error) {
+      console.error('[VideoCallHandler] Failed to get room from Redis:', error)
+    }
 
     if (this.isDebug) {
       console.log(`[VideoCallHandler] Disconnect - userId: ${userId}, roomId: ${roomId}`)
     }
 
-    // Validate userId exists before using it
     if (userId === undefined || userId === null) {
-      // Still cleanup socketRooms entry
-      this.socketRooms.delete(socket.id)
       return
     }
 
+    // Handle leaving room if user was in one
     if (roomId) {
-      this.handleLeaveRoom(socket, { roomId })
+      await this.handleLeaveRoom(socket, { roomId })
     }
 
-    // Remove socket from socketRooms
-    this.socketRooms.delete(socket.id)
-
-    // Remove socket from userSockets (not all sockets for user)
-    this.removeUserSocket(userId, socket)
+    // Remove from Redis
+    try {
+      await removeUserConnection(socket.id)
+    } catch (error) {
+      console.error('[VideoCallHandler] Failed to remove connection from Redis:', error)
+    }
   }
 
   /**
    * Handle ICE connection state change from client
-   * This allows the server to track the actual P2P connection state
    */
-  handleIceStateChange(socket: Socket, data: IceConnectionStateEvent): void {
+  async handleIceStateChange(socket: Socket, data: IceConnectionStateEvent): Promise<void> {
     const userId = socket.data.userId as string
     const { roomId, iceConnectionState, iceGatheringState } = data
 
-    // Only log occasionally to avoid flooding
-    if (this.isDebug && Math.random() < 0.01) {
-      console.log(`[VideoCallHandler] ICE State Change - Room ${roomId}, State: ${iceConnectionState}`)
-    }
-
-    // Broadcast to other participant in the room using a SEPARATE event
-    // Do NOT use PEER_CONNECTED - use ICE_STATE_CHANGED for ICE state updates
-    const room = this.rooms.get(roomId)
+    const room = await getVideoCallRoom(roomId)
     if (room) {
-      const active = room.activeParticipants ?? new Set()
-      const otherParticipant = [...active].find(p => p !== userId)
+      const otherParticipant = room.activeParticipants.find(p => p !== userId)
       if (otherParticipant) {
-        // Use ICE_STATE_CHANGED event for ICE state updates - NOT PEER_CONNECTED
         socket.to(roomId).emit(VIDEO_CALL_EVENTS.ICE_STATE_CHANGED, {
           roomId,
           peerUserId: userId,
@@ -759,28 +673,19 @@ export class VideoCallHandler {
 
   /**
    * Handle connection statistics from client
-   * This allows the server to receive real-time stats about the P2P connection
    */
-  handleConnectionStats(socket: Socket, data: ConnectionStatsEvent): void {
+  async handleConnectionStats(socket: Socket, data: ConnectionStatsEvent): Promise<void> {
     const userId = socket.data.userId as string
     const { roomId, stats } = data
 
-    // Only log occasionally to avoid flooding
-    if (this.isDebug && Math.random() < 0.01) {
-      console.log(`[VideoCallHandler] Connection Stats - Room ${roomId}, State: ${stats.state}`)
-    }
-
-    // Broadcast stats to other participant for quality monitoring
-    const room = this.rooms.get(roomId)
+    const room = await getVideoCallRoom(roomId)
     if (room) {
-      // Fix 2: Use constant instead of hardcoded string
       socket.to(roomId).emit(VIDEO_CALL_EVENTS.PEER_STATS, {
         roomId,
         peerUserId: userId,
         stats: {
           bytesSent: stats.bytesSent,
           bytesReceived: stats.bytesReceived,
-          // FIX 4: Use actual measured value instead of calculated
           packetsLost: stats.packetsLost ?? null,
           rtt: stats.rtt
         },
@@ -790,12 +695,11 @@ export class VideoCallHandler {
   }
 
   /**
-   * Generate a unique room ID based on user IDs
+   * Generate a stable room ID based on user IDs
    */
   private generateRoomId(userId1: string, userId2: string): string {
     const sortedIds = [userId1, userId2].sort()
-    // Use UUID to prevent collisions from Date.now() collisions
-    return `video_${sortedIds[0]}_${sortedIds[1]}_${randomUUID()}`
+    return `video_${sortedIds[0]}_${sortedIds[1]}`
   }
 
   /**
@@ -809,83 +713,20 @@ export class VideoCallHandler {
       timestamp: new Date()
     }
 
-    // FIX G: Use emitToUserSockets helper instead of manual loop
-    const sockets = this.userSockets.get(calleeId)
-    if (sockets && sockets.size > 0) {
-      // User is online, send to all their sockets
-      this.emitToUserSockets(calleeId, VIDEO_CALL_EVENTS.CALL_REQUEST, callRequest)
-    } else {
-      // Callee is offline - emit CALL_ERROR but keep room ACTIVE
-      // The room should remain active so the callee can still join later
-      if (this.isDebug) {
-        console.log(`[VideoCallHandler] Callee ${calleeId} is offline, call request not delivered`)
-      }
-
-      // Emit error to caller (informational only, room stays active)
-      this.emitToUserSockets(callerId, VIDEO_CALL_EVENTS.CALL_ERROR, {
-        roomId: room.roomId,
-        code: 'CALLEE_OFFLINE',
-        message: 'User is not available',
-        timestamp: new Date()
-      } as CallErrorEvent)
-
-      // DO NOT deactivate room or cleanup - keep it active for callee to join later
-      // The caller stays in the room waiting for the callee
+    if (this.io) {
+      this.io.to(`user:${calleeId}`).emit(VIDEO_CALL_EVENTS.CALL_REQUEST, callRequest)
     }
   }
 
   /**
-   * Add a socket for a user (supports multiple sockets per user)
+   * Emit to all sockets of a user
    */
-  private addUserSocket(userId: string, socket: Socket): void {
-    let sockets = this.userSockets.get(userId)
-    if (!sockets) {
-      sockets = new Set<Socket>()
-      this.userSockets.set(userId, sockets)
-    }
-    sockets.add(socket)
-  }
-
-  /**
-   * Remove a specific socket for a user
-   */
-  private removeUserSocket(userId: string, socket: Socket): void {
-    const sockets = this.userSockets.get(userId)
-    if (sockets) {
-      sockets.delete(socket)
-      if (sockets.size === 0) {
-        this.userSockets.delete(userId)
-      }
-    }
-  }
-
-  // FIX G: Dead socket cleanup before emitting
-  /**
-   * Emit to all sockets of a user, checking for connected sockets and pruning dead ones
-   */
-  // FIX 3: Fix Set mutation during iteration
   private emitToUserSockets(userId: string, event: string, payload: unknown): void {
-    const sockets = this.userSockets.get(userId)
-    if (!sockets) return
-
-    // Collect dead sockets first (cannot delete during iteration)
-    const deadSockets: Socket[] = []
-    for (const s of sockets) {
-      if (s.connected) {
-        s.emit(event, payload)
-      } else {
-        deadSockets.push(s)
-      }
+    if (!this.io) {
+      return
     }
 
-    // Now remove dead sockets after iteration
-    for (const dead of deadSockets) {
-      sockets.delete(dead)
-    }
-
-    if (sockets.size === 0) {
-      this.userSockets.delete(userId)
-    }
+    this.io.to(`user:${userId}`).emit(event, payload)
   }
 
   /**
@@ -904,15 +745,15 @@ export class VideoCallHandler {
   /**
    * Get room info (for debugging)
    */
-  getRoom(roomId: string): VideoCallRoom | undefined {
-    return this.rooms.get(roomId)
+  async getRoom(roomId: string): Promise<VideoCallRoom | null> {
+    return await getVideoCallRoom(roomId)
   }
 
   /**
    * Get all active rooms (for debugging)
    */
-  getActiveRooms(): VideoCallRoom[] {
-    return Array.from(this.rooms.values()).filter(r => r.isActive)
+  async getActiveRooms(): Promise<VideoCallRoom[]> {
+    return await getAllVideoCallRooms()
   }
 }
 

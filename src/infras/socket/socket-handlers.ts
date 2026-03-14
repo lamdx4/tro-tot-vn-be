@@ -40,7 +40,7 @@ export class SocketHandlers {
   /**
    * Handle user disconnection
    */
-  handleDisconnect(socket: Socket): void {
+  async handleDisconnect(socket: Socket): Promise<void> {
     const userId = socket.data.userId as number
 
     console.log(`[Socket] User disconnected: ${userId}`)
