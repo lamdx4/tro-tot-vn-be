@@ -40,7 +40,7 @@ const KEY_ROOM_USER = (roomId: string, userId: string) => `room:user:${roomId}:$
 const KEY_ROOM = (roomId: string) => `room:${roomId}`
 const KEY_ALL_ROOMS = 'rooms:all'
 
-// Fix 2C: TTL for Redis keys - 24 hours expiration to prevent orphaned entries
+// Feature 2C: TTL for Redis keys - 24 hours expiration to prevent orphaned entries
 const DEFAULT_TTL_SECONDS = 24 * 60 * 60
 
 // ============================================================================
@@ -67,7 +67,7 @@ export async function saveUserConnection(
     roomId: roomId || '',
     socketId
   })
-  // Fix 2C: Add TTL to prevent orphaned entries
+  // Feature 2C: Add TTL to prevent orphaned entries
   pipeline.expire(KEY_SOCKET_USER(socketId), DEFAULT_TTL_SECONDS)
 
   // Store user -> socket mapping (String)
@@ -306,7 +306,7 @@ export async function removeUserFromRoom(socketId: string, roomId: string): Prom
 
   // Update roomId to null in socket->user mapping
   pipeline.hset(KEY_SOCKET_USER(socketId), 'roomId', '')
-  // Fix 2C: Refresh TTL for the connection
+  // Feature 2C: Refresh TTL for the connection
   pipeline.expire(KEY_SOCKET_USER(socketId), DEFAULT_TTL_SECONDS)
 
   await pipeline.exec()
@@ -320,7 +320,7 @@ export async function removeUserFromRoom(socketId: string, roomId: string): Prom
 
 /**
  * Get all rooms a user is in (useful for multi-room scenarios)
- * Fix 2B: Use SCAN instead of KEYS to avoid blocking Redis
+ * Feature 2B: Use SCAN instead of KEYS to avoid blocking Redis
  *
  * @param userId - User ID
  * @returns Array of room IDs
@@ -364,7 +364,7 @@ export async function getRoomUserCount(roomId: string): Promise<number> {
 
 /**
  * Clear all user connection data (useful for testing)
- * Fix 2B: Use SCAN instead of KEYS to avoid blocking Redis
+ * Feature 2B: Use SCAN instead of KEYS to avoid blocking Redis
  */
 export async function clearAllConnectionData(): Promise<void> {
   const patterns = ['socket:user:*', 'user:socket:*', 'room:user:*', 'room:users:*']
