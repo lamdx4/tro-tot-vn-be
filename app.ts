@@ -33,12 +33,12 @@ async function startApp() {
     process.exit(1)
   }
 
-  // Temporarily disabled seed data for testing
-  // try {
-  //   await seedData()
-  // } catch (e) {
-  //   console.error(e)
-  // }
+  // Seed initial data
+  try {
+    await seedData()
+  } catch (e) {
+    console.error('Seed data error:', e)
+  }
 
   import('@/infras/redis/redis');
 
@@ -64,6 +64,9 @@ async function startApp() {
   app.use(express.json())
 
   app.use(express.urlencoded({extended:true})) //*******
+
+  // Serve test files
+  app.use('/tests', express.static('tests'))
 
   app.use('/api', routerConfig)
 

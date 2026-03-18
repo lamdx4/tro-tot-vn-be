@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TroTot VN - Chat API",
-    "description": "Comprehensive Postman collection for Chat and Message APIs\n\n## Base URL\n```\nhttp://localhost:3333/api\n```\n\n## Authentication\nAll endpoints (except login) require Bearer token in Authorization header:\n```\nAuthorization: Bearer {{accessToken}}\n```\n\n## Test Users\n- Alice: alice@test.com / Password123 (customerId: 1)\n- Bob: bob@test.com / Password123 (customerId: 2)\n\n## Socket.IO Events\nServer URL: http://localhost:3333\n- Connect with: `auth: { userId: \"1\" }`\n- Events: `message:received`, `file:received`, `user:online`, `user:offline`\n- Join room: `join:conversation` with conversationId",
+    "description": "# TroTot VN - Chat API Documentation\n\n## Base URL\n```\nhttp://localhost:3333/api\n```\n\n---\n\n## Authentication\nAll endpoints (except login) require Bearer token in Authorization header:\n```\nAuthorization: Bearer {{accessToken}}\n```\n\n**Test Users:**\n- Alice: alice@test.com / Password123 (customerId: 1)\n- Bob: bob@test.com / Password123 (customerId: 2)\n\n**JWT Token Structure (from mock-jwt.txt):**\n```json\n{\n  \"accountId\": 3,\n  \"phone\": \"0912345678\",\n  \"status\": \"Active\",\n  \"email\": \"alice@test.com\",\n  \"role\": {\n    \"roleId\": 1,\n    \"roleName\": \"Customer\",\n    \"rolePermissions\": []\n  },\n  \"customer\": {\n    \"customerId\": 1,\n    \"gender\": \"Male\",\n    \"bio\": \"\",\n    \"firstName\": \"Alice\",\n    \"lastName\": \"Nguyen\",\n    \"birthday\": \"1995-01-01\",\n    \"avatar\": null,\n    \"currentCity\": null,\n    \"currentDistrict\": null,\n    \"currentJob\": null\n  },\n  \"admin\": null,\n  \"iat\": 1772266960,\n  \"exp\": 2087626960\n}\n```\n\n---\n\n## HTTP Status Codes\n\n| Status Code | Meaning | When Used |\n|-------------|---------|-----------|\n| 200 | OK | Successful GET requests, successful updates |\n| 201 | Created | Successful POST that creates a new resource |\n| 204 | No Content | Successful DELETE requests |\n| 400 | Bad Request | Invalid request body, missing required fields, validation errors |\n| 401 | Unauthorized | Missing or invalid JWT token |\n| 403 | Forbidden | User does not have permission to access resource |\n| 404 | Not Found | Resource (conversation, message) not found |\n| 500 | Internal Server Error | Server-side errors |\n\n---\n\n## Response Message Format\n\n**Success Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Success message describing the operation\",\n  \"data\": { ... }\n}\n```\n\n**Error Response:**\n```json\n{\n  \"success\": false,\n  \"message\": \"Error message describing what went wrong\",\n  \"error\": \"Error details (optional)\"\n}\n```\n\n---\n\n## Socket.IO Events\nServer URL: http://localhost:3333\n- Connect with: `auth: { userId: \"1\" }`\n- Events: `message:received`, `file:received`, `user:online`, `user:offline`\n- Join room: `join:conversation` with conversationId",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -52,11 +52,17 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/auth/login",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n    \"identifier\": \"alice@test.com\",\n    \"password\": \"Password123\"\n}"
             },
-            "description": "Login to get access token. Returns JWT token with nested customer object."
+            "description": "## Login - Authenticate User\n\n**Endpoint:** `POST /auth/login`\n\n**Description:** Login to get access token. Returns JWT token with nested customer object.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Content-Type | application/json | Yes |\n\n---\n\n### Request Body\n```json\n{\n    \"identifier\": \"alice@test.com\",\n    \"password\": \"Password123\"\n}\n```\n\n**Fields:**\n| Field | Type | Required | Description |\n|-------|------|----------|-------------|\n| identifier | string | Yes | User's email or phone number |\n| password | string | Yes | User's password |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Login successful\",\n    \"data\": {\n        \"token\": {\n            \"accessToken\": \"eyJhbGciOiJIUzI1NiIs...\",\n            \"refreshToken\": \"eyJhbGciOiJIUzI1NiIs...\",\n            \"expiresIn\": 315360000\n        },\n        \"customer\": {\n            \"customerId\": 1,\n            \"gender\": \"Male\",\n            \"bio\": \"\",\n            \"firstName\": \"Alice\",\n            \"lastName\": \"Nguyen\",\n            \"birthday\": \"1995-01-01\",\n            \"avatar\": null,\n            \"currentCity\": null,\n            \"currentDistrict\": null,\n            \"currentJob\": null\n        }\n    }\n}\n```\n\n**Response Fields:**\n| Field | Type | Description |\n|-------|------|-------------|\n| success | boolean | Indicates if request was successful |\n| message | string | Success message |\n| data.token.accessToken | string | JWT access token (10 years expiration) |\n| data.token.refreshToken | string | JWT refresh token |\n| data.token.expiresIn | number | Token expiration time in seconds |\n| data.customer.customerId | number | Customer's unique ID |\n| data.customer.firstName | string | Customer's first name |\n| data.customer.lastName | string | Customer's last name |\n| data.customer.email | string | Customer's email |\n| data.customer.gender | string | Customer's gender |\n| data.customer.birthday | string | Customer's birthday (YYYY-MM-DD) |\n| data.customer.avatar | string/null | URL to customer's avatar image |\n\n---\n\n### Error Responses\n- **400 Bad Request:** Missing identifier or password\n- **401 Unauthorized:** Invalid credentials\n- **500 Internal Server Error:** Server error"
           },
           "event": [
             {
@@ -100,7 +106,17 @@
                 { "key": "offset", "value": "0" }
               ]
             },
-            "description": "Get list of conversations for the authenticated user.\n\n**Query Parameters:**\n- `limit` (optional): Number of conversations to return (default: 20)\n- `offset` (optional): Number of conversations to skip (default: 0)\n\n**Response:**\nReturns array of conversations with last message info and participant count."
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "## Get Conversations - List User Conversations\n\n**Endpoint:** `GET /chat/conversations`\n\n**Description:** Get list of conversations for the authenticated user.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Query Parameters\n| Parameter | Type | Required | Default | Description |\n|-----------|------|----------|---------|-------------|\n| limit | number | No | 20 | Number of conversations to return |\n| offset | number | No | 0 | Number of conversations to skip |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Conversations retrieved successfully\",\n    \"data\": [\n        {\n            \"conversationId\": 1,\n            \"conversationType\": \"Direct\",\n            \"name\": null,\n            \"avatar\": null,\n            \"lastMessage\": {\n                \"messageId\": 10,\n                \"content\": \"Hello Bob!\",\n                \"messageType\": \"Text\",\n                \"senderId\": 1,\n                \"createdAt\": \"2025-01-15T10:30:00.000Z\"\n            },\n            \"participantCount\": 2,\n            \"unreadCount\": 0,\n            \"createdAt\": \"2025-01-10T08:00:00.000Z\",\n            \"updatedAt\": \"2025-01-15T10:30:00.000Z\"\n        }\n    ]\n}\n```\n\n**Response Fields:**\n| Field | Type | Description |\n|-------|------|-------------|\n| success | boolean | Indicates if request was successful |\n| message | string | Success message |\n| data[].conversationId | number | Unique conversation ID |\n| data[].conversationType | string | Type: \"Direct\" or \"Group\" |\n| data[].name | string/null | Conversation name (for groups) |\n| data[].avatar | string/null | Conversation avatar URL |\n| data[].lastMessage | object | Last message in conversation |\n| data[].lastMessage.messageId | number | Last message ID |\n| data[].lastMessage.content | string | Last message content |\n| data[].lastMessage.messageType | string | Type of message |\n| data[].lastMessage.senderId | number | Sender's customer ID |\n| data[].lastMessage.createdAt | string | Message creation timestamp |\n| data[].participantCount | number | Number of participants |\n| data[].unreadCount | number | Number of unread messages |\n| data[].createdAt | string | Conversation creation timestamp |\n| data[].updatedAt | string | Last update timestamp |\n\n---\n\n### Error Responses\n- **401 Unauthorized:** Missing or invalid JWT token\n- **500 Internal Server Error:** Server error"
           },
           "event": [
             {
@@ -130,7 +146,17 @@
               "host": ["{{baseUrl}}"],
               "path": ["chat", "conversations", "{{conversationId}}"]
             },
-            "description": "Get a specific conversation by ID.\n\n**Path Parameters:**\n- `conversationId`: ID of the conversation"
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "## Get Conversation By ID - Retrieve Single Conversation\n\n**Endpoint:** `GET /chat/conversations/{conversationId}`\n\n**Description:** Get a specific conversation by ID.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| conversationId | number | Yes | ID of the conversation |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Conversation retrieved successfully\",\n    \"data\": {\n        \"conversationId\": 1,\n        \"conversationType\": \"Direct\",\n        \"name\": null,\n        \"avatar\": null,\n        \"createdBy\": 1,\n        \"participantCount\": 2,\n        \"unreadCount\": 0,\n        \"createdAt\": \"2025-01-10T08:00:00.000Z\",\n        \"updatedAt\": \"2025-01-15T10:30:00.000Z\"\n    }\n}\n```\n\n---\n\n### Error Responses\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not a participant of this conversation\n- **404 Not Found:** Conversation not found\n- **500 Internal Server Error:** Server error"
           }
         },
         {
@@ -138,6 +164,16 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/chat/conversations",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n    \"conversationType\": \"Direct\",\n    \"participantIds\": [2]\n}",
@@ -147,7 +183,7 @@
                 }
               }
             },
-            "description": "Create a new conversation.\n\n**Request Body:**\n```json\n{\n    \"conversationType\": \"Direct\",  // or \"Group\"\n    \"participantIds\": [2, 3, 4]    // Array of customer IDs to add as participants\n}\n```\n\n**Notes:**\n- The authenticated user is automatically added as creator\n- For Direct conversations, only one participantId is needed"
+            "description": "## Create Conversation - Create New Chat\n\n**Endpoint:** `POST /chat/conversations`\n\n**Description:** Create a new conversation with specified participants.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Request Body\n```json\n{\n    \"conversationType\": \"Direct\",\n    \"participantIds\": [2]\n}\n```\n\n**Fields:**\n| Field | Type | Required | Description |\n|-------|------|----------|-------------|\n| conversationType | string | Yes | Type of conversation: \"Direct\" or \"Group\" |\n| participantIds | array[number] | Yes | Array of customer IDs to add as participants |\n\n---\n\n### Response 201 - Created\n```json\n{\n    \"success\": true,\n    \"message\": \"Conversation created successfully\",\n    \"data\": {\n        \"conversationId\": 1,\n        \"conversationType\": \"Direct\",\n        \"name\": null,\n        \"avatar\": null,\n        \"createdBy\": 1,\n        \"participants\": [\n            {\n                \"customerId\": 1,\n                \"firstName\": \"Alice\",\n                \"lastName\": \"Nguyen\",\n                \"avatar\": null,\n                \"role\": \"Admin\"\n            },\n            {\n                \"customerId\": 2,\n                \"firstName\": \"Bob\",\n                \"lastName\": \"Tran\",\n                \"avatar\": null,\n                \"role\": \"Member\"\n            }\n        ],\n        \"createdAt\": \"2025-01-15T10:30:00.000Z\",\n        \"updatedAt\": \"2025-01-15T10:30:00.000Z\"\n    }\n}\n```\n\n**Notes:**\n- The authenticated user is automatically added as creator/admin\n- For Direct conversations, only one participantId is needed\n- If a Direct conversation already exists between participants, returns existing conversation\n\n---\n\n### Error Responses\n- **400 Bad Request:** Missing required fields or invalid conversation type\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** Cannot create conversation with specified participants\n- **500 Internal Server Error:** Server error"
           },
           "event": [
             {
@@ -181,7 +217,17 @@
               "host": ["{{baseUrl}}"],
               "path": ["chat", "conversations", "{{conversationId}}", "participants"]
             },
-            "description": "Get all participants of a conversation.\n\n**Path Parameters:**\n- `conversationId`: ID of the conversation"
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "## Get Participants - List Conversation Members\n\n**Endpoint:** `GET /chat/conversations/{conversationId}/participants`\n\n**Description:** Get all participants of a conversation.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| conversationId | number | Yes | ID of the conversation |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Participants retrieved successfully\",\n    \"data\": [\n        {\n            \"customerId\": 1,\n            \"firstName\": \"Alice\",\n            \"lastName\": \"Nguyen\",\n            \"avatar\": null,\n            \"role\": \"Admin\",\n            \"joinedAt\": \"2025-01-10T08:00:00.000Z\"\n        },\n        {\n            \"customerId\": 2,\n            \"firstName\": \"Bob\",\n            \"lastName\": \"Tran\",\n            \"avatar\": null,\n            \"role\": \"Member\",\n            \"joinedAt\": \"2025-01-10T08:05:00.000Z\"\n        }\n    ]\n}\n```\n\n**Response Fields:**\n| Field | Type | Description |\n|-------|------|-------------|\n| data[].customerId | number | Customer's unique ID |\n| data[].firstName | string | Customer's first name |\n| data[].lastName | string | Customer's last name |\n| data[].avatar | string/null | Customer's avatar URL |\n| data[].role | string | Role in conversation: Admin, Moderator, Member |\n| data[].joinedAt | string | When participant joined the conversation |\n\n---\n\n### Error Responses\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not a participant of this conversation\n- **404 Not Found:** Conversation not found\n- **500 Internal Server Error:** Server error"
           }
         },
         {
@@ -189,6 +235,16 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/chat/conversations/{{conversationId}}/participants",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n    \"customerId\": 3,\n    \"role\": \"Member\"\n}",
@@ -198,7 +254,7 @@
                 }
               }
             },
-            "description": "Add a participant to a conversation.\n\n**Request Body:**\n```json\n{\n    \"customerId\": 3,      // ID of customer to add\n    \"role\": \"Member\"      // Role: Member, Admin, Moderator\n}\n```"
+            "description": "## Add Participant - Add User to Conversation\n\n**Endpoint:** `POST /chat/conversations/{conversationId}/participants`\n\n**Description:** Add a participant to a conversation.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| conversationId | number | Yes | ID of the conversation |\n\n---\n\n### Request Body\n```json\n{\n    \"customerId\": 3,\n    \"role\": \"Member\"\n}\n```\n\n**Fields:**\n| Field | Type | Required | Description |\n|-------|------|----------|-------------|\n| customerId | number | Yes | ID of customer to add |\n| role | string | No | Role: \"Member\", \"Admin\", \"Moderator\" (default: \"Member\") |\n\n---\n\n### Response 201 - Created\n```json\n{\n    \"success\": true,\n    \"message\": \"Participant added successfully\",\n    \"data\": {\n        \"customerId\": 3,\n        \"firstName\": \"Charlie\",\n        \"lastName\": \"Le\",\n        \"avatar\": null,\n        \"role\": \"Member\",\n        \"joinedAt\": \"2025-01-15T12:00:00.000Z\"\n    }\n}\n```\n\n---\n\n### Error Responses\n- **400 Bad Request:** Invalid request body or customerId\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User does not have permission to add participants\n- **404 Not Found:** Conversation not found\n- **500 Internal Server Error:** Server error"
           }
         },
         {
@@ -210,7 +266,17 @@
               "host": ["{{baseUrl}}"],
               "path": ["chat", "conversations", "{{conversationId}}", "participants", "{{customerId}}"]
             },
-            "description": "Remove a participant from a conversation.\n\n**Path Parameters:**\n- `conversationId`: ID of the conversation\n- `customerId`: ID of the customer to remove"
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "## Remove Participant - Remove User from Conversation\n\n**Endpoint:** `DELETE /chat/conversations/{conversationId}/participants/{customerId}`\n\n**Description:** Remove a participant from a conversation.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| conversationId | number | Yes | ID of the conversation |\n| customerId | number | Yes | ID of the customer to remove |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Participant removed successfully\",\n    \"data\": null\n}\n```\n\n---\n\n### Error Responses\n- **400 Bad Request:** Cannot remove the last admin or creator\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User does not have permission to remove participants\n- **404 Not Found:** Conversation or participant not found\n- **500 Internal Server Error:** Server error"
           }
         }
       ]
@@ -231,7 +297,17 @@
                 { "key": "offset", "value": "0" }
               ]
             },
-            "description": "Get messages from a conversation with pagination.\n\n**Path Parameters:**\n- `conversationId`: ID of the conversation\n\n**Query Parameters:**\n- `limit` (optional): Number of messages to return (default: 20)\n- `offset` (optional): Number of messages to skip (default: 0)\n\n**Response:**\nMessages are ordered by `createdAt DESC` (newest first). Each message includes attachments array."
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "## Get Messages - List Conversation Messages\n\n**Endpoint:** `GET /chat/conversations/{conversationId}/messages`\n\n**Description:** Get messages from a conversation with pagination. Messages are ordered by `createdAt DESC` (newest first).\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| conversationId | number | Yes | ID of the conversation |\n\n---\n\n### Query Parameters\n| Parameter | Type | Required | Default | Description |\n|-----------|------|----------|---------|-------------|\n| limit | number | No | 20 | Number of messages to return |\n| offset | number | No | 0 | Number of messages to skip |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Messages retrieved successfully\",\n    \"data\": [\n        {\n            \"messageId\": 10,\n            \"conversationId\": 1,\n            \"senderId\": 1,\n            \"senderName\": \"Alice Nguyen\",\n            \"content\": \"Hello Bob!\",\n            \"messageType\": \"Text\",\n            \"isDeleted\": false,\n            \"attachments\": [],\n            \"readBy\": [1, 2],\n            \"createdAt\": \"2025-01-15T10:30:00.000Z\",\n            \"updatedAt\": \"2025-01-15T10:30:00.000Z\"\n        }\n    ]\n}\n```\n\n**Response Fields:**\n| Field | Type | Description |\n|-------|------|-------------|\n| data[].messageId | number | Unique message ID |\n| data[].conversationId | number | Conversation ID |\n| data[].senderId | number | Sender's customer ID |\n| data[].senderName | string | Sender's display name |\n| data[].content | string | Message content |\n| data[].messageType | string | Type: Text, Image, Video, File, Audio |\n| data[].isDeleted | boolean | Whether message is deleted |\n| data[].attachments | array | Array of attachments |\n| data[].readBy | array[number] | Array of customer IDs who read this message |\n| data[].createdAt | string | Message creation timestamp |\n| data[].updatedAt | string | Last update timestamp |\n\n---\n\n### Error Responses\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not a participant of this conversation\n- **404 Not Found:** Conversation not found\n- **500 Internal Server Error:** Server error"
           },
           "event": [
             {
@@ -261,7 +337,17 @@
               "host": ["{{baseUrl}}"],
               "path": ["chat", "messages", "{{messageId}}"]
             },
-            "description": "Get a specific message by ID.\n\n**Path Parameters:**\n- `messageId`: ID of the message"
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "## Get Message By ID - Retrieve Single Message\n\n**Endpoint:** `GET /chat/messages/{messageId}`\n\n**Description:** Get a specific message by ID.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| messageId | number | Yes | ID of the message |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Message retrieved successfully\",\n    \"data\": {\n        \"messageId\": 10,\n        \"conversationId\": 1,\n        \"senderId\": 1,\n        \"senderName\": \"Alice Nguyen\",\n        \"content\": \"Hello Bob!\",\n        \"messageType\": \"Text\",\n        \"isDeleted\": false,\n        \"attachments\": [],\n        \"readBy\": [1, 2],\n        \"createdAt\": \"2025-01-15T10:30:00.000Z\",\n        \"updatedAt\": \"2025-01-15T10:30:00.000Z\"\n    }\n}\n```\n\n---\n\n### Error Responses\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not a participant of this conversation\n- **404 Not Found:** Message not found\n- **500 Internal Server Error:** Server error"
           }
         },
         {
@@ -269,6 +355,16 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/chat/conversations/{{conversationId}}/messages",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n    \"content\": \"Hello Bob!\",\n    \"messageType\": \"Text\"\n}",
@@ -278,7 +374,7 @@
                 }
               }
             },
-            "description": "Send a text message to a conversation.\n\n**Path Parameters:**\n- `conversationId`: ID of the conversation\n\n**Request Body:**\n```json\n{\n    \"content\": \"Hello Bob!\",      // Message content\n    \"messageType\": \"Text\"         // Message type: Text, Image, Video, File, Audio\n}\n```\n\n**Socket.IO Event:**\nAfter sending, `message:received` event is emitted to the conversation room (excluding sender)."
+            "description": "## Send Message - Create New Message\n\n**Endpoint:** `POST /chat/conversations/{conversationId}/messages`\n\n**Description:** Send a text message to a conversation.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| conversationId | number | Yes | ID of the conversation |\n\n---\n\n### Request Body\n```json\n{\n    \"content\": \"Hello Bob!\",\n    \"messageType\": \"Text\"\n}\n```\n\n**Fields:**\n| Field | Type | Required | Description |\n|-------|------|----------|-------------|\n| content | string | Yes | Message content |\n| messageType | string | No | Message type: Text, Image, Video, File, Audio (default: \"Text\") |\n\n---\n\n### Response 201 - Created\n```json\n{\n    \"success\": true,\n    \"message\": \"Message sent successfully\",\n    \"data\": {\n        \"messageId\": 11,\n        \"conversationId\": 1,\n        \"senderId\": 1,\n        \"senderName\": \"Alice Nguyen\",\n        \"content\": \"Hello Bob!\",\n        \"messageType\": \"Text\",\n        \"isDeleted\": false,\n        \"attachments\": [],\n        \"readBy\": [1],\n        \"createdAt\": \"2025-01-15T10:35:00.000Z\",\n        \"updatedAt\": \"2025-01-15T10:35:00.000Z\"\n    }\n}\n```\n\n### Socket.IO Event\nAfter sending, `message:received` event is emitted to the conversation room (excluding sender).\n\n**Event Payload:**\n```json\n{\n    \"messageId\": 11,\n    \"conversationId\": 1,\n    \"senderId\": 1,\n    \"senderName\": \"Alice Nguyen\",\n    \"content\": \"Hello Bob!\",\n    \"messageType\": \"Text\",\n    \"createdAt\": \"2025-01-15T10:35:00.000Z\"\n}\n```\n\n---\n\n### Error Responses\n- **400 Bad Request:** Missing content or invalid message type\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not a participant of this conversation\n- **404 Not Found:** Conversation not found\n- **500 Internal Server Error:** Server error"
           },
           "event": [
             {
@@ -308,6 +404,16 @@
           "request": {
             "method": "PUT",
             "url": "{{baseUrl}}/chat/messages/{{messageId}}",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n    \"content\": \"Updated message content\"\n}",
@@ -317,7 +423,7 @@
                 }
               }
             },
-            "description": "Edit an existing message.\n\n**Path Parameters:**\n- `messageId`: ID of the message to edit\n\n**Request Body:**\n```json\n{\n    \"content\": \"Updated message content\"\n}\n```"
+            "description": "## Edit Message - Update Message Content\n\n**Endpoint:** `PUT /chat/messages/{messageId}`\n\n**Description:** Edit an existing message.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| messageId | number | Yes | ID of the message to edit |\n\n---\n\n### Request Body\n```json\n{\n    \"content\": \"Updated message content\"\n}\n```\n\n**Fields:**\n| Field | Type | Required | Description |\n|-------|------|----------|-------------|\n| content | string | Yes | New message content |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Message updated successfully\",\n    \"data\": {\n        \"messageId\": 10,\n        \"conversationId\": 1,\n        \"senderId\": 1,\n        \"senderName\": \"Alice Nguyen\",\n        \"content\": \"Updated message content\",\n        \"messageType\": \"Text\",\n        \"isDeleted\": false,\n        \"attachments\": [],\n        \"readBy\": [1, 2],\n        \"createdAt\": \"2025-01-15T10:30:00.000Z\",\n        \"updatedAt\": \"2025-01-15T11:00:00.000Z\"\n    }\n}\n```\n\n---\n\n### Error Responses\n- **400 Bad Request:** Missing content\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not the message sender\n- **404 Not Found:** Message not found\n- **500 Internal Server Error:** Server error"
           }
         },
         {
@@ -329,7 +435,17 @@
               "host": ["{{baseUrl}}"],
               "path": ["chat", "messages", "{{messageId}}"]
             },
-            "description": "Delete a message.\n\n**Path Parameters:**\n- `messageId`: ID of the message to delete\n\n**Response:** Returns 204 No Content on success."
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "## Delete Message - Remove Message\n\n**Endpoint:** `DELETE /chat/messages/{messageId}`\n\n**Description:** Delete a message.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| messageId | number | Yes | ID of the message to delete |\n\n---\n\n### Response 204 - No Content\nMessage deleted successfully. No content returned.\n\n---\n\n### Error Responses\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not the message sender or admin\n- **404 Not Found:** Message not found\n- **500 Internal Server Error:** Server error"
           }
         },
         {
@@ -337,6 +453,16 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/chat/messages/read",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n    \"messageIds\": [1, 2, 3, 4, 5]\n}",
@@ -346,7 +472,7 @@
                 }
               }
             },
-            "description": "Mark multiple messages as read.\n\n**Request Body:**\n```json\n{\n    \"messageIds\": [1, 2, 3, 4, 5]  // Array of message IDs to mark as read\n}\n```"
+            "description": "## Mark Messages as Read - Update Read Status\n\n**Endpoint:** `POST /chat/messages/read`\n\n**Description:** Mark multiple messages as read.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Request Body\n```json\n{\n    \"messageIds\": [1, 2, 3, 4, 5]\n}\n```\n\n**Fields:**\n| Field | Type | Required | Description |\n|-------|------|----------|-------------|\n| messageIds | array[number] | Yes | Array of message IDs to mark as read |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Messages marked as read successfully\",\n    \"data\": {\n        \"markedCount\": 5\n    }\n}\n```\n\n**Response Fields:**\n| Field | Type | Description |\n|-------|------|-------------|\n| data.markedCount | number | Number of messages marked as read |\n\n---\n\n### Error Responses\n- **400 Bad Request:** Missing messageIds array\n- **401 Unauthorized:** Missing or invalid JWT token\n- **500 Internal Server Error:** Server error"
           }
         }
       ]
@@ -359,6 +485,12 @@
           "request": {
             "method": "POST",
             "url": "{{baseUrl}}/chat/conversations/{{conversationId}}/files",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -374,7 +506,7 @@
                 }
               ]
             },
-            "description": "Upload a file (image, video, or document) to a conversation.\n\n**Path Parameters:**\n- `conversationId`: ID of the conversation\n\n**Form Data:**\n- `file`: The file to upload (required)\n- `content`: Optional message content/description\n\n**File Type Detection:**\n- Images (mimeType: image/*) → messageType: \"Image\"\n- Videos (mimeType: video/*) → messageType: \"Video\"\n- Other files → messageType: \"File\"\n\n**Max File Size:** 25MB\n\n**Socket.IO Event:**\nAfter upload, `file:received` event is emitted to the conversation room (excluding sender)."
+            "description": "## Upload File - Upload File to Conversation\n\n**Endpoint:** `POST /chat/conversations/{conversationId}/files`\n\n**Description:** Upload a file (image, video, or document) to a conversation.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| conversationId | number | Yes | ID of the conversation |\n\n---\n\n### Form Data\n| Field | Type | Required | Description |\n|--------|------|----------|-------------|\n| file | file | Yes | The file to upload |\n| content | string | No | Optional message content/description |\n\n**File Type Detection:**\n- Images (mimeType: image/*) → messageType: \"Image\"\n- Videos (mimeType: video/*) → messageType: \"Video\"\n- Other files → messageType: \"File\"\n\n**Max File Size:** 25MB\n\n---\n\n### Response 201 - Created\n```json\n{\n    \"success\": true,\n    \"message\": \"File uploaded successfully\",\n    \"data\": {\n        \"messageId\": 12,\n        \"conversationId\": 1,\n        \"senderId\": 1,\n        \"senderName\": \"Alice Nguyen\",\n        \"content\": \"Test file upload\",\n        \"messageType\": \"Image\",\n        \"isDeleted\": false,\n        \"attachments\": [\n            {\n                \"attachmentId\": 1,\n                \"fileName\": \"photo.jpg\",\n                \"fileUrl\": \"/uploads/chat/photo.jpg\",\n                \"mimeType\": \"image/jpeg\",\n                \"fileSize\": 102400,\n                \"cloudFileId\": null\n            }\n        ],\n        \"readBy\": [1],\n        \"createdAt\": \"2025-01-15T10:40:00.000Z\",\n        \"updatedAt\": \"2025-01-15T10:40:00.000Z\"\n    }\n}\n```\n\n**Response Fields:**\n| Field | Type | Description |\n|-------|------|-------------|\n| data.messageId | number | Created message ID |\n| data.attachments[].attachmentId | number | Attachment's unique ID |\n| data.attachments[].fileName | string | Original file name |\n| data.attachments[].fileUrl | string | File URL path |\n| data.attachments[].mimeType | string | MIME type of file |\n| data.attachments[].fileSize | number | File size in bytes |\n| data.attachments[].cloudFileId | string/null | Google Drive file ID if uploaded to cloud |\n\n### Socket.IO Event\nAfter upload, `file:received` event is emitted to the conversation room (excluding sender).\n\n**Event Payload:**\n```json\n{\n    \"messageId\": 12,\n    \"conversationId\": 1,\n    \"senderId\": 1,\n    \"senderName\": \"Alice Nguyen\",\n    \"attachments\": [...],\n    \"createdAt\": \"2025-01-15T10:40:00.000Z\"\n}\n```\n\n---\n\n### Error Responses\n- **400 Bad Request:** No file provided or file too large\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not a participant of this conversation\n- **404 Not Found:** Conversation not found\n- **500 Internal Server Error:** Server error"
           },
           "event": [
             {
@@ -408,7 +540,17 @@
               "host": ["{{baseUrl}}"],
               "path": ["chat", "files", "{{attachmentId}}", "download"]
             },
-            "description": "Get download URL for a file attachment.\n\n**Path Parameters:**\n- `fileId`: The attachment ID (use attachmentId from message attachments array)\n\n**Response:**\n```json\n{\n    \"downloadUrl\": \"https://...\",\n    \"fileName\": \"example.png\",\n    \"mimeType\": \"image/png\",\n    \"fileSize\": 102400\n}\n```\n\n**Notes:**\n- If file has cloudFileId (uploaded to Google Drive), returns cloud storage URL\n- Otherwise returns local file URL"
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "## Get File Download URL - Retrieve File Download Link\n\n**Endpoint:** `GET /chat/files/{attachmentId}/download`\n\n**Description:** Get download URL for a file attachment.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| attachmentId | number | Yes | The attachment ID (use attachmentId from message attachments array) |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Download URL retrieved successfully\",\n    \"data\": {\n        \"downloadUrl\": \"http://localhost:3333/uploads/chat/photo.jpg\",\n        \"fileName\": \"photo.jpg\",\n        \"mimeType\": \"image/jpeg\",\n        \"fileSize\": 102400\n    }\n}\n```\n\n**Response Fields:**\n| Field | Type | Description |\n|-------|------|-------------|\n| data.downloadUrl | string | Full URL to download the file |\n| data.fileName | string | Original file name |\n| data.mimeType | string | MIME type of file |\n| data.fileSize | number | File size in bytes |\n\n**Notes:**\n- If file has cloudFileId (uploaded to Google Drive), returns cloud storage URL\n- Otherwise returns local file URL\n\n---\n\n### Error Responses\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not a participant of the conversation\n- **404 Not Found:** Attachment not found\n- **500 Internal Server Error:** Server error"
           }
         }
       ]

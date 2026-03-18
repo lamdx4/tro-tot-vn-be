@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebRTC Video Call Test Suite</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      min-height: 100vh; color: #eee;
+    }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+    header {
+      background: rgba(0,0,0,0.3); padding: 20px; border-radius: 12px;
+      margin-bottom: 20px; border: 1px solid #0f3460;
+    }
+    h1 { color: #00d9ff; font-size: 28px; }
+    .subtitle { color: #888; margin-top: 5px; font-size: 13px; }
+
+    button {
+      padding: 12px 24px; border: none; border-radius: 8px;
+      font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .btn-primary { background: #00d9ff; color: #1a1a2e; }
+    .btn-primary:hover { background: #00b8d9; transform: translateY(-2px); }
+    .btn-success { background: #00ff88; color: #1a1a2e; }
+    .btn-success:hover { background: #00dd77; transform: translateY(-2px); }
+    .btn-danger { background: #ff4757; color: #fff; }
+    .btn-danger:hover { background: #cc3344; transform: translateY(-2px); }
+    .btn-warning { background: #ffa502; color: #1a1a2e; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+    /* Mode Tabs */
+    .mode-tabs {
+      display: flex; margin-bottom: 20px;
+      background: #0f3460; border-radius: 8px; padding: 4px; width: fit-content;
+    }
+    .mode-tab {
+      padding: 8px 24px; border-radius: 6px; cursor: pointer;
+      font-size: 13px; font-weight: 600; color: #888; transition: all 0.2s;
+      border: none; background: transparent;
+    }
+    .mode-tab.active { background: #00d9ff; color: #1a1a2e; }
+
+    /* Info box */
+    .info-box {
+      background: #0f3460; border-left: 3px solid #00d9ff; border-radius: 8px;
+      padding: 12px 16px; margin-bottom: 20px; font-size: 13px; color: #aaa; line-height: 1.6;
+    }
+    .info-box strong { color: #00d9ff; }
+
+    /* Room Config */
+    .room-config {
+      background: #0f3460; border-radius: 12px; padding: 16px 20px;
+      margin-bottom: 20px; border: 1px solid #00d9ff33;
+      display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end;
+    }
+    .room-config .field { display: flex; flex-direction: column; gap: 5px; min-width: 140px; }
+    .room-config label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.07em; }
+    .room-config input {
+      background: #1a1a2e; border: 1px solid #1e3a5f; border-radius: 8px;
+      padding: 9px 12px; color: #eee; font-size: 14px; outline: none; transition: border-color 0.2s;
+    }
+    .room-config input:focus { border-color: #00d9ff; }
+    .room-config input::placeholder { color: #444; }
+    .room-id-box {
+      background: #1a1a2e; border: 1px dashed #00d9ff55; border-radius: 8px;
+      padding: 9px 12px; font-size: 13px; color: #00d9ff; font-family: monospace;
+      display: flex; align-items: center; gap: 8px; flex: 1; min-width: 220px;
+    }
+    .room-id-box span { flex: 1; word-break: break-all; }
+    .copy-btn {
+      padding: 3px 9px; font-size: 11px; background: #00d9ff22; border: 1px solid #00d9ff44;
+      border-radius: 4px; color: #00d9ff; cursor: pointer; white-space: nowrap;
+    }
+    .copy-btn:hover { background: #00d9ff33; }
+
+    /* Progress Bar */
+    .progress-bar { height: 4px; background: #0f3460; border-radius: 2px; margin-bottom: 20px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #00d9ff, #00ff88); transition: width 0.3s; }
+
+    /* Grid */
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+    /* Panels */
+    .panel { background: #16213e; border-radius: 12px; padding: 20px; border: 1px solid #0f3460; }
+    .panel h2 { color: #00d9ff; font-size: 16px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #0f3460; }
+
+    /* Status badges */
+    .status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .status-item { background: #0f3460; padding: 12px; border-radius: 8px; text-align: center; }
+    .status-label { font-size: 10px; color: #888; text-transform: uppercase; }
+    .status-value { font-size: 14px; font-weight: bold; margin-top: 4px; }
+    .s-pending { color: #ffa502; } .s-success { color: #00ff88; } .s-error { color: #ff4757; }
+    .state-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 4px;
+      font-weight: bold; text-transform: uppercase; font-size: 11px;
+    }
+    .state-new,.state-closed { background: #555; }
+    .state-checking,.state-gathering { background: #ffa502; color: #000; }
+    .state-connected,.state-completed,.state-complete,.state-open { background: #00ff88; color: #000; }
+    .state-failed,.state-disconnected { background: #ff4757; }
+
+    /* Stats */
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .stat-card { background: #0f3460; padding: 14px; border-radius: 8px; }
+    .stat-card h4 { color: #888; font-size: 11px; margin-bottom: 6px; }
+    .stat-value { font-size: 22px; font-weight: bold; color: #00d9ff; }
+    .stat-unit { font-size: 11px; color: #666; }
+
+    /* Logs */
+    .log-container {
+      background: #0a0a1a; border-radius: 8px; padding: 14px;
+      height: 360px; overflow-y: auto; font-family: 'Consolas', monospace; font-size: 12px; line-height: 1.6;
+    }
+    .log-entry { padding: 1px 0; }
+    .log-time { color: #555; }
+    .log-info { color: #70a1ff; }
+    .log-success { color: #00ff88; }
+    .log-error { color: #ff4757; }
+    .log-warning { color: #ffa502; }
+    .log-debug { color: #666; }
+
+    /* Test results */
+    .test-results { min-height: 40px; }
+    .test-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+      background: #0f3460; border-radius: 8px; margin-bottom: 7px;
+    }
+    .test-name { flex: 1; font-size: 13px; }
+
+    /* Peer info */
+    .peer-info { background: #0f3460; border-radius: 8px; padding: 12px; margin-bottom: 14px; }
+    .peer-row { display: flex; justify-content: space-between; padding: 3px 0; }
+    .peer-key { color: #888; font-size: 12px; }
+    .peer-val { font-size: 12px; font-weight: 600; font-family: monospace; color: #eee; }
+
+    /* Participant tags */
+    .participant-tag {
+      display: inline-flex; align-items: center; gap: 6px; background: #1a1a2e;
+      border: 1px solid #00d9ff33; border-radius: 6px; padding: 4px 10px; margin: 3px; font-size: 12px;
+    }
+    .p-dot { width: 7px; height: 7px; border-radius: 50%; background: #00ff88; flex-shrink: 0; }
+
+    /* Video elements */
+    .video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+    video {
+      width: 100%; border-radius: 8px; background: #0a0a1a;
+      border: 1px solid #0f3460; aspect-ratio: 16/9; object-fit: cover;
+    }
+    .video-label { font-size: 11px; color: #888; text-align: center; margin-top: 4px; }
+
+    /* Summary */
+    .summary {
+      background: linear-gradient(135deg, #0f3460, #16213e);
+      padding: 20px; border-radius: 12px; margin-top: 20px;
+      text-align: center; border: 2px solid #00d9ff;
+    }
+    .summary h2 { border: none; color: #00d9ff; }
+    .score { font-size: 48px; font-weight: bold; color: #00ff88; }
+    .score.fail { color: #ff4757; }
+
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+    .btn-plain { background: #0f3460; color: #888; border: none; cursor: pointer; border-radius: 8px; padding: 10px 16px; font-size: 13px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🎥 WebRTC Video Call Test Suite</h1>
+    <p class="subtitle">Live multi-tab connect · Automated signaling verification</p>
+  </header>
+
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressBar" style="width:0%"></div>
+  </div>
+
+  <!-- Mode Tabs -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" id="tabLive" onclick="switchMode('live')">🟢 Live Connect</button>
+    <button class="mode-tab" id="tabAuto" onclick="switchMode('auto')">🤖 Auto Test</button>
+  </div>
+
+  <!-- ===========================================================
+       LIVE MODE  —  real multi-tab WebRTC call
+  =========================================================== -->
+  <div id="liveMode">
+
+    <div class="info-box">
+      <strong>How to test a real video call between two browser tabs:</strong><br>
+      1. <strong>Tab 1</strong>: Set User ID = <code>1</code>, leave Room ID blank → click <strong>⚡ Quick Connect</strong> → copy the Room ID<br>
+      2. <strong>Tab 2</strong>: Set User ID = <code>2</code>, paste the Room ID → click <strong>⚡ Quick Connect</strong><br>
+      3. Both tabs will negotiate and you should see each other's video!
+    </div>
+
+    <div class="room-config">
+      <div class="field" style="max-width:90px">
+        <label>My User ID</label>
+        <input type="text" id="inputUserId" value="user1" placeholder="Enter user ID..." />
+      </div>
+      <div class="field" style="flex:1">
+        <label>Room ID <span style="color:#555;font-size:9px">(blank = create new)</span></label>
+        <input type="text" id="inputRoomId" placeholder="Paste Room ID to join..." />
+      </div>
+      <div class="field" style="flex:1;min-width:220px">
+        <label>Active Room (share this ID)</label>
+        <div class="room-id-box">
+          <span id="activeRoomId">—</span>
+          <button class="copy-btn" onclick="copyRoomId()">📋 Copy</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn-success" id="btnQuickTest" onclick="runQuickTest()">⚡ Quick Connect</button>
+        <button class="btn-danger" id="btnHangUp" onclick="hangUp()" disabled>📵 Hang Up</button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Left -->
+      <div class="panel">
+        <h2>👤 This Tab</h2>
+        <div class="peer-info">
+          <div class="peer-row"><span class="peer-key">Socket ID</span><span class="peer-val" id="mySocketId">—</span></div>
+          <div class="peer-row"><span class="peer-key">User ID</span><span class="peer-val" id="myUserId">—</span></div>
+          <div class="peer-row"><span class="peer-key">Role</span><span class="peer-val" id="myRole">—</span></div>
+          <div class="peer-row"><span class="peer-key">ICE State</span><span class="peer-val" id="myConnState">—</span></div>
+        </div>
+
+        <h2>🎬 Video</h2>
+        <div class="video-grid">
+          <div>
+            <video id="localVideo" autoplay muted playsinline></video>
+            <div class="video-label">Local (You)</div>
+          </div>
+          <div>
+            <video id="remoteVideo" autoplay playsinline></video>
+            <div class="video-label">Remote (Peer)</div>
+          </div>
+        </div>
+
+        <h2 style="margin-top:16px">👥 Others in Room</h2>
+        <div id="participantsList"><span style="color:#555;font-size:13px">No participants yet...</span></div>
+      </div>
+
+      <!-- Right -->
+      <div class="panel">
+        <h2>📈 Statistics</h2>
+        <div class="stats-grid">
+          <div class="stat-card"><h4>Bytes Sent</h4><div class="stat-value" id="statBytesSent">0</div><div class="stat-unit">bytes</div></div>
+          <div class="stat-card"><h4>Bytes Received</h4><div class="stat-value" id="statBytesReceived">0</div><div class="stat-unit">bytes</div></div>
+          <div class="stat-card"><h4>Round Trip Time</h4><div class="stat-value" id="statRTT">--</div><div class="stat-unit">ms</div></div>
+          <div class="stat-card"><h4>Packets Lost</h4><div class="stat-value" id="statPacketsLost">0</div><div class="stat-unit">packets</div></div>
+        </div>
+
+        <h2 style="margin-top:16px">🔗 Connection States</h2>
+        <div class="status-grid">
+          <div class="status-item">
+            <div class="status-label">Socket</div>
+            <div class="status-value s-pending" id="liveSocketStatus">--</div>
+          </div>
+          <div class="status-item">
+            <div class="status-label">ICE</div>
+            <span class="state-badge state-new" id="liveIceState">new</span>
+          </div>
+          <div class="status-item">
+            <div class="status-label">DataChannel</div>
+            <span class="state-badge state-new" id="liveDcState">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:20px">
+      <h2>📝 Logs <button class="btn-plain" onclick="clearLiveLogs()" style="float:right;padding:3px 10px;font-size:11px">Clear</button></h2>
+      <div class="log-container" id="liveLogContainer"></div>
+    </div>
+  </div>
+
+  <!-- ===========================================================
+       AUTO TEST MODE  —  two simulated sockets in one tab
+  =========================================================== -->
+  <div id="autoMode" style="display:none">
+    <div class="controls">
+      <button class="btn-primary" id="btnRunAll" onclick="runAllTests()">▶ Run All Tests</button>
+      <button class="btn-warning" id="btnDataTest" onclick="runDataTransferTest()">📊 Data Transfer</button>
+      <button class="btn-danger" id="btnStop" onclick="stopTests()" disabled>⏹ Stop</button>
+      <button class="btn-plain" onclick="clearAutoLogs()">🗑 Clear</button>
+    </div>
+
+    <div class="grid">
+      <div class="panel">
+        <h2>📋 Test Results</h2>
+        <div class="test-results" id="testResults"><p style="color:#555">Click "Run All Tests" to start...</p></div>
+        <h2 style="margin-top:16px">🔌 Simulated Sockets</h2>
+        <div class="status-grid">
+          <div class="status-item"><div class="status-label">Socket A</div><div class="status-value s-pending" id="autoSock1">--</div></div>
+          <div class="status-item"><div class="status-label">Socket B</div><div class="status-value s-pending" id="autoSock2">--</div></div>
+          <div class="status-item"><div class="status-label">ICE</div><div class="status-value s-pending" id="autoIceStatus">--</div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>📈 Statistics</h2>
+        <div class="stats-grid">
+          <div class="stat-card"><h4>Bytes Sent</h4><div class="stat-value" id="autoBytesSent">0</div><div class="stat-unit">bytes</div></div>
+          <div class="stat-card"><h4>Bytes Received</h4><div class="stat-value" id="autoBytesRecv">0</div><div class="stat-unit">bytes</div></div>
+          <div class="stat-card"><h4>Round Trip Time</h4><div class="stat-value" id="autoRTT">--</div><div class="stat-unit">ms</div></div>
+          <div class="stat-card"><h4>Packets Lost</h4><div class="stat-value" id="autoPktLost">0</div><div class="stat-unit">packets</div></div>
+        </div>
+        <h2 style="margin-top:16px">🔗 ICE States</h2>
+        <div class="status-grid">
+          <div class="status-item"><div class="status-label">Peer A</div><span class="state-badge state-new" id="autoIce1">new</span></div>
+          <div class="status-item"><div class="status-label">Peer B</div><span class="state-badge state-new" id="autoIce2">new</span></div>
+          <div class="status-item"><div class="status-label">Gathering</div><span class="state-badge state-new" id="autoGathering">new</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:20px">
+      <h2>📝 Logs</h2>
+      <div class="log-container" id="autoLogContainer"></div>
+    </div>
+
+    <div class="summary" id="summary" style="display:none">
+      <h2>Test Complete!</h2>
+      <div class="score" id="score">0/0</div>
+      <p id="scoreText"></p>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+// ================================================================
+// SHARED UTILITIES
+// ================================================================
+const SERVER_URL = window.location.origin;
+const TEST_TIMEOUT = 15000;
+const ICE_TIMEOUT  = 30000;
+
+function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function getIceConfig() {
+  const url = `${SERVER_URL}/api/video-call/ice-config`;
+  console.log('Fetching ICE config from:', url);
+  console.log('SERVER_URL =', SERVER_URL);
+  console.log('window.location.origin =', window.location.origin);
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
+    console.log('Response status:', res.status, res.statusText);
+    console.log('Response headers:', res.headers.entries());
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`ICE config failed: ${res.status} ${res.statusText} - ${text}`);
+    }
+    const data = await res.json();
+    console.log('ICE config received:', data);
+    return data.data.iceServers;
+  } catch (e) {
+    console.error('Fetch error:', e);
+    throw e;
+  }
+}
+
+async function getPeerStats(peer) {
+  if (!peer || peer.connectionState === 'closed') return { bytesSent:0, bytesReceived:0, packetsLost:0, rtt:null };
+  const stats = await peer.getStats();
+  const r = { bytesSent:0, bytesReceived:0, packetsLost:0, rtt:null };
+  stats.forEach(report => {
+    if (report.type === 'outbound-rtp' && report.kind === 'video') r.bytesSent += report.bytesSent || 0;
+    if (report.type === 'inbound-rtp'  && report.kind === 'video') {
+      r.bytesReceived += report.bytesReceived || 0;
+      r.packetsLost   += report.packetsLost   || 0;
+    }
+    if (report.type === 'candidate-pair' && report.state === 'succeeded')
+      r.rtt = report.currentRoundTripTime ? (report.currentRoundTripTime * 1000).toFixed(2) : null;
+  });
+  return r;
+}
+
+// ================================================================
+// MODE SWITCHING
+// ================================================================
+function switchMode(mode) {
+  document.getElementById('tabLive').classList.toggle('active', mode === 'live');
+  document.getElementById('tabAuto').classList.toggle('active', mode === 'auto');
+  document.getElementById('liveMode').style.display  = mode === 'live' ? 'block' : 'none';
+  document.getElementById('autoMode').style.display  = mode === 'auto' ? 'block' : 'none';
+}
+
+// ================================================================
+// LIVE MODE
+// ================================================================
+let liveSocket   = null;
+let livePeer     = null;
+let liveStream   = null;
+let liveStatsInt = null;
+let liveRoomId   = null;
+let liveOfferSent = false; // Track if offer has been sent (reset on rejoin)
+let liveDataChannel = null; // Track DataChannel for proper cleanup
+
+function liveLog(msg, type = 'info') {
+  const c = document.getElementById('liveLogContainer');
+  const t = new Date().toISOString().substr(11, 12);
+  const d = document.createElement('div');
+  d.className = `log-entry log-${type}`;
+  d.innerHTML = `<span class="log-time">[${t}]</span> ${msg}`;
+  c.appendChild(d); c.scrollTop = c.scrollHeight;
+}
+function clearLiveLogs() { document.getElementById('liveLogContainer').innerHTML = ''; }
+
+function setBadge(id, state) {
+  const el = document.getElementById(id);
+  el.textContent = state;
+  el.className   = `state-badge state-${state}`;
+}
+
+function copyRoomId() {
+  const id = document.getElementById('activeRoomId').textContent;
+  if (id && id !== '—') navigator.clipboard.writeText(id).then(() => liveLog('Room ID copied!', 'success'));
+}
+
+// ── Cleanup Connection ────────────────────────────────────────────
+async function cleanupConnection() {
+  // Reset offer state
+  liveOfferSent = false;
+
+  // Clean up DataChannel first
+  if (liveDataChannel) {
+    liveDataChannel.close();
+    liveDataChannel = null;
+  }
+
+  // Clean up existing peer connection
+  if (livePeer) {
+    livePeer.close();
+    livePeer = null;
+  }
+
+  // Clean up existing socket - remove all listeners
+  if (liveSocket) {
+    liveSocket.removeAllListeners();
+    liveSocket.disconnect();
+    liveSocket = null;
+  }
+
+  // Stop media stream
+  if (liveStream) {
+    liveStream.getTracks().forEach(t => t.stop());
+    liveStream = null;
+  }
+
+  // Clear intervals
+  if (liveStatsInt) {
+    clearInterval(liveStatsInt);
+    liveStatsInt = null;
+  }
+
+  // Clear remote video
+  document.getElementById('remoteVideo').srcObject = null;
+  document.getElementById('localVideo').srcObject = null;
+
+  // Clear state
+  liveRoomId = null;
+  liveOfferSent = false;
+  liveDataChannel = null;
+
+  // Reset badges
+  setBadge('liveIceState', 'new');
+  setBadge('liveDcState', 'new');
+
+  // Wait for cleanup to complete
+  await new Promise(resolve => setTimeout(resolve, 100));
+}
+
+function addParticipant(userId) {
+  const list = document.getElementById('participantsList');
+  if (list.querySelector(`[data-uid="${userId}"]`)) return;
+  const placeholder = list.querySelector('span');
+  if (placeholder) placeholder.remove();
+  const tag = document.createElement('div');
+  tag.className = 'participant-tag'; tag.setAttribute('data-uid', userId);
+  tag.innerHTML = `<span class="p-dot"></span>User ${userId}`;
+  list.appendChild(tag);
+}
+
+// ── Main Quick Connect ──────────────────────────────────────────
+async function runQuickTest() {
+  const userId    = document.getElementById('inputUserId').value || 'user1';
+  const roomInput = document.getElementById('inputRoomId').value.trim();
+
+  // Clean up any existing connection first
+  await cleanupConnection();
+
+  document.getElementById('btnQuickTest').disabled = true;
+  document.getElementById('btnHangUp').disabled    = false;
+
+  try {
+    // 1. ICE config
+    liveLog('Fetching ICE config...', 'info');
+    const iceConfig = await getIceConfig();
+    liveLog(`Got ${iceConfig.length} ICE server(s)`, 'success');
+
+    // 2. Connect socket
+    liveLog(`Connecting as User ${userId}...`, 'info');
+    liveSocket = io(SERVER_URL, {
+      auth: { userId: String(userId) },
+      transports: ['websocket'],
+      reconnection: false
+    });
+
+    await new Promise((resolve, reject) => {
+      liveSocket.on('connect', () => {
+        document.getElementById('mySocketId').textContent = liveSocket.id;
+        document.getElementById('myUserId').textContent   = userId;
+        document.getElementById('liveSocketStatus').textContent = 'Connected';
+        document.getElementById('liveSocketStatus').className   = 'status-value s-success';
+        liveLog(`Socket connected: ${liveSocket.id}`, 'success');
+        resolve();
+      });
+      liveSocket.on('connect_error', err => reject(new Error(err.message)));
+      setTimeout(() => reject(new Error('Socket timeout')), TEST_TIMEOUT);
+    });
+
+    // Listen for error events
+    liveSocket.on('video:call:error', (data) => {
+      // CALLEE_OFFLINE is expected when callee isn't online - show as warning
+      if (data.code === 'CALLEE_OFFLINE') {
+        liveLog(`ℹ️ Callee offline - room created, waiting for them to join...`, 'warning');
+      } else {
+        liveLog(`❌ Error: ${data.code} - ${data.message}`, 'error');
+      }
+    });
+
+    liveSocket.on('video:call:roomError', (data) => {
+      liveLog(`❌ Room Error: ${data.code} - ${data.message}`, 'error');
+    });
+
+    // Listen for call ended event - when other user leaves, room is deleted
+    liveSocket.on('video:call:ended', (data) => {
+      liveLog(`📴 Call ended by ${data.endedBy}: ${data.reason}`, 'warning');
+      liveLog(`🔄 Please create a new room to call again`, 'info');
+
+      // Full cleanup - disconnect socket, close peer, stop streams
+      // Clean up DataChannel first
+      if (liveDataChannel) {
+        liveDataChannel.close();
+        liveDataChannel = null;
+      }
+      if (livePeer) {
+        livePeer.close();
+        livePeer = null;
+      }
+      if (liveStream) {
+        liveStream.getTracks().forEach(t => t.stop());
+        liveStream = null;
+      }
+      if (liveSocket) {
+        liveSocket.removeAllListeners();
+        liveSocket.disconnect();
+        liveSocket = null;
+      }
+      if (liveStatsInt) {
+        clearInterval(liveStatsInt);
+        liveStatsInt = null;
+      }
+
+      // Reset all state
+      liveRoomId = null;
+      liveOfferSent = false;
+      liveDataChannel = null;
+
+      // Reset UI
+      document.getElementById('remoteVideo').srcObject = null;
+      document.getElementById('localVideo').srcObject = null;
+      document.getElementById('activeRoomId').textContent = '—';
+      document.getElementById('inputRoomId').value = '';
+      document.getElementById('mySocketId').textContent = '—';
+      document.getElementById('myUserId').textContent = '—';
+      document.getElementById('myRole').textContent = '—';
+      document.getElementById('myConnState').textContent = '—';
+      document.getElementById('liveSocketStatus').textContent = '--';
+      document.getElementById('liveSocketStatus').className = 'status-value s-pending';
+      setBadge('liveIceState', 'new');
+      setBadge('liveDcState', 'new');
+      document.getElementById('participantsList').innerHTML = '<span style="color:#555;font-size:13px">No participants yet...</span>';
+      document.getElementById('btnQuickTest').disabled = false;
+      document.getElementById('btnHangUp').disabled = true;
+    });
+
+    // 3. Create peer
+    livePeer = new RTCPeerConnection({ iceServers: iceConfig });
+    setupLivePeer(livePeer, userId);
+
+    // Listen for ICE state changes (for connection status updates)
+    liveSocket.on('video:call:iceStateChanged', data => {
+      liveLog(`ICE State: ${data.iceConnectionState}`, 'info');
+    });
+
+    // 4. Try to get media (graceful fallback)
+    try {
+      liveStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: true });
+      liveStream.getTracks().forEach(t => livePeer.addTrack(t, liveStream));
+      // Show local video
+      document.getElementById('localVideo').srcObject = liveStream;
+      liveLog('Got camera/mic stream', 'success');
+    } catch (e) {
+      liveLog(`No camera/mic (${e.name}) — DataChannel only`, 'warning');
+    }
+
+    // Handle incoming call request (for callee) - listen BEFORE joinRoom
+    // Server emits: video:call:request { roomId, callerId, calleeId, timestamp }
+    liveSocket.on('video:call:request', async data => {
+      liveLog(`📞 Incoming call from User ${data.callerId}!`, 'warning');
+      liveRoomId = data.roomId;
+      document.getElementById('activeRoomId').textContent = liveRoomId;
+      document.getElementById('myRole').textContent = 'Callee (answerer)';
+
+      // Join the room automatically
+      liveSocket.emit('video:call:joinRoom', { roomId: liveRoomId });
+
+      // Wait for room joined confirmation
+      liveSocket.once('video:call:roomJoined', joinData => {
+        liveLog(`Joined room! Participants: [${joinData.participants?.join(', ')}]`, 'success');
+        // Add caller to participants list
+        addParticipant(data.callerId);
+      });
+
+      // Wait for offer from caller
+      liveSocket.once('video:call:offer', async offerData => {
+        liveLog(`Received offer from User ${offerData.from} — creating answer...`, 'info');
+        try {
+          await livePeer.setRemoteDescription(new RTCSessionDescription(offerData.offer));
+          const answer = await livePeer.createAnswer();
+          await livePeer.setLocalDescription(answer);
+          liveSocket.emit('video:call:answer', { roomId: liveRoomId, answer: answer });
+          liveLog('Answer sent!', 'success');
+        } catch (err) { liveLog(`Answer error: ${err.message}`, 'error'); }
+      });
+
+      // Listen for peerConnected to know caller is ready
+      liveSocket.on('video:call:peerConnected', peerData => {
+        liveLog(`Peer User ${peerData.peerUserId} is connected`, 'success');
+        addParticipant(peerData.peerUserId);
+      });
+    });
+
+    // 5. Create or Join room
+    if (roomInput) {
+      // ── JOIN existing room ──────────────────────────
+      liveLog(`Joining room: ${roomInput}...`, 'info');
+      document.getElementById('myRole').textContent = 'Joiner (answerer)';
+      liveRoomId = roomInput;
+      document.getElementById('activeRoomId').textContent = liveRoomId;
+
+      liveSocket.emit('video:call:joinRoom', { roomId: liveRoomId });
+      liveSocket.once('video:call:roomJoined', data => {
+        liveLog(`Joined room! Participants: [${data.participants?.join(', ')}]`, 'success');
+        // Show all existing participants
+        if (data.participants) {
+          data.participants.forEach(p => {
+            if (p !== userId) addParticipant(p);
+          });
+        }
+      });
+
+      // Listen for peerConnected events - other users joining
+      // When joining a room with existing peers, we may need to send offer
+      liveSocket.on('video:call:peerConnected', peerData => {
+        liveLog(`Peer User ${peerData.peerUserId} is connected`, 'success');
+        addParticipant(peerData.peerUserId);
+
+        // If we're the joiner and there's already a peer, send offer
+        if (!liveOfferSent && livePeer) {
+          liveOfferSent = true;
+          (async () => {
+            try {
+              // Track DataChannel globally for proper cleanup
+              liveDataChannel = livePeer.createDataChannel('chat');
+              liveDataChannel.onopen    = () => { liveLog('DataChannel open!', 'success'); setBadge('liveDcState', 'open'); };
+              liveDataChannel.onmessage = e => liveLog(`DataChannel msg: ${e.data}`, 'info');
+              liveDataChannel.onclose   = () => { setBadge('liveDcState', 'closed'); liveDataChannel = null; };
+
+              const offer = await livePeer.createOffer();
+              await livePeer.setLocalDescription(offer);
+              liveSocket.emit('video:call:offer', { roomId: liveRoomId, offer: offer });
+              liveLog('Offer sent as joiner!', 'success');
+            } catch (err) { liveLog(`Offer error: ${err.message}`, 'error'); }
+          })();
+        }
+      });
+
+      // Wait for offer from the creator (use .once — we only answer once)
+      // Server forwards offer event as: { roomId, offer, from }
+      liveSocket.once('video:call:offer', async data => {
+        liveLog(`Received offer from User ${data.from} — creating answer...`, 'info');
+        try {
+          await livePeer.setRemoteDescription(new RTCSessionDescription(data.offer));
+          const answer = await livePeer.createAnswer();
+          await livePeer.setLocalDescription(answer);
+          // Server handler reads data.answer
+          liveSocket.emit('video:call:answer', { roomId: liveRoomId, answer: answer });
+          liveLog('Answer sent!', 'success');
+        } catch (err) { liveLog(`Answer error: ${err.message}`, 'error'); }
+      });
+
+    } else {
+      // ── CREATE new room ─────────────────────────────
+      liveLog('Creating new room...', 'info');
+      document.getElementById('myRole').textContent = 'Creator (offerer)';
+
+      // calleeId must be a DIFFERENT user that will join later
+      // For string userIds like "user1", we create "user2", etc.
+      const calleeId = userId.replace(/(\d+)$/, m => String(parseInt(m) + 1));
+      liveSocket.emit('video:call:createRoom', { calleeId });
+
+      const roomData = await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('Room creation timeout')), TEST_TIMEOUT);
+        liveSocket.once('video:call:roomCreated', data => { clearTimeout(timer); resolve(data); });
+      });
+
+      liveRoomId = roomData.roomId;
+      document.getElementById('activeRoomId').textContent = liveRoomId;
+      document.getElementById('inputRoomId').value        = liveRoomId;
+      liveLog(`✅ Room created: ${liveRoomId}`, 'success');
+      liveLog(`📋 Share this Room ID with User ${calleeId} in another tab!`, 'warning');
+
+      // When the peer joins, server emits: video:call:peerConnected  { roomId, peerUserId }
+      // Note: server ALSO re-emits peerConnected on each ICE state change, so guard with a flag
+      // Use global liveOfferSent so it can be reset on rejoin
+      liveSocket.on('video:call:peerConnected', async data => {
+        if (liveOfferSent) return; // only send offer once
+        liveOfferSent = true;
+        liveLog(`🔔 Peer User ${data.peerUserId} joined — sending offer...`, 'success');
+        addParticipant(data.peerUserId);
+        try {
+          // Create DataChannel (must be done before createOffer)
+          liveDataChannel = livePeer.createDataChannel('chat');
+          liveDataChannel.onopen    = () => { liveLog('DataChannel open! You can exchange data.', 'success'); setBadge('liveDcState', 'open'); };
+          liveDataChannel.onmessage = e => liveLog(`DataChannel msg: ${e.data}`, 'info');
+          liveDataChannel.onclose   = () => { setBadge('liveDcState', 'closed'); liveDataChannel = null; };
+
+          const offer = await livePeer.createOffer();
+          await livePeer.setLocalDescription(offer);
+          liveSocket.emit('video:call:offer', { roomId: liveRoomId, offer: offer });
+          liveLog('Offer sent!', 'success');
+        } catch (err) { liveLog(`Offer error: ${err.message}`, 'error'); }
+      });
+
+      // participantJoined is for UI only (don't trigger offer here)
+      liveSocket.on('video:call:participantJoined', data => {
+        liveLog(`User ${data.userId} joined the room`, 'info');
+        addParticipant(data.userId);
+      });
+
+      // Handle answer from joiner (use .once — remote description set only once)
+      liveSocket.once('video:call:answer', async data => {
+        liveLog(`Received answer from User ${data.from} — finalizing connection...`, 'info');
+        try {
+          await livePeer.setRemoteDescription(new RTCSessionDescription(data.answer));
+          liveLog('Connection established! ✅', 'success');
+        } catch (err) { liveLog(`Set remote description error: ${err.message}`, 'error'); }
+      });
+    }
+
+    // 6. Forward ICE candidates from server to local peer
+    //    Server sends: { roomId, candidate, from }
+    liveSocket.on('video:call:iceCandidate', async data => {
+      if (data.candidate && livePeer) {
+        try { await livePeer.addIceCandidate(new RTCIceCandidate(data.candidate)); }
+        catch (e) { /* stale candidate — ignore */ }
+      }
+    });
+
+    // 7. Stats polling
+    liveStatsInt = setInterval(async () => {
+      if (!livePeer || (livePeer.iceConnectionState !== 'connected' && livePeer.iceConnectionState !== 'completed')) return;
+      try {
+        const s = await getPeerStats(livePeer);
+        document.getElementById('statBytesSent').textContent    = s.bytesSent.toLocaleString();
+        document.getElementById('statBytesReceived').textContent= s.bytesReceived.toLocaleString();
+        document.getElementById('statRTT').textContent          = s.rtt ? s.rtt + 'ms' : '--';
+        document.getElementById('statPacketsLost').textContent  = s.packetsLost;
+        // Report stats to server
+        liveSocket.emit('video:call:connectionStats', {
+          roomId: liveRoomId, userId,
+          stats: { bytesSent: s.bytesSent, bytesReceived: s.bytesReceived, packetsSent: 0, packetsReceived: 0, rtt: s.rtt, state: livePeer.iceConnectionState },
+          timestamp: new Date()
+        });
+      } catch(e) {}
+    }, 1000);
+
+    liveLog('Ready! Waiting for a peer to join the room...', 'info');
+
+  } catch (err) {
+    liveLog(`❌ Error: ${err.message}`, 'error');
+    document.getElementById('btnQuickTest').disabled = false;
+    document.getElementById('btnHangUp').disabled    = true;
+  }
+}
+
+// ── Peer event wiring ───────────────────────────────────────────
+function setupLivePeer(peer, userId) {
+  // ICE candidates OUT → server
+  peer.onicecandidate = e => {
+    if (e.candidate && liveSocket)
+      // Server handler reads data.candidate
+      liveSocket.emit('video:call:iceCandidate', { roomId: liveRoomId, candidate: e.candidate });
+  };
+
+  // ICE state
+  peer.oniceconnectionstatechange = () => {
+    const s = peer.iceConnectionState;
+    liveLog(`ICE: ${s}`, s === 'connected' || s === 'completed' ? 'success' : 'info');
+    setBadge('liveIceState', s);
+    document.getElementById('myConnState').textContent = s;
+    if (liveSocket && liveRoomId) {
+      liveSocket.emit('video:call:iceStateChange', {
+        roomId: liveRoomId, userId,
+        iceConnectionState: s,
+        iceGatheringState: peer.iceGatheringState,
+        timestamp: new Date()
+      });
+    }
+  };
+
+  // Remote video track → show in remote <video>
+  peer.ontrack = e => {
+    liveLog(`Received ${e.track.kind} track from peer!`, 'success');
+    const remoteVideo = document.getElementById('remoteVideo');
+    // Reset the stream - create fresh MediaStream for each new connection
+    remoteVideo.srcObject = new MediaStream();
+    remoteVideo.srcObject.addTrack(e.track);
+    remoteVideo.play().catch(e => console.log('Auto-play blocked:', e.message));
+  };
+
+  // Remote DataChannel
+  peer.ondatachannel = e => {
+    liveDataChannel = e.channel;
+    liveDataChannel.onopen    = () => { liveLog('Remote DataChannel open!', 'success'); setBadge('liveDcState', 'open'); };
+    liveDataChannel.onmessage = ev => liveLog(`DataChannel msg: ${ev.data}`, 'info');
+    liveDataChannel.onclose   = () => { setBadge('liveDcState', 'closed'); liveDataChannel = null; };
+  };
+}
+
+// ── Hang Up ─────────────────────────────────────────────────────
+async function hangUp() {
+  if (liveSocket && liveRoomId) liveSocket.emit('video:call:leaveRoom', { roomId: liveRoomId });
+
+  // Clean up DataChannel first
+  if (liveDataChannel) {
+    liveDataChannel.close();
+    liveDataChannel = null;
+  }
+  if (livePeer)    { livePeer.close();   livePeer   = null; }
+  if (liveStream)  { liveStream.getTracks().forEach(t => t.stop()); liveStream = null; }
+  if (liveStatsInt){ clearInterval(liveStatsInt); liveStatsInt = null; }
+  if (liveSocket)  { liveSocket.disconnect(); liveSocket = null; }
+  liveRoomId = null;
+  liveOfferSent = false;
+  liveDataChannel = null;
+
+  document.getElementById('localVideo').srcObject  = null;
+  document.getElementById('remoteVideo').srcObject = null;
+  document.getElementById('mySocketId').textContent  = '—';
+  document.getElementById('myUserId').textContent    = '—';
+  document.getElementById('myRole').textContent      = '—';
+  document.getElementById('myConnState').textContent = '—';
+  document.getElementById('activeRoomId').textContent= '—';
+  document.getElementById('liveSocketStatus').textContent = '--';
+  document.getElementById('liveSocketStatus').className   = 'status-value s-pending';
+  setBadge('liveIceState', 'new'); setBadge('liveDcState', 'new');
+  ['statBytesSent','statBytesReceived','statPacketsLost'].forEach(id => document.getElementById(id).textContent = '0');
+  document.getElementById('statRTT').textContent = '--';
+  document.getElementById('participantsList').innerHTML = '<span style="color:#555;font-size:13px">No participants yet...</span>';
+  document.getElementById('btnQuickTest').disabled = false;
+  document.getElementById('btnHangUp').disabled    = true;
+  liveLog('Disconnected.', 'warning');
+}
+
+// ================================================================
+// AUTO TEST MODE  —  two simulated sockets in one tab
+// ================================================================
+const AUTO_USER_A = 901;
+const AUTO_USER_B = 902;
+
+let sockA, sockB, peerA, peerB, autoStream, autoStatsInt, autoRoomId;
+let autoRunning = false, passed = 0, failed = 0;
+
+function autoLog(msg, type = 'info') {
+  const c = document.getElementById('autoLogContainer');
+  const t = new Date().toISOString().substr(11, 12);
+  const d = document.createElement('div');
+  d.className = `log-entry log-${type}`;
+  d.innerHTML = `<span class="log-time">[${t}]</span> ${msg}`;
+  c.appendChild(d); c.scrollTop = c.scrollHeight;
+}
+function clearAutoLogs() { document.getElementById('autoLogContainer').innerHTML = ''; }
+
+function autoSetStatus(id, cls, text) {
+  const el = document.getElementById(id); el.textContent = text; el.className = `status-value ${cls}`;
+}
+function autoSetIce(id, state) {
+  const el = document.getElementById(id); el.textContent = state; el.className = `state-badge state-${state}`;
+}
+function updateProgress(pct) { document.getElementById('progressBar').style.width = pct + '%'; }
+
+function addResult(name, ok, msg = '') {
+  document.getElementById('testResults').innerHTML += `
+    <div class="test-item">
+      <span style="font-size:16px">${ok ? '✅' : '❌'}</span>
+      <span class="test-name">${name}${msg ? ' <span style="color:#888;font-size:11px">— '+msg+'</span>' : ''}</span>
+      <span style="font-weight:bold;font-size:12px;${ok ? 'color:#00ff88' : 'color:#ff4757'}">${ok ? 'PASS' : 'FAIL'}</span>
+    </div>`;
+  if (ok) passed++; else failed++;
+}
+
+function showSummary() {
+  document.getElementById('summary').style.display = 'block';
+  document.getElementById('score').textContent = `${passed}/${passed+failed}`;
+  document.getElementById('score').className   = failed === 0 ? 'score' : 'score fail';
+  document.getElementById('scoreText').textContent = failed === 0 ? '🎉 All tests passed!' : `${failed} test(s) failed.`;
+}
+
+function setAutoButtons(running) {
+  document.getElementById('btnRunAll').disabled  = running;
+  document.getElementById('btnDataTest').disabled= running;
+  document.getElementById('btnStop').disabled    = !running;
+}
+
+async function autoConnectSockets() {
+  autoLog('Connecting two simulated sockets...', 'info');
+  return new Promise((resolve, reject) => {
+    let cnt = 0;
+    sockA = io(SERVER_URL, { auth: { userId: String(AUTO_USER_A) }, transports:['websocket'], reconnection:false });
+    sockB = io(SERVER_URL, { auth: { userId: String(AUTO_USER_B) }, transports:['websocket'], reconnection:false });
+    sockA.on('connect', () => { cnt++; autoLog(`Socket A: ${sockA.id}`, 'success'); autoSetStatus('autoSock1','s-success','Connected'); if(cnt===2)resolve(); });
+    sockB.on('connect', () => { cnt++; autoLog(`Socket B: ${sockB.id}`, 'success'); autoSetStatus('autoSock2','s-success','Connected'); if(cnt===2)resolve(); });
+    sockA.on('connect_error', e => reject(e));
+    setTimeout(() => { if(cnt<2) reject(new Error('Socket timeout')); }, TEST_TIMEOUT);
+  });
+}
+
+async function autoCreateRoom() {
+  autoLog('Creating room (Socket A)...', 'info');
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Room timeout')), TEST_TIMEOUT);
+    sockA.once('video:call:roomCreated', data => {
+      clearTimeout(timer);
+      autoRoomId = data.roomId;
+      autoLog(`Room: ${autoRoomId}. Socket B joining...`, 'success');
+      sockB.emit('video:call:joinRoom', { roomId: autoRoomId });
+      // Server emits peerConnected to creator when joiner arrives
+      // Also emit peerConnected to joiner if creator is already in room
+      sockB.once('video:call:roomJoined', () => { autoLog('Socket B joined.', 'success'); resolve(); });
+    });
+    sockA.emit('video:call:createRoom', { calleeId: AUTO_USER_B });
+  });
+}
+
+async function autoSetupPeers(iceConfig) {
+  autoLog('Creating RTCPeerConnections...', 'info');
+  peerA = new RTCPeerConnection({ iceServers: iceConfig });
+  peerB = new RTCPeerConnection({ iceServers: iceConfig });
+
+  peerA.oniceconnectionstatechange = () => {
+    const s = peerA.iceConnectionState;
+    autoLog(`Peer A ICE: ${s}`, s==='connected'||s==='completed'?'success':'info');
+    autoSetIce('autoIce1', s);
+    autoSetStatus('autoIceStatus', s==='connected'||s==='completed'?'s-success':'s-pending', s);
+  };
+  peerB.oniceconnectionstatechange = () => {
+    const s = peerB.iceConnectionState;
+    autoLog(`Peer B ICE: ${s}`, s==='connected'||s==='completed'?'success':'info');
+    autoSetIce('autoIce2', s);
+  };
+  peerA.onicegatheringstatechange = () => autoSetIce('autoGathering', peerA.iceGatheringState);
+
+  // Listen for peerConnected events to know when to create offer
+  let peerConnectedReceived = { a: false, b: false };
+
+  sockA.on('video:call:peerConnected', (data) => {
+    autoLog(`Socket A: peerConnected - peer: ${data.peerUserId}`, 'info');
+    peerConnectedReceived.a = true;
+  });
+
+  sockB.on('video:call:peerConnected', (data) => {
+    autoLog(`Socket B: peerConnected - peer: ${data.peerUserId}`, 'info');
+    peerConnectedReceived.b = true;
+  });
+
+  try {
+    autoStream = await navigator.mediaDevices.getUserMedia({ video:{width:320,height:240}, audio:true });
+    autoStream.getTracks().forEach(t => { peerA.addTrack(t, autoStream); peerB.addTrack(t, autoStream); });
+    autoLog('Got media stream', 'success');
+  } catch(e) {
+    autoLog(`No media (${e.name}) — DataChannel only`, 'warning');
+  }
+
+  const dcA = peerA.createDataChannel('test');
+  dcA.onopen = () => autoLog('DataChannel A open', 'success');
+  peerB.ondatachannel = ev => { ev.channel.onopen = () => autoLog('DataChannel B open', 'success'); };
+
+  // ICE candidate forwarding — use correct field: candidate
+  peerA.onicecandidate = e => { if(e.candidate) sockA.emit('video:call:iceCandidate',{roomId:autoRoomId,candidate:e.candidate}); };
+  peerB.onicecandidate = e => { if(e.candidate) sockB.emit('video:call:iceCandidate',{roomId:autoRoomId,candidate:e.candidate}); };
+  sockA.on('video:call:iceCandidate', async d => { if(d.candidate && peerA) await peerA.addIceCandidate(new RTCIceCandidate(d.candidate)).catch(()=>{}); });
+  sockB.on('video:call:iceCandidate', async d => { if(d.candidate && peerB) await peerB.addIceCandidate(new RTCIceCandidate(d.candidate)).catch(()=>{}); });
+
+  // Wait for peerConnected events before resolving
+  await new Promise((resolve) => {
+    const checkInterval = setInterval(() => {
+      if (peerConnectedReceived.a && peerConnectedReceived.b) {
+        clearInterval(checkInterval);
+        autoLog('Both sockets received peerConnected - ready for SDP exchange', 'success');
+        resolve();
+      }
+    }, 100);
+
+    // Timeout after 5 seconds
+    setTimeout(() => {
+      clearInterval(checkInterval);
+      autoLog('Warning: peerConnected timeout - proceeding anyway', 'warning');
+      resolve();
+    }, 5000);
+  });
+}
+
+async function autoExchangeSDP() {
+  autoLog('Exchanging offer/answer...', 'info');
+  // Server reads data.offer and forwards as { roomId, offer, from }
+  const offer = await peerA.createOffer();
+  await peerA.setLocalDescription(offer);
+  sockA.emit('video:call:offer', { roomId: autoRoomId, offer: offer });
+
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('SDP timeout')), TEST_TIMEOUT);
+    sockB.once('video:call:offer', async data => {
+      await peerB.setRemoteDescription(new RTCSessionDescription(data.offer));
+      const answer = await peerB.createAnswer();
+      await peerB.setLocalDescription(answer);
+      // Server reads data.answer and forwards as { roomId, answer, from }
+      sockB.emit('video:call:answer', { roomId: autoRoomId, answer: answer });
+    });
+    sockA.once('video:call:answer', async data => {
+      await peerA.setRemoteDescription(new RTCSessionDescription(data.answer));
+      clearTimeout(timer);
+      autoLog('SDP exchange complete!', 'success');
+      resolve();
+    });
+  });
+}
+
+async function autoWaitICE() {
+  autoLog('Waiting for ICE connection...', 'info');
+  return new Promise((resolve, reject) => {
+    const iv = setInterval(() => {
+      const s1 = peerA.iceConnectionState, s2 = peerB.iceConnectionState;
+      if (s1==='connected'||s1==='completed'||s2==='connected'||s2==='completed') { clearInterval(iv); resolve(s1); }
+      if (s1==='failed'||s2==='failed') { clearInterval(iv); reject(new Error('ICE failed')); }
+    }, 400);
+    setTimeout(() => { clearInterval(iv); reject(new Error('ICE timeout')); }, ICE_TIMEOUT);
+  });
+}
+
+function autoStartStats() {
+  autoStatsInt = setInterval(async () => {
+    if (!peerA || (peerA.iceConnectionState!=='connected' && peerA.iceConnectionState!=='completed')) return;
+    try {
+      const s = await getPeerStats(peerA);
+      document.getElementById('autoBytesSent').textContent = s.bytesSent.toLocaleString();
+      document.getElementById('autoBytesRecv').textContent = s.bytesReceived.toLocaleString();
+      document.getElementById('autoRTT').textContent       = s.rtt ? s.rtt+'ms' : '--';
+      document.getElementById('autoPktLost').textContent   = s.packetsLost;
+    } catch(e){}
+  }, 1000);
+}
+
+function autoCleanup() {
+  if (peerA)      { peerA.close();   peerA  = null; }
+  if (peerB)      { peerB.close();   peerB  = null; }
+  if (autoStream) { autoStream.getTracks().forEach(t=>t.stop()); autoStream = null; }
+  if (autoStatsInt){ clearInterval(autoStatsInt); autoStatsInt = null; }
+  if (sockA)      { sockA.disconnect(); sockA = null; }
+  if (sockB)      { sockB.disconnect(); sockB = null; }
+  autoSetStatus('autoSock1','s-pending','--'); autoSetStatus('autoSock2','s-pending','--');
+  autoSetStatus('autoIceStatus','s-pending','--');
+  autoSetIce('autoIce1','new'); autoSetIce('autoIce2','new'); autoSetIce('autoGathering','new');
+}
+
+async function runAllTests() {
+  if (autoRunning) return;
+  autoRunning = true; setAutoButtons(true);
+  document.getElementById('testResults').innerHTML = '';
+  document.getElementById('summary').style.display = 'none';
+  passed = 0; failed = 0;
+
+  try {
+    updateProgress(10); autoLog('=== Automated Test Suite ===', 'info');
+    const iceConfig = await getIceConfig();
+    addResult('ICE Config', true, `${iceConfig.length} servers`);
+
+    updateProgress(20); await autoConnectSockets();
+    addResult('Socket Connections', true, 'A & B connected');
+
+    updateProgress(35); await autoCreateRoom();
+    addResult('Room Create & Join', true, autoRoomId);
+
+    updateProgress(50); await autoSetupPeers(iceConfig);
+    addResult('RTCPeerConnections', true, 'Created');
+
+    updateProgress(65); await autoExchangeSDP();
+    addResult('Offer/Answer Exchange', true, 'SDP done');
+
+    updateProgress(80);
+    const iceState = await autoWaitICE();
+    addResult('ICE Connection', true, iceState);
+
+    updateProgress(92); autoStartStats();
+    await wait(2000);
+    const stats = await getPeerStats(peerA);
+    const hasData = stats.bytesSent > 0 || stats.bytesReceived > 0;
+    addResult('Data Transfer', hasData, hasData ? `${stats.bytesSent}B sent` : 'ICE connected');
+
+    updateProgress(100);
+    autoLog('✅ Done!', 'success');
+  } catch (err) {
+    autoLog(`Error: ${err.message}`, 'error');
+    addResult('Test Error', false, err.message);
+  } finally {
+    showSummary(); autoRunning = false; setAutoButtons(false);
+  }
+}
+
+async function runDataTransferTest() {
+  if (autoRunning) return;
+  autoRunning = true; setAutoButtons(true);
+  try {
+    const iceConfig = await getIceConfig();
+    await autoConnectSockets(); await autoCreateRoom();
+    await autoSetupPeers(iceConfig); await autoExchangeSDP();
+    await autoWaitICE(); autoStartStats();
+    autoLog('Monitoring for 10s...', 'info');
+    await wait(10000);
+    const s = await getPeerStats(peerA);
+    addResult('Data Transfer', s.bytesSent>0||s.bytesReceived>0, `${s.bytesSent}B sent, ${s.bytesReceived}B recv`);
+  } catch(err) {
+    autoLog(`Error: ${err.message}`, 'error');
+    addResult('Data Transfer', false, err.message);
+  } finally { showSummary(); autoRunning = false; setAutoButtons(false); }
+}
+
+function stopTests() { autoLog('Stopped.', 'warning'); autoCleanup(); autoRunning = false; setAutoButtons(false); }
+</script>
+</body>
+</html>
