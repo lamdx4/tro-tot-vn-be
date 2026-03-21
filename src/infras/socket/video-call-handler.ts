@@ -23,6 +23,7 @@ import {
   ConnectionStatsEvent
 } from '@/utils/types/webrtc-signaling'
 import { env } from '@/preload-env'
+import ResponseData from '@/utils/data-types/response'
 import {
   saveUserConnection,
   removeUserConnection,
@@ -138,7 +139,7 @@ export class VideoCallHandler {
     const { calleeId } = data
 
     if (!callerId) {
-      this.emitError(socket, 'UNAUTHORIZED', 'User not authenticated')
+      this.emitError(socket, 'UNAUTHORIZED', 'User not authenticated', 401)
       return
     }
 
@@ -147,12 +148,12 @@ export class VideoCallHandler {
     }
 
     if (!calleeId) {
-      this.emitError(socket, 'INVALID_CALLEE', 'Callee ID is required')
+      this.emitError(socket, 'INVALID_CALLEE', 'Callee ID is required', 400)
       return
     }
 
     if (callerId === calleeId) {
-      this.emitError(socket, 'INVALID_CALLEE', 'Cannot call yourself')
+      this.emitError(socket, 'INVALID_CALLEE', 'Cannot call yourself', 400)
       return
     }
 
@@ -227,7 +228,7 @@ export class VideoCallHandler {
     const userId = socket.data.userId as string
 
     if (!userId) {
-      this.emitError(socket, 'UNAUTHORIZED', 'User not authenticated')
+      this.emitError(socket, 'UNAUTHORIZED', 'User not authenticated', 401)
       return
     }
 
@@ -241,18 +242,18 @@ export class VideoCallHandler {
     const room = await getVideoCallRoom(roomId)
 
     if (!room) {
-      this.emitError(socket, 'ROOM_NOT_FOUND', 'Room not found')
+      this.emitError(socket, 'ROOM_NOT_FOUND', 'Room not found', 404, roomId)
       return
     }
 
     if (!room.isActive) {
-      this.emitError(socket, 'ROOM_NOT_ACTIVE', 'This call has ended')
+      this.emitError(socket, 'ROOM_NOT_ACTIVE', 'This call has ended', 410, roomId)
       return
     }
 
     // Only allow users in room.participants
     if (!room.participants.includes(userId)) {
-      this.emitError(socket, 'NOT_INVITED', 'You are not invited to this call')
+      this.emitError(socket, 'NOT_INVITED', 'You are not invited to this call', 403, roomId)
       return
     }
 
@@ -415,19 +416,19 @@ export class VideoCallHandler {
     const { roomId, offer } = data
 
     if (!offer || typeof offer !== 'object' || !offer.type || !offer.sdp) {
-      this.emitError(socket, 'INVALID_OFFER', 'Invalid offer payload')
+      this.emitError(socket, 'INVALID_OFFER', 'Invalid offer payload', 400, roomId)
       return
     }
 
     const room = await getVideoCallRoom(roomId)
 
     if (!room) {
-      this.emitError(socket, 'ROOM_NOT_FOUND', 'Room not found')
+      this.emitError(socket, 'ROOM_NOT_FOUND', 'Room not found', 404, roomId)
       return
     }
 
     if (!room.activeParticipants.includes(userId)) {
-      this.emitError(socket, 'USER_NOT_IN_ROOM', 'You are not in this room')
+      this.emitError(socket, 'USER_NOT_IN_ROOM', 'You are not in this room', 403, roomId)
       return
     }
 
@@ -446,19 +447,19 @@ export class VideoCallHandler {
     const { roomId, answer } = data
 
     if (!answer || typeof answer !== 'object' || !answer.type || !answer.sdp) {
-      this.emitError(socket, 'INVALID_ANSWER', 'Invalid answer payload')
+      this.emitError(socket, 'INVALID_ANSWER', 'Invalid answer payload', 400, roomId)
       return
     }
 
     const room = await getVideoCallRoom(roomId)
 
     if (!room) {
-      this.emitError(socket, 'ROOM_NOT_FOUND', 'Room not found')
+      this.emitError(socket, 'ROOM_NOT_FOUND', 'Room not found', 404, roomId)
       return
     }
 
     if (!room.activeParticipants.includes(userId)) {
-      this.emitError(socket, 'USER_NOT_IN_ROOM', 'You are not in this room')
+      this.emitError(socket, 'USER_NOT_IN_ROOM', 'You are not in this room', 403, roomId)
       return
     }
 
@@ -477,19 +478,19 @@ export class VideoCallHandler {
     const { roomId, candidate } = data
 
     if (!roomId) {
-      this.emitError(socket, 'INVALID_ROOM_ID', 'Room ID is required')
+      this.emitError(socket, 'INVALID_ROOM_ID', 'Room ID is required', 400)
       return
     }
 
     const room = await getVideoCallRoom(roomId)
 
     if (!room) {
-      this.emitError(socket, 'ROOM_NOT_FOUND', 'Room not found')
+      this.emitError(socket, 'ROOM_NOT_FOUND', 'Room not found', 404, roomId)
       return
     }
 
     if (!room.activeParticipants.includes(userId)) {
-      this.emitError(socket, 'USER_NOT_IN_ROOM', 'You are not in this room')
+      this.emitError(socket, 'USER_NOT_IN_ROOM', 'You are not in this room', 403, roomId)
       return
     }
 
@@ -510,7 +511,7 @@ export class VideoCallHandler {
     const room = await getVideoCallRoom(roomId)
 
     if (!room) {
-      this.emitError(socket, 'ROOM_NOT_FOUND', 'Room not found')
+      this.emitError(socket, 'ROOM_NOT_FOUND', 'Room not found', 404, roomId)
       return
     }
 
@@ -730,13 +731,14 @@ export class VideoCallHandler {
   }
 
   /**
-   * Emit error to socket
+   * Emit error to socket with context-aware roomId and status code
    */
-  private emitError(socket: Socket, code: string, message: string): void {
+  private emitError(socket: Socket, code: string, message: string, status: number = 500, roomId?: string): void {
+    const response = ResponseData.error(status, message, code)
     const error: CallErrorEvent = {
-      roomId: '',
-      code,
-      message,
+      roomId: roomId ?? '',
+      code: response.error[0] || code,
+      message: response.message,
       timestamp: new Date()
     }
     socket.emit(VIDEO_CALL_EVENTS.CALL_ERROR, error)

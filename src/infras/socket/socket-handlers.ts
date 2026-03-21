@@ -2,6 +2,7 @@ import { Socket } from 'socket.io'
 import { SOCKET_EVENTS, MessageSentEvent, MessageReadEvent, TypingEvent, FileUploadEvent, FileSentEvent, FileSentEventInput } from '@/utils/types/socket-events'
 import { ChatService, MessageService, FileService } from '@/services'
 import { MessageType } from '@/domains/entities/enum/value-object'
+import ResponseData from '@/utils/data-types/response'
 
 /**
  * Socket event handlers for chat functionality
@@ -21,7 +22,6 @@ export class SocketHandlers {
    * Handle user connection
    */
   handleConnection(socket: Socket): void {
-    // TODO: jwt handler here
     const userId = socket.data.userId as number
 
     console.log(`[Socket] User connected: ${userId}`)
@@ -66,9 +66,10 @@ export class SocketHandlers {
       const isMember = await this.chatService.isCustomerInConversation(conversationId, userId)
 
       if (!isMember) {
+        const response = ResponseData.error(403, 'You are not a member of this conversation', 'NOT_MEMBER')
         socket.emit('error', {
-          code: 'NOT_MEMBER',
-          message: 'You are not a member of this conversation'
+          code: response.error[0],
+          message: response.message
         })
         return
       }
@@ -100,9 +101,10 @@ export class SocketHandlers {
       socket.emit(SOCKET_EVENTS.MESSAGE_SENT, eventData)
     } catch (error: any) {
       console.error('[Socket] Error sending message:', error)
+      const response = ResponseData.error(500, error.message, 'MESSAGE_SEND_ERROR')
       socket.emit('error', {
-        code: 'MESSAGE_SEND_ERROR',
-        message: error.message
+        code: response.error[0],
+        message: response.message
       })
     }
   }
@@ -130,9 +132,10 @@ export class SocketHandlers {
       )
     } catch (error: any) {
       console.error('[Socket] Error marking message as read:', error)
+      const response = ResponseData.error(500, error.message, 'MESSAGE_READ_ERROR')
       socket.emit('error', {
-        code: 'MESSAGE_READ_ERROR',
-        message: error.message
+        code: response.error[0],
+        message: response.message
       })
     }
   }
@@ -223,9 +226,10 @@ export class SocketHandlers {
       // Verify user is in conversation
       const isMember = await this.chatService.isCustomerInConversation(conversationId, userId)
       if (!isMember) {
+        const response = ResponseData.error(403, 'You are not a member of this conversation', 'NOT_MEMBER')
         socket.emit('error', {
-          code: 'NOT_MEMBER',
-          message: 'You are not a member of this conversation'
+          code: response.error[0],
+          message: response.message
         })
         return
       }
@@ -245,9 +249,10 @@ export class SocketHandlers {
       })
     } catch (error: any) {
       console.error('[Socket] Error handling file upload:', error)
+      const response = ResponseData.error(500, error.message, 'FILE_UPLOAD_ERROR')
       socket.emit('error', {
-        code: 'FILE_UPLOAD_ERROR',
-        message: error.message
+        code: response.error[0],
+        message: response.message
       })
     }
   }
@@ -263,9 +268,10 @@ export class SocketHandlers {
       // Verify user is in conversation
       const isMember = await this.chatService.isCustomerInConversation(conversationId, userId)
       if (!isMember) {
+        const response = ResponseData.error(403, 'You are not a member of this conversation', 'NOT_MEMBER')
         socket.emit('error', {
-          code: 'NOT_MEMBER',
-          message: 'You are not a member of this conversation'
+          code: response.error[0],
+          message: response.message
         })
         return
       }
@@ -311,11 +317,11 @@ export class SocketHandlers {
       socket.emit(SOCKET_EVENTS.FILE_SENT, eventData)
     } catch (error: any) {
       console.error('[Socket] Error sending file message:', error)
+      const response = ResponseData.error(500, error.message, 'FILE_SEND_ERROR')
       socket.emit('error', {
-        code: 'FILE_SEND_ERROR',
-        message: error.message
+        code: response.error[0],
+        message: response.message
       })
     }
   }
 }
-
