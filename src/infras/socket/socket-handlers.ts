@@ -20,8 +20,8 @@ export class SocketHandlers {
   /**
    * Wrap payload in REST-style envelope: { status, data }
    */
-  private wrap<T>(data: T, status = 200): { status: number; data: T } {
-    return { status, data }
+  private wrap<T>(data: any, status = 200): ResponseData<T> {
+    return new ResponseData<T>(status, 'success', data)
   }
 
   /**
