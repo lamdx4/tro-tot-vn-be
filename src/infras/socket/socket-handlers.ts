@@ -1,7 +1,6 @@
 import { Socket } from 'socket.io'
 import { SOCKET_EVENTS, MessageSentEvent, MessageReadEvent, TypingEvent, FileUploadEvent, FileSentEvent, FileSentEventInput } from '@/utils/types/socket-events'
 import { ChatService, MessageService, FileService } from '@/services'
-import { MessageType } from '@/domains/entities/enum/value-object'
 import ResponseData from '@/utils/data-types/response'
 
 /**
@@ -16,6 +15,25 @@ export class SocketHandlers {
     this.chatService = new ChatService()
     this.messageService = new MessageService()
     this.fileService = new FileService()
+  }
+
+  /**
+   * Wrap payload in REST-style envelope: { status, data }
+   */
+  private wrap<T>(data: T, status = 200): { status: number; data: T } {
+    return { status, data }
+  }
+
+  /**
+   * Emit error to socket (direct reply to sender)
+   */
+  private emitError(socket: Socket, code: string, message: string, status = 500): void {
+    const response = ResponseData.error(status, message, code)
+    socket.emit('error', {
+      code: response.error[0] || code,
+      message: response.message,
+      status: response.status
+    })
   }
 
   /**
@@ -66,11 +84,7 @@ export class SocketHandlers {
       const isMember = await this.chatService.isCustomerInConversation(conversationId, userId)
 
       if (!isMember) {
-        const response = ResponseData.error(403, 'You are not a member of this conversation', 'NOT_MEMBER')
-        socket.emit('error', {
-          code: response.error[0],
-          message: response.message
-        })
+        this.emitError(socket, 'NOT_MEMBER', 'You are not a member of this conversation', 403)
         return
       }
 
@@ -81,7 +95,6 @@ export class SocketHandlers {
         { content, messageType, conversationId }
       )
 
-      // Send to all participants
       const eventData: MessageSentEvent = {
         messageId: message.messageId,
         conversationId: message.conversationId,
@@ -91,21 +104,17 @@ export class SocketHandlers {
         createdAt: message.createdAt
       }
 
-      // Emit to conversation room
+      // Broadcast to room (exclude sender — raw, no wrap)
       socket.to(`conversation:${conversationId}`).emit(
         SOCKET_EVENTS.MESSAGE_RECEIVED,
         eventData
       )
 
-      // Acknowledge to sender
-      socket.emit(SOCKET_EVENTS.MESSAGE_SENT, eventData)
+      // Acknowledge to sender (direct reply — wrapped)
+      socket.emit(SOCKET_EVENTS.MESSAGE_SENT, this.wrap(eventData))
     } catch (error: any) {
       console.error('[Socket] Error sending message:', error)
-      const response = ResponseData.error(500, error.message, 'MESSAGE_SEND_ERROR')
-      socket.emit('error', {
-        code: response.error[0],
-        message: response.message
-      })
+      this.emitError(socket, 'MESSAGE_SEND_ERROR', error.message)
     }
   }
 
@@ -120,7 +129,7 @@ export class SocketHandlers {
       // Mark as read
       await this.messageService.markMessageAsRead(messageId)
 
-      // Notify other participants in conversation
+      // Notify other participants in conversation (broadcast — raw, no wrap)
       socket.to(`conversation:${conversationId}`).emit(
         SOCKET_EVENTS.MESSAGE_READ,
         {
@@ -132,11 +141,7 @@ export class SocketHandlers {
       )
     } catch (error: any) {
       console.error('[Socket] Error marking message as read:', error)
-      const response = ResponseData.error(500, error.message, 'MESSAGE_READ_ERROR')
-      socket.emit('error', {
-        code: response.error[0],
-        message: response.message
-      })
+      this.emitError(socket, 'MESSAGE_READ_ERROR', error.message)
     }
   }
 
@@ -183,7 +188,7 @@ export class SocketHandlers {
     socket.join(`conversation:${conversationId}`)
     console.log(`[Socket] User ${userId} joined conversation:${conversationId}`)
 
-    // Notify others in conversation
+    // Notify others in conversation (broadcast — raw, no wrap)
     socket.to(`conversation:${conversationId}`).emit(
       SOCKET_EVENTS.PARTICIPANT_JOINED,
       {
@@ -203,7 +208,7 @@ export class SocketHandlers {
     socket.leave(`conversation:${conversationId}`)
     console.log(`[Socket] User ${userId} left conversation:${conversationId}`)
 
-    // Notify others in conversation
+    // Notify others in conversation (broadcast — raw, no wrap)
     socket.to(`conversation:${conversationId}`).emit(
       SOCKET_EVENTS.PARTICIPANT_LEFT,
       {
@@ -226,11 +231,7 @@ export class SocketHandlers {
       // Verify user is in conversation
       const isMember = await this.chatService.isCustomerInConversation(conversationId, userId)
       if (!isMember) {
-        const response = ResponseData.error(403, 'You are not a member of this conversation', 'NOT_MEMBER')
-        socket.emit('error', {
-          code: response.error[0],
-          message: response.message
-        })
+        this.emitError(socket, 'NOT_MEMBER', 'You are not a member of this conversation', 403)
         return
       }
 
@@ -238,22 +239,18 @@ export class SocketHandlers {
       // For now, we'll use a local path
       const fileUrl = `/uploads/messages/${Date.now()}-${fileName}`
 
-      // Emit upload acknowledgment with file info
-      socket.emit(SOCKET_EVENTS.FILE_UPLOADED, {
+      // Acknowledge to sender (direct reply — wrapped)
+      socket.emit(SOCKET_EVENTS.FILE_UPLOADED, this.wrap({
         fileName,
         fileUrl,
         fileSize,
         mimeType,
         fileType,
         uploadStatus: 'pending' // Client should now send the actual file via HTTP
-      })
+      }))
     } catch (error: any) {
       console.error('[Socket] Error handling file upload:', error)
-      const response = ResponseData.error(500, error.message, 'FILE_UPLOAD_ERROR')
-      socket.emit('error', {
-        code: response.error[0],
-        message: response.message
-      })
+      this.emitError(socket, 'FILE_UPLOAD_ERROR', error.message)
     }
   }
 
@@ -268,11 +265,7 @@ export class SocketHandlers {
       // Verify user is in conversation
       const isMember = await this.chatService.isCustomerInConversation(conversationId, userId)
       if (!isMember) {
-        const response = ResponseData.error(403, 'You are not a member of this conversation', 'NOT_MEMBER')
-        socket.emit('error', {
-          code: response.error[0],
-          message: response.message
-        })
+        this.emitError(socket, 'NOT_MEMBER', 'You are not a member of this conversation', 403)
         return
       }
 
@@ -296,7 +289,6 @@ export class SocketHandlers {
         }))
       )
 
-      // Send to all participants
       const eventData: FileSentEvent = {
         messageId: message.messageId,
         conversationId: message.conversationId,
@@ -307,21 +299,17 @@ export class SocketHandlers {
         createdAt: message.createdAt
       }
 
-      // Emit to conversation room
+      // Broadcast to room (exclude sender — raw, no wrap)
       socket.to(`conversation:${conversationId}`).emit(
         SOCKET_EVENTS.FILE_RECEIVED,
         eventData
       )
 
-      // Acknowledge to sender
-      socket.emit(SOCKET_EVENTS.FILE_SENT, eventData)
+      // Acknowledge to sender (direct reply — wrapped)
+      socket.emit(SOCKET_EVENTS.FILE_SENT, this.wrap(eventData))
     } catch (error: any) {
       console.error('[Socket] Error sending file message:', error)
-      const response = ResponseData.error(500, error.message, 'FILE_SEND_ERROR')
-      socket.emit('error', {
-        code: response.error[0],
-        message: response.message
-      })
+      this.emitError(socket, 'FILE_SEND_ERROR', error.message)
     }
   }
 }

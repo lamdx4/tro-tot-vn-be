@@ -57,6 +57,27 @@ export class VideoCallHandler {
   }
 
   /**
+   * Wrap payload in REST-style envelope: { status, data }
+   */
+  private wrap<T>(data: T, status = 200): { status: number; data: T } {
+    return { status, data }
+  }
+
+  /**
+   * Emit error to socket with context-aware roomId and status code
+   */
+  private emitError(socket: Socket, code: string, message: string, status: number = 500, roomId?: string): void {
+    const response = ResponseData.error(status, message, code)
+    const error: CallErrorEvent = {
+      roomId: roomId ?? '',
+      code: response.error[0] || code,
+      message: response.message,
+      timestamp: new Date()
+    }
+    socket.emit(VIDEO_CALL_EVENTS.CALL_ERROR, this.wrap(error, status))
+  }
+
+  /**
    * Handle new socket connection - register user socket and join personal room
    */
   async handleConnection(socket: Socket): Promise<void> {
@@ -82,7 +103,7 @@ export class VideoCallHandler {
 
     const response: IceServersResponse = { iceServers }
 
-    socket.emit(VIDEO_CALL_EVENTS.ICE_CONFIG, response)
+    socket.emit(VIDEO_CALL_EVENTS.ICE_CONFIG, this.wrap(response))
     if (this.isDebug) {
       console.log('[VideoCallHandler] Sent ICE config to user')
     }
@@ -203,7 +224,7 @@ export class VideoCallHandler {
       calleeId,
       createdAt
     }
-    socket.emit(VIDEO_CALL_EVENTS.ROOM_CREATED, response)
+    socket.emit(VIDEO_CALL_EVENTS.ROOM_CREATED, this.wrap(response, 201))
 
     // Create minimal room object for notifyCallee
     const room: VideoCallRoom = {
@@ -298,33 +319,33 @@ export class VideoCallHandler {
       userId,
       timestamp: new Date()
     }
-    socket.to(roomId).emit(VIDEO_CALL_EVENTS.ROOM_PARTICIPANT_JOINED, participantEvent)
+    socket.to(roomId).emit(VIDEO_CALL_EVENTS.ROOM_PARTICIPANT_JOINED, this.wrap(participantEvent))
 
     const response: RoomJoinedEvent = {
       roomId,
       participants: room.activeParticipants,
       joinedAt: new Date()
     }
-    socket.emit(VIDEO_CALL_EVENTS.ROOM_JOINED, response)
+    socket.emit(VIDEO_CALL_EVENTS.ROOM_JOINED, this.wrap(response))
 
     const otherParticipant = room.activeParticipants.find(p => p !== userId)
     if (otherParticipant) {
-      const peerConnectedEvent = {
+      // Notify existing peer that new user joined
+      socket.to(roomId).emit(VIDEO_CALL_EVENTS.PEER_CONNECTED, this.wrap({
         roomId,
         peerUserId: userId,
         timestamp: new Date()
-      }
-      socket.to(roomId).emit(VIDEO_CALL_EVENTS.PEER_CONNECTED, peerConnectedEvent)
+      }))
       if (this.isDebug) {
         console.log(`[VideoCallHandler] Sent PEER_CONNECTED to room ${roomId}: User ${userId} joined, notifying peer ${otherParticipant}`)
       }
 
-      const existingPeerEvent = {
+      // Notify joining user that peer already exists in room
+      socket.emit(VIDEO_CALL_EVENTS.PEER_CONNECTED, this.wrap({
         roomId,
         peerUserId: otherParticipant,
         timestamp: new Date()
-      }
-      socket.emit(VIDEO_CALL_EVENTS.PEER_CONNECTED, existingPeerEvent)
+      }))
       if (this.isDebug) {
         console.log(`[VideoCallHandler] Sent PEER_CONNECTED to User ${userId}: Peer ${otherParticipant} already in room ${roomId}`)
       }
@@ -367,12 +388,12 @@ export class VideoCallHandler {
       console.error(`[VideoCallHandler] Failed to update Redis on leave:`, error)
     }
 
-    const callEndedPayload = {
+    const callEndedPayload: CallEndedEvent = {
       roomId,
       endedBy: userId,
       reason: 'Participant left - call ended for everyone',
       endedAt: new Date()
-    } as CallEndedEvent
+    }
 
     // Delete room from Redis
     try {
@@ -397,11 +418,12 @@ export class VideoCallHandler {
       console.log(`[VideoCallHandler] Room ${roomId} ended - user ${userId} left. Room deleted.`)
     }
 
-    socket.emit(VIDEO_CALL_EVENTS.ROOM_LEFT, {
+    const roomLeftPayload: RoomLeftEvent = {
       roomId,
       userId,
       leftAt: new Date()
-    } as RoomLeftEvent)
+    }
+    socket.emit(VIDEO_CALL_EVENTS.ROOM_LEFT, this.wrap(roomLeftPayload))
 
     if (this.isDebug) {
       console.log(`[VideoCallHandler] User left room ${roomId}`)
@@ -432,11 +454,7 @@ export class VideoCallHandler {
       return
     }
 
-    socket.to(roomId).emit(VIDEO_CALL_EVENTS.OFFER, {
-      roomId,
-      offer,
-      from: userId
-    })
+    socket.to(roomId).emit(VIDEO_CALL_EVENTS.OFFER, this.wrap({ roomId, offer, from: userId }))
   }
 
   /**
@@ -463,11 +481,7 @@ export class VideoCallHandler {
       return
     }
 
-    socket.to(roomId).emit(VIDEO_CALL_EVENTS.ANSWER, {
-      roomId,
-      answer,
-      from: userId
-    })
+    socket.to(roomId).emit(VIDEO_CALL_EVENTS.ANSWER, this.wrap({ roomId, answer, from: userId }))
   }
 
   /**
@@ -494,11 +508,7 @@ export class VideoCallHandler {
       return
     }
 
-    socket.to(roomId).emit(VIDEO_CALL_EVENTS.ICE_CANDIDATE, {
-      roomId,
-      candidate,
-      from: userId
-    })
+    socket.to(roomId).emit(VIDEO_CALL_EVENTS.ICE_CANDIDATE, this.wrap({ roomId, candidate, from: userId }))
   }
 
   /**
@@ -608,9 +618,7 @@ export class VideoCallHandler {
     // Notify all participants
     for (const participantId of allParticipants) {
       if (participantId === userId) continue
-      if (this.io) {
-        this.io.to(`user:${participantId}`).emit(VIDEO_CALL_EVENTS.CALL_ENDED, callEndedPayload)
-      }
+      this.emitToUserSockets(participantId, VIDEO_CALL_EVENTS.CALL_ENDED, callEndedPayload)
     }
   }
 
@@ -661,13 +669,13 @@ export class VideoCallHandler {
     if (room) {
       const otherParticipant = room.activeParticipants.find(p => p !== userId)
       if (otherParticipant) {
-        socket.to(roomId).emit(VIDEO_CALL_EVENTS.ICE_STATE_CHANGED, {
+        socket.to(roomId).emit(VIDEO_CALL_EVENTS.ICE_STATE_CHANGED, this.wrap({
           roomId,
           peerUserId: userId,
           iceConnectionState,
           iceGatheringState,
           timestamp: new Date()
-        })
+        }))
       }
     }
   }
@@ -681,7 +689,7 @@ export class VideoCallHandler {
 
     const room = await getVideoCallRoom(roomId)
     if (room) {
-      socket.to(roomId).emit(VIDEO_CALL_EVENTS.PEER_STATS, {
+      socket.to(roomId).emit(VIDEO_CALL_EVENTS.PEER_STATS, this.wrap({
         roomId,
         peerUserId: userId,
         stats: {
@@ -691,7 +699,7 @@ export class VideoCallHandler {
           rtt: stats.rtt
         },
         timestamp: new Date()
-      })
+      }))
     }
   }
 
@@ -715,33 +723,19 @@ export class VideoCallHandler {
     }
 
     if (this.io) {
-      this.io.to(`user:${calleeId}`).emit(VIDEO_CALL_EVENTS.CALL_REQUEST, callRequest)
+      this.io.to(`user:${calleeId}`).emit(VIDEO_CALL_EVENTS.CALL_REQUEST, this.wrap(callRequest))
     }
   }
 
   /**
-   * Emit to all sockets of a user
+   * Emit wrapped payload to all sockets of a user
    */
   private emitToUserSockets(userId: string, event: string, payload: unknown): void {
     if (!this.io) {
       return
     }
 
-    this.io.to(`user:${userId}`).emit(event, payload)
-  }
-
-  /**
-   * Emit error to socket with context-aware roomId and status code
-   */
-  private emitError(socket: Socket, code: string, message: string, status: number = 500, roomId?: string): void {
-    const response = ResponseData.error(status, message, code)
-    const error: CallErrorEvent = {
-      roomId: roomId ?? '',
-      code: response.error[0] || code,
-      message: response.message,
-      timestamp: new Date()
-    }
-    socket.emit(VIDEO_CALL_EVENTS.CALL_ERROR, error)
+    this.io.to(`user:${userId}`).emit(event, this.wrap(payload))
   }
 
   /**
@@ -758,4 +752,3 @@ export class VideoCallHandler {
     return await getAllVideoCallRooms()
   }
 }
-
