@@ -1,5 +1,4 @@
 import FileService from '@/services/file.service'
-import CloudDriveService from '@/services/google-drive.service'
 import ResponseData from '@/utils/data-types/response'
 import { NextFunction, Request, Response } from 'express'
 
@@ -17,11 +16,11 @@ class FileController {
         return
       }
       if (r.code === 404) {
-        res.status(404).json(ResponseData.error(404, 'File not found', ''))
+        res.status(404).json(ResponseData.notFound('File not found'))
         return
       }
       if (!r) {
-        res.status(404).json(ResponseData.error(404, 'File not found', ''))
+        res.status(404).json(ResponseData.notFound('File not found'))
         return
       }
       res.status(r.code).json(ResponseData.error(r.code, r.error ?? '', ''))
