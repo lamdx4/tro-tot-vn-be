@@ -210,7 +210,7 @@ describe('Connection Cache Module', () => {
           [{ socketId: 'socket2', joinedAt: '2024-01-01T00:00:00.000Z' }]
         ])
       }
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline)
+      mockRedisClient.pipeline.mockReturnValue(mockPipeline as any)
 
       const result = await getRoomUsers('room123')
 
@@ -230,7 +230,7 @@ describe('Connection Cache Module', () => {
         srem: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue([])
       }
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline)
+      mockRedisClient.pipeline.mockReturnValue(mockPipeline as any)
 
       // Mock getUserBySocket response (uses redisClient.hgetall directly)
       mockRedisClient.hgetall.mockResolvedValue({
@@ -259,7 +259,7 @@ describe('Connection Cache Module', () => {
         expire: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue([])
       }
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline)
+      mockRedisClient.pipeline.mockReturnValue(mockPipeline as any)
 
       // Mock getUserBySocket response
       mockRedisClient.hgetall.mockResolvedValue({
@@ -350,7 +350,7 @@ describe('Connection Cache Module', () => {
         expire: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue([])
       }
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline)
+      mockRedisClient.pipeline.mockReturnValue(mockPipeline as any)
 
       // Mock getUserBySocket response
       mockRedisClient.hgetall.mockResolvedValue({
@@ -378,7 +378,7 @@ describe('Connection Cache Module', () => {
         hset: jest.fn().mockReturnThis(),
         exec: jest.fn().mockResolvedValue([])
       }
-      mockRedisClient.pipeline.mockReturnValue(mockPipeline)
+      mockRedisClient.pipeline.mockReturnValue(mockPipeline as any)
 
       // Mock getUserBySocket returns null
       mockRedisClient.hgetall.mockResolvedValue(null)

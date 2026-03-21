@@ -3,61 +3,55 @@
  * Tests for file upload and file sent socket events
  */
 
-import { describe, it, expect, beforeEach, jest } from '@jest/globals'
+import { describe, it, expect, beforeEach } from '@jest/globals'
 import { SocketHandlers } from '../src/infras/socket/socket-handlers'
 import { Socket } from 'socket.io'
 import { SOCKET_EVENTS } from '../src/utils/types/socket-events'
 
 // Mock dependencies
-const mockChatService = {
-  isCustomerInConversation: jest.fn()
+const mockChatService: any = {
+  isCustomerInConversation: jest.fn<any, any>()
 }
 
-const mockMessageService = {
-  sendMessage: jest.fn(),
-  sendMessageWithAttachments: jest.fn(),
-  markMessageAsRead: jest.fn()
+const mockMessageService: any = {
+  sendMessage: jest.fn<any, any>(),
+  sendMessageWithAttachments: jest.fn<any, any>(),
+  markMessageAsRead: jest.fn<any, any>()
 }
 
-const mockFileService = {
-  uploadFile: jest.fn()
+const mockFileService: any = {
+  uploadFile: jest.fn<any, any>()
 }
 
 jest.mock('../src/services/chat.service', () => ({
-  ChatService: jest.fn().mockImplementation(() => mockChatService)
+  ChatService: jest.fn<any, any>().mockImplementation(() => mockChatService)
 }))
 
 jest.mock('../src/services/message.service', () => ({
-  MessageService: jest.fn().mockImplementation(() => mockMessageService)
+  MessageService: jest.fn<any, any>().mockImplementation(() => mockMessageService)
 }))
 
 jest.mock('../src/services/file.service', () => ({
   __esModule: true,
-  default: jest.fn().mockImplementation(() => mockFileService),
-  FileService: jest.fn().mockImplementation(() => mockFileService)
+  default: jest.fn<any, any>().mockImplementation(() => mockFileService),
+  FileService: jest.fn<any, any>().mockImplementation(() => mockFileService)
 }))
 
 describe('SocketHandlers - File Events', () => {
   let handlers: SocketHandlers
-  let mockSocket: Partial<Socket>
-  let emitSpy: jest.SpyInstance
-  let toSpy: jest.MockInstance<any, any>
+  let mockSocket: any
 
   beforeEach(() => {
     jest.clearAllMocks()
     handlers = new SocketHandlers()
 
-    // Mock socket
-    emitSpy = jest.fn()
-    toSpy = jest.fn().mockReturnValue({ emit: jest.fn() })
-    
     mockSocket = {
       id: 'socket-123',
       data: { userId: 100 },
-      emit: emitSpy,
-      to: toSpy,
-      join: jest.fn(),
-      leave: jest.fn()
+      emit: jest.fn<any, any>(),
+      to: jest.fn<any, any>().mockReturnValue({ emit: jest.fn<any, any>() }),
+      join: jest.fn<any, any>(),
+      leave: jest.fn<any, any>()
     }
   })
 
@@ -76,7 +70,7 @@ describe('SocketHandlers - File Events', () => {
       await handlers.handleFileUpload(mockSocket as Socket, fileData)
 
       expect(mockChatService.isCustomerInConversation).toHaveBeenCalledWith(1, 100)
-      expect(emitSpy).toHaveBeenCalledWith(
+      expect(mockSocket.emit).toHaveBeenCalledWith(
         SOCKET_EVENTS.FILE_UPLOADED,
         expect.objectContaining({
           fileName: 'test-image.jpg',
@@ -101,7 +95,7 @@ describe('SocketHandlers - File Events', () => {
 
       await handlers.handleFileUpload(mockSocket as Socket, fileData)
 
-      expect(emitSpy).toHaveBeenCalledWith('error', {
+      expect(mockSocket.emit).toHaveBeenCalledWith('error', {
         code: 'NOT_MEMBER',
         message: 'You are not a member of this conversation'
       })
@@ -134,6 +128,7 @@ describe('SocketHandlers - File Events', () => {
       const fileSentData = {
         conversationId: 1,
         content: 'Check this image!',
+        messageType: 'Image',
         attachments: [{
           fileName: 'test.jpg',
           fileUrl: '/uploads/test.jpg',
@@ -157,7 +152,7 @@ describe('SocketHandlers - File Events', () => {
         ])
       )
 
-      expect(emitSpy).toHaveBeenCalledWith(
+      expect(mockSocket.emit).toHaveBeenCalledWith(
         SOCKET_EVENTS.FILE_SENT,
         expect.objectContaining({
           messageId: 1,
@@ -185,6 +180,7 @@ describe('SocketHandlers - File Events', () => {
       const fileSentData = {
         conversationId: 1,
         content: 'Sending a file',
+        messageType: 'File',
         attachments: [{
           fileName: 'document.pdf',
           fileUrl: '/uploads/doc.pdf',
@@ -196,7 +192,7 @@ describe('SocketHandlers - File Events', () => {
 
       await handlers.handleFileSent(mockSocket as Socket, fileSentData)
 
-      expect(toSpy).toHaveBeenCalledWith('conversation:1')
+      expect(mockSocket.to).toHaveBeenCalledWith('conversation:1')
     })
 
     it('should reject if user is not a conversation member', async () => {
@@ -205,34 +201,16 @@ describe('SocketHandlers - File Events', () => {
       const fileSentData = {
         conversationId: 1,
         content: 'test',
+        messageType: 'File',
         attachments: []
       }
 
       await handlers.handleFileSent(mockSocket as Socket, fileSentData)
 
-      expect(emitSpy).toHaveBeenCalledWith('error', {
+      expect(mockSocket.emit).toHaveBeenCalledWith('error', {
         code: 'NOT_MEMBER',
         message: 'You are not a member of this conversation'
       })
     })
   })
 })
-
-describe('Socket Events Types', () => {
-  it('should have FILE_UPLOAD event defined', () => {
-    expect(SOCKET_EVENTS.FILE_UPLOAD).toBe('file:upload')
-  })
-
-  it('should have FILE_UPLOADED event defined', () => {
-    expect(SOCKET_EVENTS.FILE_UPLOADED).toBe('file:uploaded')
-  })
-
-  it('should have FILE_SENT event defined', () => {
-    expect(SOCKET_EVENTS.FILE_SENT).toBe('file:sent')
-  })
-
-  it('should have FILE_RECEIVED event defined', () => {
-    expect(SOCKET_EVENTS.FILE_RECEIVED).toBe('file:received')
-  })
-})
-

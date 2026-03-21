@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io'
-import { SOCKET_EVENTS, MessageSentEvent, MessageReadEvent, TypingEvent, FileUploadEvent, FileSentEvent } from '@/utils/types/socket-events'
+import { SOCKET_EVENTS, MessageSentEvent, MessageReadEvent, TypingEvent, FileUploadEvent, FileSentEvent, FileSentEventInput } from '@/utils/types/socket-events'
 import { ChatService, MessageService, FileService } from '@/services'
 import { MessageType } from '@/domains/entities/enum/value-object'
 
@@ -255,7 +255,7 @@ export class SocketHandlers {
   /**
    * Handle file message sent (after HTTP upload completes)
    */
-  async handleFileSent(socket: Socket, data: FileSentEvent): Promise<void> {
+  async handleFileSent(socket: Socket, data: FileSentEventInput): Promise<void> {
     try {
       const userId = socket.data.userId as number
       const { conversationId, content, attachments } = data

@@ -90,6 +90,20 @@ export interface FileSentEvent {
   createdAt: Date
 }
 
+/** Input type received from client socket for file sent events */
+export interface FileSentEventInput {
+  conversationId: number
+  content: string
+  messageType: string
+  attachments: {
+    fileName: string
+    fileUrl: string
+    fileType: string
+    fileSize?: number
+    mimeType?: string
+  }[]
+}
+
 export interface UserStatusEvent {
   userId: number
   isOnline: boolean
