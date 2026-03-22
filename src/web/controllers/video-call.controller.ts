@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
-import { IceServersResponse } from '@/utils/types/webrtc-signaling'
+import ResponseData from '@/utils/data-types/response'
 import { env } from '@/preload-env'
 
 class VideoCallController {
@@ -10,12 +10,7 @@ class VideoCallController {
   async getIceConfig(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const iceServers = this.buildIceServers()
-
-      const response: IceServersResponse = { iceServers }
-      res.status(200).json({
-        success: true,
-        data: response
-      })
+      res.status(200).json(ResponseData.success({ iceServers }))
     } catch (error) {
       next(error)
     }
@@ -66,4 +61,3 @@ class VideoCallController {
 
 // Create and export controller instance
 export default new VideoCallController()
-

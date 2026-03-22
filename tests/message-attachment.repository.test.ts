@@ -58,7 +58,7 @@ describe('MessageAttachmentRepository Interface', () => {
     })
 
     it('should allow optional fields', () => {
-      const minimalAttachment = {
+      const minimalAttachment: any = {
         messageId: 10,
         fileName: 'minimal.txt',
         fileUrl: '/uploads/minimal.txt',

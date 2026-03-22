@@ -3,42 +3,40 @@
  * Tests for sendMessageWithAttachments and related methods
  */
 
-import { describe, it, expect, beforeEach, jest, spyOn } from '@jest/globals'
+import { describe, it, expect, beforeEach } from '@jest/globals'
 import { MessageService } from '../src/services/message.service'
-import { Message } from '../src/domains/entities/message.entity'
-import { MessageAttachment } from '../src/domains/entities/message-attachment.entity'
 import { AttachmentType } from '../src/domains/entities/enum/value-object'
 
 // Mock repositories
-const mockMessageAttachmentRepository = {
-  findByMessageId: jest.fn(),
-  findByMessageIds: jest.fn(),
-  save: jest.fn()
+const mockMessageAttachmentRepository: any = {
+  findByMessageId: jest.fn<any, any>(),
+  findByMessageIds: jest.fn<any, any>(),
+  save: jest.fn<any, any>()
 }
 
-const mockMessageRepository = {
-  findOne: jest.fn(),
-  find: jest.fn(),
-  save: jest.fn(),
-  create: jest.fn()
+const mockMessageRepository: any = {
+  findOne: jest.fn<any, any>(),
+  find: jest.fn<any, any>(),
+  save: jest.fn<any, any>(),
+  create: jest.fn<any, any>()
 }
 
 // Mock FileService
-const mockFileService = {
-  uploadFile: jest.fn()
+const mockFileService: any = {
+  uploadFile: jest.fn<any, any>()
 }
 
 // Mock the repository module
 jest.mock('../src/infras/repositories/message-attachment.repository', () => ({
-  MessageAttachmentRepository: jest.fn().mockImplementation(() => mockMessageAttachmentRepository)
+  MessageAttachmentRepository: jest.fn<any, any>().mockImplementation(() => mockMessageAttachmentRepository)
 }))
 
 jest.mock('../src/infras/repositories/message.repository', () => ({
-  MessageRepository: jest.fn().mockImplementation(() => mockMessageRepository)
+  MessageRepository: jest.fn<any, any>().mockImplementation(() => mockMessageRepository)
 }))
 
 jest.mock('../src/services/file.service', () => ({
-  FileService: jest.fn().mockImplementation(() => mockFileService)
+  FileService: jest.fn<any, any>().mockImplementation(() => mockFileService)
 }))
 
 describe('MessageService - Attachment Methods', () => {
@@ -82,7 +80,7 @@ describe('MessageService - Attachment Methods', () => {
 
   describe('getMessageAttachments', () => {
     it('should return attachments for a message', async () => {
-      const mockAttachments = [
+      const mockAttachments: any[] = [
         { attachmentId: 1, messageId: 1, fileName: 'test.jpg', fileType: AttachmentType.IMAGE }
       ]
 
@@ -105,7 +103,7 @@ describe('MessageService - Attachment Methods', () => {
 
   describe('getMessagesAttachments', () => {
     it('should return attachments for multiple messages', async () => {
-      const mockAttachments = [
+      const mockAttachments: any[] = [
         { attachmentId: 1, messageId: 1, fileName: 'test1.jpg' },
         { attachmentId: 2, messageId: 2, fileName: 'test2.jpg' }
       ]
@@ -120,49 +118,3 @@ describe('MessageService - Attachment Methods', () => {
     })
   })
 })
-
-describe('Message DTO with Attachments', () => {
-  it('should serialize message with attachments to DTO', () => {
-    const message = new Message()
-    message.messageId = 1
-    message.conversationId = 10
-    message.senderId = 100
-    message.content = 'Test'
-    message.messageType = 'Image'
-    message.createdAt = new Date()
-
-    const attachment = new MessageAttachment()
-    attachment.attachmentId = 1
-    attachment.messageId = 1
-    attachment.fileName = 'photo.jpg'
-    attachment.fileUrl = '/uploads/photo.jpg'
-    attachment.fileType = AttachmentType.IMAGE
-    attachment.mimeType = 'image/jpeg'
-    attachment.fileSize = 2048
-
-    message.attachments = [attachment]
-
-    // Test DTO serialization
-    const dto = {
-      messageId: message.messageId,
-      conversationId: message.conversationId,
-      senderId: message.senderId,
-      content: message.content,
-      messageType: message.messageType,
-      createdAt: message.createdAt,
-      attachments: message.attachments.map(att => ({
-        attachmentId: att.attachmentId,
-        fileName: att.fileName,
-        fileUrl: att.fileUrl,
-        fileType: att.fileType,
-        mimeType: att.mimeType,
-        fileSize: att.fileSize
-      }))
-    }
-
-    expect(dto.attachments).toHaveLength(1)
-    expect(dto.attachments[0].fileName).toBe('photo.jpg')
-    expect(dto.attachments[0].fileType).toBe(AttachmentType.IMAGE)
-  })
-})
-

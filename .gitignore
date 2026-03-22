@@ -6,3 +6,4 @@ uploads/
 .env.prod
 .augment
 .claude-code
+server.log
