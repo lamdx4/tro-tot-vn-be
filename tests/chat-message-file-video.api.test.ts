@@ -14,7 +14,7 @@ import path from 'path'
 import fs from 'fs'
 import jwt from 'jsonwebtoken'
 import type { Express } from 'express'
-import type supertest from 'supertest'
+import supertest from 'supertest'
 
 jest.mock('@/services/auth.service', () => {
   const { Result } = require('@/utils/data-types/result') as typeof import('@/utils/data-types/result')
@@ -30,9 +30,9 @@ jest.mock('@/services/auth.service', () => {
 
 jest.mock('@/services/google-drive.service', () => {
   const mock = {
-    uploadFile: jest.fn<any, any>().mockResolvedValue('mock-cloud-file-id'),
-    getFileUrl: jest.fn<any, any>().mockResolvedValue('https://example.com/mock-download'),
-    downloadFileToStream: jest.fn<any, any>().mockResolvedValue(null)
+    uploadFile: jest.fn<() => Promise<string>>().mockResolvedValue('mock-cloud-file-id'),
+    getFileUrl: jest.fn<() => Promise<string>>().mockResolvedValue('https://example.com/mock-download'),
+    downloadFileToStream: jest.fn<() => Promise<null>>().mockResolvedValue(null)
   }
   const Ctor = function MockCloudDriveService() {
     return mock
@@ -54,7 +54,8 @@ function extractAliceAccessToken(mockFile: string): string {
 }
 
 let app: Express
-let request: supertest.SuperTest<supertest.Test>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let request: any
 let accessToken: string
 let jwtSecret: string
 let jwtReady = false
