@@ -19,14 +19,25 @@ export class ConversationRepository extends BaseRepository<Conversation> {
       .getMany()
   }
 
+  /**
+   * Find an existing 1:1 Direct conversation between two customers.
+   * Uses a scalar subquery for participant count so we avoid GROUP BY + Conversation.* (invalid on SQL Server).
+   */
   async findDirectConversation(customerId1: number, customerId2: number) {
-    return this.createQueryBuilder('conv')
-      .leftJoinAndSelect('conv.participants', 'p1')
+    const conv = await this.createQueryBuilder('conv')
+      .innerJoin('conv.participants', 'pa', 'pa.customerId = :c1 AND pa.leftAt IS NULL', { c1: customerId1 })
+      .innerJoin('conv.participants', 'pb', 'pb.customerId = :c2 AND pb.leftAt IS NULL', { c2: customerId2 })
       .where('conv.conversationType = :type', { type: 'Direct' })
-      .andWhere('p1.customerId IN (:...customerIds)', { customerIds: [customerId1, customerId2] })
-      .groupBy('conv.conversationId')
-      .having('COUNT(p1.participantId) = 2')
+      .andWhere(
+        `(SELECT COUNT(*) FROM ConversationParticipant pc WHERE pc.conversationId = conv.conversationId AND pc.leftAt IS NULL) = 2`
+      )
       .getOne()
+
+    if (!conv) {
+      return null
+    }
+
+    return this.findById(conv.conversationId)
   }
 
   async getConversationWithMessages(conversationId: number, limit: number = 20, offset: number = 0) {

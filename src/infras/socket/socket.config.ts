@@ -1,18 +1,19 @@
 import { Server as HttpServer } from 'http'
-import { Server as SocketIOServer } from 'socket.io'
-import { Socket } from 'socket.io'
-import { SOCKET_EVENTS, FileUploadEvent, FileSentEvent } from '@/utils/types/socket-events'
+import { Server as SocketIOServer, Socket } from 'socket.io'
+import { SOCKET_EVENTS } from '@/utils/types/socket-events'
 import { SocketHandlers } from './socket-handlers'
 import { VideoCallHandler } from './video-call-handler'
 import { VIDEO_CALL_EVENTS } from '@/utils/types/webrtc-signaling'
 import { saveUserConnection, removeUserConnection } from '@/infras/redis/connection-cache'
+import JWTService from '@/services/jwt.service'
+import { Account } from '@/domains/entities/account.entity'
 
 /**
  * Socket.IO Configuration and Setup
  *
  * Responsibilities:
  * - Initialize Socket.IO server on HTTP server
- * - Setup authentication middleware
+ * - Setup JWT authentication middleware
  * - Register event handlers via SocketHandlers class
  * - Provide access to Socket.IO instance
  */
@@ -20,11 +21,13 @@ export class SocketConfig {
   private io: SocketIOServer
   private handlers: SocketHandlers
   private videoCallHandler: VideoCallHandler
+  private jwtService: JWTService
 
   constructor(httpServer: HttpServer) {
     // Initialize handlers FIRST
     this.handlers = new SocketHandlers()
     this.videoCallHandler = new VideoCallHandler()
+    this.jwtService = new JWTService()
 
     // Initialize Socket.IO server
     this.io = new SocketIOServer(httpServer, {
@@ -47,19 +50,67 @@ export class SocketConfig {
   }
 
   /**
-   * Setup authentication middleware
+   * Extract Bearer token from Socket.IO handshake.
+   * Checks handshake.auth.token (Socket.IO v3+), then Authorization header.
+   */
+  private extractToken(handshake: Socket['handshake']): string | undefined {
+    // Primary: handshake.auth.token
+    if (handshake.auth?.token && typeof handshake.auth.token === 'string') {
+      return handshake.auth.token
+    }
+    // Fallback: Authorization header (for clients that set it directly)
+    const authHeader = handshake.headers['authorization'] as string | undefined
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      return authHeader.slice(7)
+    }
+    return undefined
+  }
+
+  /**
+   * Setup JWT authentication middleware — runs during the Socket.IO handshake
+   * before the connection is established. Rejects with a handshake error if
+   * the token is missing, malformed, or expired.
    */
   private setupMiddleware(): void {
-    this.io.use((socket: Socket, next: Function) => {
-      // TODO: jwt handler here
-      const userId = socket.handshake.auth.userId || socket.handshake.query.userId
+    this.io.use((socket: Socket, next: (err?: Error) => void) => {
+      const token = this.extractToken(socket.handshake)
 
-      if (!userId) {
-        return next(new Error('Authentication error: User ID required'))
+      if (!token) {
+        console.warn('[SocketConfig] Handshake rejected: missing token')
+        return next(new Error('Authentication error: token is required'))
       }
 
-      // Keep userId as string for video call handler (supports both "user1" and numeric IDs)
+      const result = this.jwtService.verifyAccessTokenDetailed(token)
+
+      if (!result.isValid) {
+        if (result.isExpired) {
+          console.warn('[SocketConfig] Handshake rejected: token expired')
+          return next(new Error('Authentication error: token has expired'))
+        }
+        console.warn('[SocketConfig] Handshake rejected: invalid token')
+        return next(new Error('Authentication error: invalid token'))
+      }
+
+      // Attach decoded payload to socket for downstream event handlers
+      const payload = result.payload as Account
+      socket.data.user = payload
+
+      // Resolve userId: prefer nested customer.customerId, fall back to top-level
+      const userId =
+        payload?.customer?.customerId ??
+        (payload as any)?.customerId ??
+        (payload as any)?.userId ??
+        payload?.accountId
+
+      if (!userId) {
+        console.warn('[SocketConfig] Handshake rejected: userId could not be resolved from token')
+        return next(new Error('Authentication error: user identity could not be resolved'))
+      }
+
+      // Keep as string for Redis / video-call handlers (compatible with both numeric and string IDs)
       socket.data.userId = String(userId)
+
+      console.log(`[SocketConfig] Handshake authenticated: userId=${socket.data.userId}`)
       next()
     })
   }
@@ -70,8 +121,8 @@ export class SocketConfig {
    */
   private setupEventHandlers(): void {
     this.io.on(SOCKET_EVENTS.CONNECTION, async (socket: Socket) => {
-      const userId = socket.data.userId as number
-      console.log(`[SocketConfig] User ${userId} connected`)
+      const userId = socket.data.userId as string
+      console.log(`[SocketConfig] User ${userId} connected (socketId=${socket.id})`)
 
       // Use SocketHandlers for logic
       this.handlers.handleConnection(socket)

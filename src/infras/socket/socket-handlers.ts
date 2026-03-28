@@ -40,7 +40,7 @@ export class SocketHandlers {
    * Handle user connection
    */
   handleConnection(socket: Socket): void {
-    const userId = socket.data.userId as number
+    const userId = socket.data.userId as string
 
     console.log(`[Socket] User connected: ${userId}`)
 
@@ -49,7 +49,7 @@ export class SocketHandlers {
 
     // Emit online status
     socket.broadcast.emit(SOCKET_EVENTS.USER_ONLINE, {
-      userId,
+      userId: Number(userId),
       isOnline: true,
       timestamp: new Date()
     })
@@ -59,13 +59,13 @@ export class SocketHandlers {
    * Handle user disconnection
    */
   async handleDisconnect(socket: Socket): Promise<void> {
-    const userId = socket.data.userId as number
+    const userId = socket.data.userId as string
 
     console.log(`[Socket] User disconnected: ${userId}`)
 
     // Emit offline status
     socket.broadcast.emit(SOCKET_EVENTS.USER_OFFLINE, {
-      userId,
+      userId: Number(userId),
       isOnline: false,
       timestamp: new Date()
     })
@@ -76,12 +76,12 @@ export class SocketHandlers {
    */
   async handleMessageSent(socket: Socket, data: MessageSentEvent): Promise<void> {
     try {
-      const userId = socket.data.userId as number
+      const userId = socket.data.userId as string
       const { conversationId, content, messageType = 'Text' } = data
 
       // Verify user is in conversation
       // TODO: using cache user<->conversation to avoid DB call
-      const isMember = await this.chatService.isCustomerInConversation(conversationId, userId)
+      const isMember = await this.chatService.isCustomerInConversation(conversationId, Number(userId))
 
       if (!isMember) {
         this.emitError(socket, 'NOT_MEMBER', 'You are not a member of this conversation', 403)
@@ -91,7 +91,7 @@ export class SocketHandlers {
       // Create message
       const message = await this.messageService.sendMessage(
         conversationId,
-        userId,
+        Number(userId),
         { content, messageType, conversationId }
       )
 
@@ -123,8 +123,9 @@ export class SocketHandlers {
    */
   async handleMessageRead(socket: Socket, data: MessageReadEvent): Promise<void> {
     try {
-      const userId = socket.data.userId as number
+      const userId = socket.data.userId as string
       const { messageId, conversationId } = data
+      const numericUserId = Number(userId)
 
       // Mark as read
       await this.messageService.markMessageAsRead(messageId)
@@ -135,7 +136,7 @@ export class SocketHandlers {
         {
           messageId,
           conversationId,
-          readBy: userId,
+          readBy: numericUserId,
           readAt: new Date()
         }
       )
@@ -149,14 +150,15 @@ export class SocketHandlers {
    * Handle typing indicator start
    */
   handleTypingStart(socket: Socket, data: TypingEvent): void {
-    const userId = socket.data.userId as number
+    const userId = socket.data.userId as string
     const { conversationId } = data
+    const numericUserId = Number(userId)
 
     socket.to(`conversation:${conversationId}`).emit(
       SOCKET_EVENTS.TYPING_START,
       {
         conversationId,
-        userId,
+        userId: numericUserId,
         isTyping: true
       }
     )
@@ -166,14 +168,15 @@ export class SocketHandlers {
    * Handle typing indicator stop
    */
   handleTypingStop(socket: Socket, data: TypingEvent): void {
-    const userId = socket.data.userId as number
+    const userId = socket.data.userId as string
     const { conversationId } = data
+    const numericUserId = Number(userId)
 
     socket.to(`conversation:${conversationId}`).emit(
       SOCKET_EVENTS.TYPING_STOP,
       {
         conversationId,
-        userId,
+        userId: numericUserId,
         isTyping: false
       }
     )
@@ -183,7 +186,8 @@ export class SocketHandlers {
    * Handle joining a conversation room
    */
   handleJoinConversation(socket: Socket, conversationId: number): void {
-    const userId = socket.data.userId as number
+    const userId = socket.data.userId as string
+    const numericUserId = Number(userId)
 
     socket.join(`conversation:${conversationId}`)
     console.log(`[Socket] User ${userId} joined conversation:${conversationId}`)
@@ -193,7 +197,7 @@ export class SocketHandlers {
       SOCKET_EVENTS.PARTICIPANT_JOINED,
       {
         conversationId,
-        userId,
+        userId: numericUserId,
         timestamp: new Date()
       }
     )
@@ -203,7 +207,8 @@ export class SocketHandlers {
    * Handle leaving a conversation room
    */
   handleLeaveConversation(socket: Socket, conversationId: number): void {
-    const userId = socket.data.userId as number
+    const userId = socket.data.userId as string
+    const numericUserId = Number(userId)
 
     socket.leave(`conversation:${conversationId}`)
     console.log(`[Socket] User ${userId} left conversation:${conversationId}`)
@@ -213,7 +218,7 @@ export class SocketHandlers {
       SOCKET_EVENTS.PARTICIPANT_LEFT,
       {
         conversationId,
-        userId,
+        userId: numericUserId,
         timestamp: new Date()
       }
     )
@@ -225,11 +230,11 @@ export class SocketHandlers {
    */
   async handleFileUpload(socket: Socket, data: FileUploadEvent): Promise<void> {
     try {
-      const userId = socket.data.userId as number
+      const userId = socket.data.userId as string
       const { conversationId, fileName, fileSize, mimeType, fileType } = data
 
       // Verify user is in conversation
-      const isMember = await this.chatService.isCustomerInConversation(conversationId, userId)
+      const isMember = await this.chatService.isCustomerInConversation(conversationId, Number(userId))
       if (!isMember) {
         this.emitError(socket, 'NOT_MEMBER', 'You are not a member of this conversation', 403)
         return
@@ -259,11 +264,11 @@ export class SocketHandlers {
    */
   async handleFileSent(socket: Socket, data: FileSentEventInput): Promise<void> {
     try {
-      const userId = socket.data.userId as number
+      const userId = socket.data.userId as string
       const { conversationId, content, attachments } = data
 
       // Verify user is in conversation
-      const isMember = await this.chatService.isCustomerInConversation(conversationId, userId)
+      const isMember = await this.chatService.isCustomerInConversation(conversationId, Number(userId))
       if (!isMember) {
         this.emitError(socket, 'NOT_MEMBER', 'You are not a member of this conversation', 403)
         return
@@ -278,7 +283,7 @@ export class SocketHandlers {
       // Create message with attachments using the service
       const message = await this.messageService.sendMessageWithAttachments(
         conversationId,
-        userId,
+        Number(userId),
         { conversationId, content: content || firstFileName, messageType },
         attachments.map(att => ({
           fileName: att.fileName,

@@ -1,10 +1,25 @@
 {
   "info": {
-    "name": "TroTot VN - Chat API",
-    "description": "# TroTot VN - Chat API Documentation\n\n## Base URL\n```\nhttp://localhost:3333/api\n```\n\n---\n\n## Authentication\nAll endpoints (except login) require Bearer token in Authorization header:\n```\nAuthorization: Bearer {{accessToken}}\n```\n\n**Test Users:**\n- Alice: alice@test.com / Password123 (customerId: 1)\n- Bob: bob@test.com / Password123 (customerId: 2)\n\n**JWT Token Structure (from mock-jwt.txt):**\n```json\n{\n  \"accountId\": 3,\n  \"phone\": \"0912345678\",\n  \"status\": \"Active\",\n  \"email\": \"alice@test.com\",\n  \"role\": {\n    \"roleId\": 1,\n    \"roleName\": \"Customer\",\n    \"rolePermissions\": []\n  },\n  \"customer\": {\n    \"customerId\": 1,\n    \"gender\": \"Male\",\n    \"bio\": \"\",\n    \"firstName\": \"Alice\",\n    \"lastName\": \"Nguyen\",\n    \"birthday\": \"1995-01-01\",\n    \"avatar\": null,\n    \"currentCity\": null,\n    \"currentDistrict\": null,\n    \"currentJob\": null\n  },\n  \"admin\": null,\n  \"iat\": 1772266960,\n  \"exp\": 2087626960\n}\n```\n\n---\n\n## HTTP Status Codes\n\n| Status Code | Meaning | When Used |\n|-------------|---------|-----------|\n| 200 | OK | Successful GET requests, successful updates |\n| 201 | Created | Successful POST that creates a new resource |\n| 204 | No Content | Successful DELETE requests |\n| 400 | Bad Request | Invalid request body, missing required fields, validation errors |\n| 401 | Unauthorized | Missing or invalid JWT token |\n| 403 | Forbidden | User does not have permission to access resource |\n| 404 | Not Found | Resource (conversation, message) not found |\n| 500 | Internal Server Error | Server-side errors |\n\n---\n\n## Response Message Format\n\n**Success Response:**\n```json\n{\n  \"success\": true,\n  \"message\": \"Success message describing the operation\",\n  \"data\": { ... }\n}\n```\n\n**Error Response:**\n```json\n{\n  \"success\": false,\n  \"message\": \"Error message describing what went wrong\",\n  \"error\": \"Error details (optional)\"\n}\n```\n\n---\n\n## Socket.IO Events\nServer URL: http://localhost:3333\n- Connect with: `auth: { userId: \"1\" }`\n- Events: `message:received`, `file:received`, `user:online`, `user:offline`\n- Join room: `join:conversation` with conversationId",
+    "name": "TroTot VN - Chat & related APIs",
+    "description": "## Overview\n\nREST endpoints backed by:\n- `ConversationController` → chat routes\n- `MessageController` → messages + chat file upload + chat file download metadata\n- `VideoCallController` → WebRTC ICE config (public)\n- `FileController` → multimedia file stream (authenticated)\n\n---\n\n## Base URL variables\n\n| Variable | Example | Purpose |\n|----------|---------|---------|\n| `hostUrl` | `http://localhost:3333` | Origin (Socket.IO, docs) |\n| `baseUrl` | `http://localhost:3333/api` | All REST paths below are under this |\n\nChange **`baseUrl`** for another environment (staging, production).\n\n---\n\n## JWT (Bearer token)\n\n1. **Option A:** Run **Authentication → Login** — the test script saves `accessToken` and `loggedInCustomerId`.\n2. **Option B:** Paste your JWT into collection variable **`accessToken`** (no `Bearer ` prefix).\n\nCollection auth uses **Bearer {{accessToken}}** for all folders except Login and Video call (ICE).\n\nChat routes use `authenticateMiddleware`; JWT payload should include `customer.customerId` (or `customerId` / `userId`) for sending messages and uploads.\n\n---\n\n## Response envelope (`ResponseData`)\n\nAll JSON responses use:\n\n```json\n{\n  \"status\": 200,\n  \"message\": \"\",\n  \"error\": [],\n  \"data\": { }\n}\n```\n\n- **`status`** — same idea as HTTP status (e.g. 200, 201, 401, 404).\n- **`message`** — human-readable message when applicable.\n- **`error`** — array of error strings (empty on success).\n- **`data`** — payload or `null`.\n\n**Errors** (example):\n\n```json\n{\n  \"status\": 401,\n  \"message\": \"User not authenticated\",\n  \"error\": [],\n  \"data\": null\n}\n```\n\n```json\n{\n  \"status\": 500,\n  \"message\": \"INTERNAL_SERVER_ERROR\",\n  \"error\": [\"detail…\"],\n  \"data\": null\n}\n```\n\n**204 No Content** — no JSON body (`removeParticipant`, `deleteMessage`).\n\n**GET /api/files/:fileId** — success is a **binary stream** (`Content-Type` from storage); errors are JSON as above.\n\n---\n\n## Route map (Express)\n\n| Method | Path | Controller |\n|--------|------|--------------|\n| GET | `/api/chat/conversations` | ConversationController.getConversations |\n| GET | `/api/chat/conversations/:conversationId` | getConversationById |\n| POST | `/api/chat/conversations` | createConversation |\n| GET | `/api/chat/conversations/:conversationId/participants` | getParticipants |\n| POST | `/api/chat/conversations/:conversationId/participants` | addParticipant |\n| DELETE | `/api/chat/conversations/:conversationId/participants/:customerId` | removeParticipant |\n| GET | `/api/chat/conversations/:conversationId/messages` | MessageController.getMessages |\n| GET | `/api/chat/messages/:messageId` | getMessageById |\n| POST | `/api/chat/conversations/:conversationId/messages` | sendMessage |\n| PUT | `/api/chat/messages/:messageId` | editMessage |\n| DELETE | `/api/chat/messages/:messageId` | deleteMessage |\n| POST | `/api/chat/messages/read` | markMessagesAsRead |\n| POST | `/api/chat/conversations/:conversationId/files` | uploadFile (multipart) |\n| GET | `/api/chat/files/:fileId/download` | getFileDownloadUrl — **param is messageId** (loads attachments for that message) |\n| GET | `/api/video-call/ice-config` | VideoCallController.getIceConfig (no auth) |\n| GET | `/api/files/:fileId` | FileController.getFile (auth + validator) |\n\n---\n\n## Socket.IO (reference)\n\nConnect to **`hostUrl`** (e.g. `http://localhost:3333`). Server emits e.g. `message:received`, `file:received`, `user:online`, `user:offline`. See `src/utils/types/socket-events.ts` for names.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
   "variable": [
+    {
+      "key": "hostUrl",
+      "value": "http://localhost:3333",
+      "type": "string"
+    },
     {
       "key": "baseUrl",
       "value": "http://localhost:3333/api",
@@ -12,6 +27,11 @@
     },
     {
       "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "loggedInCustomerId",
       "value": "",
       "type": "string"
     },
@@ -26,19 +46,32 @@
       "type": "string"
     },
     {
-      "key": "customerId",
+      "key": "participantCustomerId",
       "value": "",
-      "type": "string"
+      "type": "string",
+      "description": "customerId path param for Remove participant"
+    },
+    {
+      "key": "multimediaFileId",
+      "value": "",
+      "type": "string",
+      "description": "ID for GET /api/files/:fileId (multimedia store), not chat attachment"
     }
   ],
   "event": [
     {
       "listen": "prerequest",
       "script": {
-        "type": "javascript",
+        "type": "text/javascript",
         "exec": [
-          "// Set Content-Type for all requests",
-          "pm.request.headers.upsert({ key: 'Content-Type', value: 'application/json' });"
+          "const body = pm.request.body;",
+          "if (body && body.mode === 'formdata') {",
+          "    pm.request.headers.remove('Content-Type');",
+          "    return;",
+          "}",
+          "if (body && body.mode === 'raw' && ['POST', 'PUT', 'PATCH'].includes(pm.request.method)) {",
+          "    pm.request.headers.upsert({ key: 'Content-Type', value: 'application/json' });",
+          "}"
         ]
       }
     }
@@ -50,8 +83,10 @@
         {
           "name": "Login",
           "request": {
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "url": "{{baseUrl}}/auth/login",
             "header": [
               {
                 "key": "Content-Type",
@@ -60,30 +95,66 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"identifier\": \"alice@test.com\",\n    \"password\": \"Password123\"\n}"
+              "raw": "{\n  \"identifier\": \"alice@test.com\",\n  \"password\": \"Password123\"\n}"
             },
-            "description": "## Login - Authenticate User\n\n**Endpoint:** `POST /auth/login`\n\n**Description:** Login to get access token. Returns JWT token with nested customer object.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Content-Type | application/json | Yes |\n\n---\n\n### Request Body\n```json\n{\n    \"identifier\": \"alice@test.com\",\n    \"password\": \"Password123\"\n}\n```\n\n**Fields:**\n| Field | Type | Required | Description |\n|-------|------|----------|-------------|\n| identifier | string | Yes | User's email or phone number |\n| password | string | Yes | User's password |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Login successful\",\n    \"data\": {\n        \"token\": {\n            \"accessToken\": \"eyJhbGciOiJIUzI1NiIs...\",\n            \"refreshToken\": \"eyJhbGciOiJIUzI1NiIs...\",\n            \"expiresIn\": 315360000\n        },\n        \"customer\": {\n            \"customerId\": 1,\n            \"gender\": \"Male\",\n            \"bio\": \"\",\n            \"firstName\": \"Alice\",\n            \"lastName\": \"Nguyen\",\n            \"birthday\": \"1995-01-01\",\n            \"avatar\": null,\n            \"currentCity\": null,\n            \"currentDistrict\": null,\n            \"currentJob\": null\n        }\n    }\n}\n```\n\n**Response Fields:**\n| Field | Type | Description |\n|-------|------|-------------|\n| success | boolean | Indicates if request was successful |\n| message | string | Success message |\n| data.token.accessToken | string | JWT access token (10 years expiration) |\n| data.token.refreshToken | string | JWT refresh token |\n| data.token.expiresIn | number | Token expiration time in seconds |\n| data.customer.customerId | number | Customer's unique ID |\n| data.customer.firstName | string | Customer's first name |\n| data.customer.lastName | string | Customer's last name |\n| data.customer.email | string | Customer's email |\n| data.customer.gender | string | Customer's gender |\n| data.customer.birthday | string | Customer's birthday (YYYY-MM-DD) |\n| data.customer.avatar | string/null | URL to customer's avatar image |\n\n---\n\n### Error Responses\n- **400 Bad Request:** Missing identifier or password\n- **401 Unauthorized:** Invalid credentials\n- **500 Internal Server Error:** Server error"
+            "url": "{{baseUrl}}/auth/login",
+            "description": "## Login\n\n**Route:** `POST /api/auth/login`\n\n### Request body\n\n```json\n{\n  \"identifier\": \"<email or phone>\",\n  \"password\": \"<password>\"\n}\n```\n\n### Response `data` (success)\n\n`ResponseData.successWithCode(httpCode, data)` — body includes:\n\n```json\n{\n  \"status\": 200,\n  \"message\": \"\",\n  \"error\": [],\n  \"data\": {\n    \"account\": { \"customer\": { \"customerId\": 1, ... }, ... },\n    \"token\": {\n      \"accessToken\": \"<jwt>\",\n      \"refreshToken\": \"<jwt>\"\n    }\n  }\n}\n```\n\nUse **`data.token.accessToken`** as Bearer token. Customer id: **`data.account.customer.customerId`**."
           },
           "event": [
             {
               "listen": "test",
               "script": {
-                "type": "javascript",
                 "exec": [
-                  "const jsonData = pm.response.json();",
-                  "if (jsonData.data && jsonData.data.token) {",
-                  "    pm.collectionVariables.set('accessToken', jsonData.data.token.accessToken);",
-                  "    pm.collectionVariables.set('customerId', jsonData.data.customer.customerId);",
-                  "}",
-                  "",
-                  "pm.test('Status code is 200', function() {",
-                  "    pm.response.to.have.status(200);",
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('ResponseData shape', () => {",
+                  "    pm.expect(json).to.have.property('status');",
+                  "    pm.expect(json).to.have.property('data');",
                   "});",
-                  "",
-                  "pm.test('Response has token', function() {",
-                  "    pm.expect(jsonData.data.token).to.have.property('accessToken');",
+                  "if (json.data && json.data.token && json.data.token.accessToken) {",
+                  "    pm.collectionVariables.set('accessToken', json.data.token.accessToken);",
+                  "}",
+                  "const cust = json.data && json.data.account && json.data.account.customer;",
+                  "if (cust && cust.customerId != null) {",
+                  "    pm.collectionVariables.set('loggedInCustomerId', String(cust.customerId));",
+                  "}",
+                  "pm.test('Has accessToken in data', () => {",
+                  "    pm.expect(json.data.token).to.have.property('accessToken');",
                   "});"
-                ]
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Video call",
+      "item": [
+        {
+          "name": "Get ICE config",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/video-call/ice-config",
+            "description": "## Get ICE servers (WebRTC)\n\n**Route:** `GET /api/video-call/ice-config`  \n**Controller:** `VideoCallController.getIceConfig`  \n**Auth:** none\n\n### Response 200\n\n```json\n{\n  \"status\": 200,\n  \"message\": \"\",\n  \"error\": [],\n  \"data\": {\n    \"iceServers\": [\n      { \"urls\": \"stun:...\" },\n      { \"urls\": \"turn:...\", \"username\": \"...\", \"credential\": \"...\" }\n    ]\n  }\n}\n```\n\nSTUN/TURN entries depend on env (`STUN_SERVER_URLS`, `TURN_*`)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('data.iceServers is array', () => {",
+                  "    pm.expect(j.data.iceServers).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
               }
             }
           ]
@@ -94,190 +165,142 @@
       "name": "Conversations",
       "item": [
         {
-          "name": "Get Conversations",
+          "name": "List conversations",
           "request": {
             "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/chat/conversations?limit=20&offset=0",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "conversations"],
-              "query": [
-                { "key": "limit", "value": "20" },
-                { "key": "offset", "value": "0" }
-              ]
-            },
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "description": "## Get Conversations - List User Conversations\n\n**Endpoint:** `GET /chat/conversations`\n\n**Description:** Get list of conversations for the authenticated user.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Query Parameters\n| Parameter | Type | Required | Default | Description |\n|-----------|------|----------|---------|-------------|\n| limit | number | No | 20 | Number of conversations to return |\n| offset | number | No | 0 | Number of conversations to skip |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Conversations retrieved successfully\",\n    \"data\": [\n        {\n            \"conversationId\": 1,\n            \"conversationType\": \"Direct\",\n            \"name\": null,\n            \"avatar\": null,\n            \"lastMessage\": {\n                \"messageId\": 10,\n                \"content\": \"Hello Bob!\",\n                \"messageType\": \"Text\",\n                \"senderId\": 1,\n                \"createdAt\": \"2025-01-15T10:30:00.000Z\"\n            },\n            \"participantCount\": 2,\n            \"unreadCount\": 0,\n            \"createdAt\": \"2025-01-10T08:00:00.000Z\",\n            \"updatedAt\": \"2025-01-15T10:30:00.000Z\"\n        }\n    ]\n}\n```\n\n**Response Fields:**\n| Field | Type | Description |\n|-------|------|-------------|\n| success | boolean | Indicates if request was successful |\n| message | string | Success message |\n| data[].conversationId | number | Unique conversation ID |\n| data[].conversationType | string | Type: \"Direct\" or \"Group\" |\n| data[].name | string/null | Conversation name (for groups) |\n| data[].avatar | string/null | Conversation avatar URL |\n| data[].lastMessage | object | Last message in conversation |\n| data[].lastMessage.messageId | number | Last message ID |\n| data[].lastMessage.content | string | Last message content |\n| data[].lastMessage.messageType | string | Type of message |\n| data[].lastMessage.senderId | number | Sender's customer ID |\n| data[].lastMessage.createdAt | string | Message creation timestamp |\n| data[].participantCount | number | Number of participants |\n| data[].unreadCount | number | Number of unread messages |\n| data[].createdAt | string | Conversation creation timestamp |\n| data[].updatedAt | string | Last update timestamp |\n\n---\n\n### Error Responses\n- **401 Unauthorized:** Missing or invalid JWT token\n- **500 Internal Server Error:** Server error"
+            "url": "{{baseUrl}}/chat/conversations?limit=20&offset=0",
+            "description": "## List conversations\n\n**Route:** `GET /api/chat/conversations`  \n**Controller:** `ConversationController.getConversations`\n\n### Query\n\n| Name | Default | Description |\n|------|---------|-------------|\n| limit | 20 | Page size |\n| offset | 0 | Skip |\n\n### Response 200\n\n```json\n{\n  \"status\": 200,\n  \"message\": \"\",\n  \"error\": [],\n  \"data\": [ { \"conversationId\": 1, ... } ]\n}\n```\n\n### 401\n\nMissing/invalid JWT or no resolvable customer id in token."
           },
           "event": [
             {
               "listen": "test",
               "script": {
-                "type": "javascript",
                 "exec": [
-                  "const jsonData = pm.response.json();",
-                  "if (jsonData.data && jsonData.data.length > 0) {",
-                  "    pm.collectionVariables.set('conversationId', jsonData.data[0].conversationId);",
-                  "}",
-                  "",
-                  "pm.test('Status code is 200', function() {",
-                  "    pm.response.to.have.status(200);",
-                  "});"
-                ]
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('data is array', () => pm.expect(j.data).to.be.an('array'));",
+                  "if (j.data && j.data.length > 0 && j.data[0].conversationId != null) {",
+                  "    pm.collectionVariables.set('conversationId', String(j.data[0].conversationId));",
+                  "}"
+                ],
+                "type": "text/javascript"
               }
             }
           ]
         },
         {
-          "name": "Get Conversation By ID",
+          "name": "Get conversation by ID",
           "request": {
             "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/chat/conversations/{{conversationId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "conversations", "{{conversationId}}"]
-            },
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+            "url": "{{baseUrl}}/chat/conversations/{{conversationId}}",
+            "description": "## Get conversation by ID\n\n**Route:** `GET /api/chat/conversations/:conversationId`  \n**Controller:** `ConversationController.getConversationById`\n\n### Response 200\n\n`data` — conversation object.\n\n### 404\n\n`ResponseData.notFound` — conversation missing."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('data.conversationId', () => pm.expect(j.data).to.have.property('conversationId'));"
+                ],
+                "type": "text/javascript"
               }
-            ],
-            "description": "## Get Conversation By ID - Retrieve Single Conversation\n\n**Endpoint:** `GET /chat/conversations/{conversationId}`\n\n**Description:** Get a specific conversation by ID.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| conversationId | number | Yes | ID of the conversation |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Conversation retrieved successfully\",\n    \"data\": {\n        \"conversationId\": 1,\n        \"conversationType\": \"Direct\",\n        \"name\": null,\n        \"avatar\": null,\n        \"createdBy\": 1,\n        \"participantCount\": 2,\n        \"unreadCount\": 0,\n        \"createdAt\": \"2025-01-10T08:00:00.000Z\",\n        \"updatedAt\": \"2025-01-15T10:30:00.000Z\"\n    }\n}\n```\n\n---\n\n### Error Responses\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not a participant of this conversation\n- **404 Not Found:** Conversation not found\n- **500 Internal Server Error:** Server error"
-          }
+            }
+          ]
         },
         {
-          "name": "Create Conversation",
+          "name": "Create conversation",
           "request": {
             "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conversationType\": \"Direct\",\n  \"participantIds\": [2]\n}"
+            },
             "url": "{{baseUrl}}/chat/conversations",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"conversationType\": \"Direct\",\n    \"participantIds\": [2]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "description": "## Create Conversation - Create New Chat\n\n**Endpoint:** `POST /chat/conversations`\n\n**Description:** Create a new conversation with specified participants.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Request Body\n```json\n{\n    \"conversationType\": \"Direct\",\n    \"participantIds\": [2]\n}\n```\n\n**Fields:**\n| Field | Type | Required | Description |\n|-------|------|----------|-------------|\n| conversationType | string | Yes | Type of conversation: \"Direct\" or \"Group\" |\n| participantIds | array[number] | Yes | Array of customer IDs to add as participants |\n\n---\n\n### Response 201 - Created\n```json\n{\n    \"success\": true,\n    \"message\": \"Conversation created successfully\",\n    \"data\": {\n        \"conversationId\": 1,\n        \"conversationType\": \"Direct\",\n        \"name\": null,\n        \"avatar\": null,\n        \"createdBy\": 1,\n        \"participants\": [\n            {\n                \"customerId\": 1,\n                \"firstName\": \"Alice\",\n                \"lastName\": \"Nguyen\",\n                \"avatar\": null,\n                \"role\": \"Admin\"\n            },\n            {\n                \"customerId\": 2,\n                \"firstName\": \"Bob\",\n                \"lastName\": \"Tran\",\n                \"avatar\": null,\n                \"role\": \"Member\"\n            }\n        ],\n        \"createdAt\": \"2025-01-15T10:30:00.000Z\",\n        \"updatedAt\": \"2025-01-15T10:30:00.000Z\"\n    }\n}\n```\n\n**Notes:**\n- The authenticated user is automatically added as creator/admin\n- For Direct conversations, only one participantId is needed\n- If a Direct conversation already exists between participants, returns existing conversation\n\n---\n\n### Error Responses\n- **400 Bad Request:** Missing required fields or invalid conversation type\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** Cannot create conversation with specified participants\n- **500 Internal Server Error:** Server error"
+            "description": "## Create conversation\n\n**Route:** `POST /api/chat/conversations`  \n**Controller:** `ConversationController.createConversation`\n\n### Request body (`CreateConversationInput`)\n\n```json\n{\n  \"conversationType\": \"Direct\",\n  \"participantIds\": [2],\n  \"name\": \"Optional group name\"\n}\n```\n\n### Response 201\n\n`ResponseData.successWithCode(201, conversation)` — `data` is the created (or existing) conversation.\n\n### 401\n\nIf JWT cannot resolve `userId`."
           },
           "event": [
             {
               "listen": "test",
               "script": {
-                "type": "javascript",
                 "exec": [
-                  "const jsonData = pm.response.json();",
-                  "if (jsonData.data && jsonData.data.conversationId) {",
-                  "    pm.collectionVariables.set('conversationId', jsonData.data.conversationId);",
-                  "}",
-                  "",
-                  "pm.test('Status code is 201', function() {",
-                  "    pm.response.to.have.status(201);",
-                  "});",
-                  "",
-                  "pm.test('Response has conversationId', function() {",
-                  "    pm.expect(jsonData.data).to.have.property('conversationId');",
-                  "});"
-                ]
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.test('data.conversationId', () => pm.expect(j.data).to.have.property('conversationId'));",
+                  "if (j.data && j.data.conversationId != null) {",
+                  "    pm.collectionVariables.set('conversationId', String(j.data.conversationId));",
+                  "}"
+                ],
+                "type": "text/javascript"
               }
             }
           ]
         },
         {
-          "name": "Get Participants",
+          "name": "List participants",
           "request": {
             "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/chat/conversations/{{conversationId}}/participants",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "conversations", "{{conversationId}}", "participants"]
-            },
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+            "url": "{{baseUrl}}/chat/conversations/{{conversationId}}/participants",
+            "description": "## List participants\n\n**Route:** `GET /api/chat/conversations/:conversationId/participants`  \n**Controller:** `ConversationController.getParticipants`\n\n### Response 200\n\n`data` — array of participants."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('data is array', () => {",
+                  "    pm.expect(pm.response.json().data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
               }
-            ],
-            "description": "## Get Participants - List Conversation Members\n\n**Endpoint:** `GET /chat/conversations/{conversationId}/participants`\n\n**Description:** Get all participants of a conversation.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| conversationId | number | Yes | ID of the conversation |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Participants retrieved successfully\",\n    \"data\": [\n        {\n            \"customerId\": 1,\n            \"firstName\": \"Alice\",\n            \"lastName\": \"Nguyen\",\n            \"avatar\": null,\n            \"role\": \"Admin\",\n            \"joinedAt\": \"2025-01-10T08:00:00.000Z\"\n        },\n        {\n            \"customerId\": 2,\n            \"firstName\": \"Bob\",\n            \"lastName\": \"Tran\",\n            \"avatar\": null,\n            \"role\": \"Member\",\n            \"joinedAt\": \"2025-01-10T08:05:00.000Z\"\n        }\n    ]\n}\n```\n\n**Response Fields:**\n| Field | Type | Description |\n|-------|------|-------------|\n| data[].customerId | number | Customer's unique ID |\n| data[].firstName | string | Customer's first name |\n| data[].lastName | string | Customer's last name |\n| data[].avatar | string/null | Customer's avatar URL |\n| data[].role | string | Role in conversation: Admin, Moderator, Member |\n| data[].joinedAt | string | When participant joined the conversation |\n\n---\n\n### Error Responses\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not a participant of this conversation\n- **404 Not Found:** Conversation not found\n- **500 Internal Server Error:** Server error"
-          }
+            }
+          ]
         },
         {
-          "name": "Add Participant",
+          "name": "Add participant",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/chat/conversations/{{conversationId}}/participants",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"customerId\": 3,\n    \"role\": \"Member\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"customerId\": 3,\n  \"role\": \"Member\"\n}"
             },
-            "description": "## Add Participant - Add User to Conversation\n\n**Endpoint:** `POST /chat/conversations/{conversationId}/participants`\n\n**Description:** Add a participant to a conversation.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| conversationId | number | Yes | ID of the conversation |\n\n---\n\n### Request Body\n```json\n{\n    \"customerId\": 3,\n    \"role\": \"Member\"\n}\n```\n\n**Fields:**\n| Field | Type | Required | Description |\n|-------|------|----------|-------------|\n| customerId | number | Yes | ID of customer to add |\n| role | string | No | Role: \"Member\", \"Admin\", \"Moderator\" (default: \"Member\") |\n\n---\n\n### Response 201 - Created\n```json\n{\n    \"success\": true,\n    \"message\": \"Participant added successfully\",\n    \"data\": {\n        \"customerId\": 3,\n        \"firstName\": \"Charlie\",\n        \"lastName\": \"Le\",\n        \"avatar\": null,\n        \"role\": \"Member\",\n        \"joinedAt\": \"2025-01-15T12:00:00.000Z\"\n    }\n}\n```\n\n---\n\n### Error Responses\n- **400 Bad Request:** Invalid request body or customerId\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User does not have permission to add participants\n- **404 Not Found:** Conversation not found\n- **500 Internal Server Error:** Server error"
-          }
+            "url": "{{baseUrl}}/chat/conversations/{{conversationId}}/participants",
+            "description": "## Add participant\n\n**Route:** `POST /api/chat/conversations/:conversationId/participants`  \n**Controller:** `ConversationController.addParticipant`\n\n### Body (`AddParticipantInput`)\n\n```json\n{\n  \"customerId\": 3,\n  \"role\": \"Member\"\n}\n```\n\n### Response 201\n\n`data` — participant info."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "pm.test('has data', () => pm.expect(pm.response.json().data).to.exist);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         },
         {
-          "name": "Remove Participant",
+          "name": "Remove participant",
           "request": {
             "method": "DELETE",
-            "url": {
-              "raw": "{{baseUrl}}/chat/conversations/{{conversationId}}/participants/{{customerId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "conversations", "{{conversationId}}", "participants", "{{customerId}}"]
-            },
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+            "url": "{{baseUrl}}/chat/conversations/{{conversationId}}/participants/{{participantCustomerId}}",
+            "description": "## Remove participant\n\n**Route:** `DELETE /api/chat/conversations/:conversationId/participants/:customerId`  \n**Controller:** `ConversationController.removeParticipant`\n\nSet **`participantCustomerId`** to the customer to remove.\n\n### Response 204\n\nEmpty body (no JSON)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+                ],
+                "type": "text/javascript"
               }
-            ],
-            "description": "## Remove Participant - Remove User from Conversation\n\n**Endpoint:** `DELETE /chat/conversations/{conversationId}/participants/{customerId}`\n\n**Description:** Remove a participant from a conversation.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| conversationId | number | Yes | ID of the conversation |\n| customerId | number | Yes | ID of the customer to remove |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Participant removed successfully\",\n    \"data\": null\n}\n```\n\n---\n\n### Error Responses\n- **400 Bad Request:** Cannot remove the last admin or creator\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User does not have permission to remove participants\n- **404 Not Found:** Conversation or participant not found\n- **500 Internal Server Error:** Server error"
-          }
+            }
+          ]
         }
       ]
     },
@@ -285,289 +308,251 @@
       "name": "Messages",
       "item": [
         {
-          "name": "Get Messages",
+          "name": "List messages",
           "request": {
             "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/chat/conversations/{{conversationId}}/messages?limit=20&offset=0",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "conversations", "{{conversationId}}", "messages"],
-              "query": [
-                { "key": "limit", "value": "20" },
-                { "key": "offset", "value": "0" }
-              ]
-            },
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "description": "## Get Messages - List Conversation Messages\n\n**Endpoint:** `GET /chat/conversations/{conversationId}/messages`\n\n**Description:** Get messages from a conversation with pagination. Messages are ordered by `createdAt DESC` (newest first).\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| conversationId | number | Yes | ID of the conversation |\n\n---\n\n### Query Parameters\n| Parameter | Type | Required | Default | Description |\n|-----------|------|----------|---------|-------------|\n| limit | number | No | 20 | Number of messages to return |\n| offset | number | No | 0 | Number of messages to skip |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Messages retrieved successfully\",\n    \"data\": [\n        {\n            \"messageId\": 10,\n            \"conversationId\": 1,\n            \"senderId\": 1,\n            \"senderName\": \"Alice Nguyen\",\n            \"content\": \"Hello Bob!\",\n            \"messageType\": \"Text\",\n            \"isDeleted\": false,\n            \"attachments\": [],\n            \"readBy\": [1, 2],\n            \"createdAt\": \"2025-01-15T10:30:00.000Z\",\n            \"updatedAt\": \"2025-01-15T10:30:00.000Z\"\n        }\n    ]\n}\n```\n\n**Response Fields:**\n| Field | Type | Description |\n|-------|------|-------------|\n| data[].messageId | number | Unique message ID |\n| data[].conversationId | number | Conversation ID |\n| data[].senderId | number | Sender's customer ID |\n| data[].senderName | string | Sender's display name |\n| data[].content | string | Message content |\n| data[].messageType | string | Type: Text, Image, Video, File, Audio |\n| data[].isDeleted | boolean | Whether message is deleted |\n| data[].attachments | array | Array of attachments |\n| data[].readBy | array[number] | Array of customer IDs who read this message |\n| data[].createdAt | string | Message creation timestamp |\n| data[].updatedAt | string | Last update timestamp |\n\n---\n\n### Error Responses\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not a participant of this conversation\n- **404 Not Found:** Conversation not found\n- **500 Internal Server Error:** Server error"
+            "url": "{{baseUrl}}/chat/conversations/{{conversationId}}/messages?limit=20&offset=0",
+            "description": "## List messages\n\n**Route:** `GET /api/chat/conversations/:conversationId/messages`  \n**Controller:** `MessageController.getMessages`\n\n### Response 200\n\n`data` — `MessageDTO[]` (shape from service/repo)."
           },
           "event": [
             {
               "listen": "test",
               "script": {
-                "type": "javascript",
                 "exec": [
-                  "const jsonData = pm.response.json();",
-                  "if (jsonData.data && jsonData.data.length > 0) {",
-                  "    pm.collectionVariables.set('messageId', jsonData.data[0].messageId);",
-                  "}",
-                  "",
-                  "pm.test('Status code is 200', function() {",
-                  "    pm.response.to.have.status(200);",
-                  "});"
-                ]
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('data is array', () => pm.expect(j.data).to.be.an('array'));",
+                  "if (j.data && j.data.length > 0 && j.data[0].messageId != null) {",
+                  "    pm.collectionVariables.set('messageId', String(j.data[0].messageId));",
+                  "}"
+                ],
+                "type": "text/javascript"
               }
             }
           ]
         },
         {
-          "name": "Get Message By ID",
+          "name": "Get message by ID",
           "request": {
             "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/chat/messages/{{messageId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "messages", "{{messageId}}"]
-            },
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+            "url": "{{baseUrl}}/chat/messages/{{messageId}}",
+            "description": "## Get message by ID\n\n**Route:** `GET /api/chat/messages/:messageId`  \n**Controller:** `MessageController.getMessageById`\n\n### 404\n\nMessage not found."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('data.messageId', () => pm.expect(pm.response.json().data).to.have.property('messageId'));"
+                ],
+                "type": "text/javascript"
               }
-            ],
-            "description": "## Get Message By ID - Retrieve Single Message\n\n**Endpoint:** `GET /chat/messages/{messageId}`\n\n**Description:** Get a specific message by ID.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| messageId | number | Yes | ID of the message |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Message retrieved successfully\",\n    \"data\": {\n        \"messageId\": 10,\n        \"conversationId\": 1,\n        \"senderId\": 1,\n        \"senderName\": \"Alice Nguyen\",\n        \"content\": \"Hello Bob!\",\n        \"messageType\": \"Text\",\n        \"isDeleted\": false,\n        \"attachments\": [],\n        \"readBy\": [1, 2],\n        \"createdAt\": \"2025-01-15T10:30:00.000Z\",\n        \"updatedAt\": \"2025-01-15T10:30:00.000Z\"\n    }\n}\n```\n\n---\n\n### Error Responses\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not a participant of this conversation\n- **404 Not Found:** Message not found\n- **500 Internal Server Error:** Server error"
-          }
+            }
+          ]
         },
         {
-          "name": "Send Message",
+          "name": "Send message",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/chat/conversations/{{conversationId}}/messages",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"content\": \"Hello Bob!\",\n    \"messageType\": \"Text\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"content\": \"Hello from Postman\",\n  \"messageType\": \"Text\"\n}"
             },
-            "description": "## Send Message - Create New Message\n\n**Endpoint:** `POST /chat/conversations/{conversationId}/messages`\n\n**Description:** Send a text message to a conversation.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| conversationId | number | Yes | ID of the conversation |\n\n---\n\n### Request Body\n```json\n{\n    \"content\": \"Hello Bob!\",\n    \"messageType\": \"Text\"\n}\n```\n\n**Fields:**\n| Field | Type | Required | Description |\n|-------|------|----------|-------------|\n| content | string | Yes | Message content |\n| messageType | string | No | Message type: Text, Image, Video, File, Audio (default: \"Text\") |\n\n---\n\n### Response 201 - Created\n```json\n{\n    \"success\": true,\n    \"message\": \"Message sent successfully\",\n    \"data\": {\n        \"messageId\": 11,\n        \"conversationId\": 1,\n        \"senderId\": 1,\n        \"senderName\": \"Alice Nguyen\",\n        \"content\": \"Hello Bob!\",\n        \"messageType\": \"Text\",\n        \"isDeleted\": false,\n        \"attachments\": [],\n        \"readBy\": [1],\n        \"createdAt\": \"2025-01-15T10:35:00.000Z\",\n        \"updatedAt\": \"2025-01-15T10:35:00.000Z\"\n    }\n}\n```\n\n### Socket.IO Event\nAfter sending, `message:received` event is emitted to the conversation room (excluding sender).\n\n**Event Payload:**\n```json\n{\n    \"messageId\": 11,\n    \"conversationId\": 1,\n    \"senderId\": 1,\n    \"senderName\": \"Alice Nguyen\",\n    \"content\": \"Hello Bob!\",\n    \"messageType\": \"Text\",\n    \"createdAt\": \"2025-01-15T10:35:00.000Z\"\n}\n```\n\n---\n\n### Error Responses\n- **400 Bad Request:** Missing content or invalid message type\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not a participant of this conversation\n- **404 Not Found:** Conversation not found\n- **500 Internal Server Error:** Server error"
+            "url": "{{baseUrl}}/chat/conversations/{{conversationId}}/messages",
+            "description": "## Send message\n\n**Route:** `POST /api/chat/conversations/:conversationId/messages`  \n**Controller:** `MessageController.sendMessage`\n\n### Body (`SendMessageInput`)\n\n```json\n{\n  \"content\": \"...\",\n  \"messageType\": \"Text\"\n}\n```\n\n`conversationId` in URL is used; body may include `conversationId` in type but service uses URL + `content` / `messageType`.\n\n### Response 201\n\n`data` — created `MessageDTO`.\n\nServer may emit Socket.IO **`message:received`** to room `conversation:{id}`."
           },
           "event": [
             {
               "listen": "test",
               "script": {
-                "type": "javascript",
                 "exec": [
-                  "const jsonData = pm.response.json();",
-                  "if (jsonData.data && jsonData.data.messageId) {",
-                  "    pm.collectionVariables.set('messageId', jsonData.data.messageId);",
-                  "}",
-                  "",
-                  "pm.test('Status code is 201', function() {",
-                  "    pm.response.to.have.status(201);",
-                  "});",
-                  "",
-                  "pm.test('Response has messageId', function() {",
-                  "    pm.expect(jsonData.data).to.have.property('messageId');",
-                  "});"
-                ]
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.test('data.messageId', () => pm.expect(j.data).to.have.property('messageId'));",
+                  "if (j.data.messageId != null) pm.collectionVariables.set('messageId', String(j.data.messageId));"
+                ],
+                "type": "text/javascript"
               }
             }
           ]
         },
         {
-          "name": "Edit Message",
+          "name": "Edit message",
           "request": {
             "method": "PUT",
-            "url": "{{baseUrl}}/chat/messages/{{messageId}}",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"content\": \"Updated message content\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"content\": \"Updated content\"\n}"
             },
-            "description": "## Edit Message - Update Message Content\n\n**Endpoint:** `PUT /chat/messages/{messageId}`\n\n**Description:** Edit an existing message.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| messageId | number | Yes | ID of the message to edit |\n\n---\n\n### Request Body\n```json\n{\n    \"content\": \"Updated message content\"\n}\n```\n\n**Fields:**\n| Field | Type | Required | Description |\n|-------|------|----------|-------------|\n| content | string | Yes | New message content |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Message updated successfully\",\n    \"data\": {\n        \"messageId\": 10,\n        \"conversationId\": 1,\n        \"senderId\": 1,\n        \"senderName\": \"Alice Nguyen\",\n        \"content\": \"Updated message content\",\n        \"messageType\": \"Text\",\n        \"isDeleted\": false,\n        \"attachments\": [],\n        \"readBy\": [1, 2],\n        \"createdAt\": \"2025-01-15T10:30:00.000Z\",\n        \"updatedAt\": \"2025-01-15T11:00:00.000Z\"\n    }\n}\n```\n\n---\n\n### Error Responses\n- **400 Bad Request:** Missing content\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not the message sender\n- **404 Not Found:** Message not found\n- **500 Internal Server Error:** Server error"
-          }
+            "url": "{{baseUrl}}/chat/messages/{{messageId}}",
+            "description": "## Edit message\n\n**Route:** `PUT /api/chat/messages/:messageId`  \n**Controller:** `MessageController.editMessage`\n\n### Body (`EditMessageInput`)\n\n```json\n{ \"content\": \"...\" }\n```"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('data.content', () => pm.expect(pm.response.json().data.content).to.exist);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         },
         {
-          "name": "Delete Message",
+          "name": "Delete message",
           "request": {
             "method": "DELETE",
-            "url": {
-              "raw": "{{baseUrl}}/chat/messages/{{messageId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "messages", "{{messageId}}"]
-            },
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+            "url": "{{baseUrl}}/chat/messages/{{messageId}}",
+            "description": "## Delete message\n\n**Route:** `DELETE /api/chat/messages/:messageId`  \n**Controller:** `MessageController.deleteMessage`\n\n### Response 204\n\nEmpty body."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 204', () => pm.response.to.have.status(204));"
+                ],
+                "type": "text/javascript"
               }
-            ],
-            "description": "## Delete Message - Remove Message\n\n**Endpoint:** `DELETE /chat/messages/{messageId}`\n\n**Description:** Delete a message.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| messageId | number | Yes | ID of the message to delete |\n\n---\n\n### Response 204 - No Content\nMessage deleted successfully. No content returned.\n\n---\n\n### Error Responses\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not the message sender or admin\n- **404 Not Found:** Message not found\n- **500 Internal Server Error:** Server error"
-          }
+            }
+          ]
         },
         {
-          "name": "Mark Messages as Read",
+          "name": "Mark messages as read",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/chat/messages/read",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"messageIds\": [1, 2, 3, 4, 5]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "raw": "{\n  \"messageIds\": [1, 2, 3]\n}"
             },
-            "description": "## Mark Messages as Read - Update Read Status\n\n**Endpoint:** `POST /chat/messages/read`\n\n**Description:** Mark multiple messages as read.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Request Body\n```json\n{\n    \"messageIds\": [1, 2, 3, 4, 5]\n}\n```\n\n**Fields:**\n| Field | Type | Required | Description |\n|-------|------|----------|-------------|\n| messageIds | array[number] | Yes | Array of message IDs to mark as read |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Messages marked as read successfully\",\n    \"data\": {\n        \"markedCount\": 5\n    }\n}\n```\n\n**Response Fields:**\n| Field | Type | Description |\n|-------|------|-------------|\n| data.markedCount | number | Number of messages marked as read |\n\n---\n\n### Error Responses\n- **400 Bad Request:** Missing messageIds array\n- **401 Unauthorized:** Missing or invalid JWT token\n- **500 Internal Server Error:** Server error"
-          }
+            "url": "{{baseUrl}}/chat/messages/read",
+            "description": "## Mark messages as read\n\n**Route:** `POST /api/chat/messages/read`  \n**Controller:** `MessageController.markMessagesAsRead`\n\n### Body\n\n```json\n{\n  \"messageIds\": [1, 2, 3]\n}\n```\n\n### Response 200\n\n```json\n{\n  \"status\": 200,\n  \"message\": \"\",\n  \"error\": [],\n  \"data\": { \"success\": true }\n}\n```"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "pm.test('data.success', () => pm.expect(pm.response.json().data).to.eql({ success: true }));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Files",
+      "name": "Chat files (message attachments)",
       "item": [
         {
-          "name": "Upload File",
+          "name": "Upload file to conversation",
           "request": {
             "method": "POST",
-            "url": "{{baseUrl}}/chat/conversations/{{conversationId}}/files",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              }
-            ],
             "body": {
               "mode": "formdata",
               "formdata": [
                 {
                   "key": "file",
                   "type": "file",
-                  "src": ""
+                  "src": []
                 },
                 {
                   "key": "content",
-                  "value": "Test file upload",
+                  "value": "Caption or note",
                   "type": "text"
                 }
               ]
             },
-            "description": "## Upload File - Upload File to Conversation\n\n**Endpoint:** `POST /chat/conversations/{conversationId}/files`\n\n**Description:** Upload a file (image, video, or document) to a conversation.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| conversationId | number | Yes | ID of the conversation |\n\n---\n\n### Form Data\n| Field | Type | Required | Description |\n|--------|------|----------|-------------|\n| file | file | Yes | The file to upload |\n| content | string | No | Optional message content/description |\n\n**File Type Detection:**\n- Images (mimeType: image/*) → messageType: \"Image\"\n- Videos (mimeType: video/*) → messageType: \"Video\"\n- Other files → messageType: \"File\"\n\n**Max File Size:** 25MB\n\n---\n\n### Response 201 - Created\n```json\n{\n    \"success\": true,\n    \"message\": \"File uploaded successfully\",\n    \"data\": {\n        \"messageId\": 12,\n        \"conversationId\": 1,\n        \"senderId\": 1,\n        \"senderName\": \"Alice Nguyen\",\n        \"content\": \"Test file upload\",\n        \"messageType\": \"Image\",\n        \"isDeleted\": false,\n        \"attachments\": [\n            {\n                \"attachmentId\": 1,\n                \"fileName\": \"photo.jpg\",\n                \"fileUrl\": \"/uploads/chat/photo.jpg\",\n                \"mimeType\": \"image/jpeg\",\n                \"fileSize\": 102400,\n                \"cloudFileId\": null\n            }\n        ],\n        \"readBy\": [1],\n        \"createdAt\": \"2025-01-15T10:40:00.000Z\",\n        \"updatedAt\": \"2025-01-15T10:40:00.000Z\"\n    }\n}\n```\n\n**Response Fields:**\n| Field | Type | Description |\n|-------|------|-------------|\n| data.messageId | number | Created message ID |\n| data.attachments[].attachmentId | number | Attachment's unique ID |\n| data.attachments[].fileName | string | Original file name |\n| data.attachments[].fileUrl | string | File URL path |\n| data.attachments[].mimeType | string | MIME type of file |\n| data.attachments[].fileSize | number | File size in bytes |\n| data.attachments[].cloudFileId | string/null | Google Drive file ID if uploaded to cloud |\n\n### Socket.IO Event\nAfter upload, `file:received` event is emitted to the conversation room (excluding sender).\n\n**Event Payload:**\n```json\n{\n    \"messageId\": 12,\n    \"conversationId\": 1,\n    \"senderId\": 1,\n    \"senderName\": \"Alice Nguyen\",\n    \"attachments\": [...],\n    \"createdAt\": \"2025-01-15T10:40:00.000Z\"\n}\n```\n\n---\n\n### Error Responses\n- **400 Bad Request:** No file provided or file too large\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not a participant of this conversation\n- **404 Not Found:** Conversation not found\n- **500 Internal Server Error:** Server error"
+            "url": "{{baseUrl}}/chat/conversations/{{conversationId}}/files",
+            "description": "## Upload file → message\n\n**Route:** `POST /api/chat/conversations/:conversationId/files`  \n**Controller:** `MessageController.uploadFile`  \n**Body:** `multipart/form-data` — field **`file`** (required), **`content`** (optional).\n\n`messageType` is derived from MIME (`Image` / `Video` / `File`).\n\n### Response 201\n\n`data` — message with `attachments`.\n\n### 400\n\nNo file.\n\n### 500\n\n`message` / `error` may indicate `FILE_UPLOAD_ERROR`.\n\nSocket.IO: **`file:received`** to conversation room."
           },
           "event": [
             {
               "listen": "test",
               "script": {
-                "type": "javascript",
                 "exec": [
-                  "const jsonData = pm.response.json();",
-                  "if (jsonData.data && jsonData.data.messageId) {",
-                  "    pm.collectionVariables.set('messageId', jsonData.data.messageId);",
-                  "    // Extract attachment ID if available",
-                  "    if (jsonData.data.attachments && jsonData.data.attachments.length > 0) {",
-                  "        pm.collectionVariables.set('attachmentId', jsonData.data.attachments[0].attachmentId);",
-                  "    }",
-                  "}",
-                  "",
-                  "pm.test('Status code is 201', function() {",
-                  "    pm.response.to.have.status(201);",
-                  "});"
-                ]
+                  "pm.test('HTTP 201', () => pm.response.to.have.status(201));",
+                  "const j = pm.response.json();",
+                  "pm.test('data.messageId', () => pm.expect(j.data).to.have.property('messageId'));",
+                  "if (j.data.messageId != null) pm.collectionVariables.set('messageId', String(j.data.messageId));"
+                ],
+                "type": "text/javascript"
               }
             }
           ]
         },
         {
-          "name": "Get File Download URL",
+          "name": "Get download URL (by message ID)",
           "request": {
             "method": "GET",
-            "url": {
-              "raw": "{{baseUrl}}/chat/files/{{attachmentId}}/download",
-              "host": ["{{baseUrl}}"],
-              "path": ["chat", "files", "{{attachmentId}}", "download"]
-            },
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+            "url": "{{baseUrl}}/chat/files/{{messageId}}/download",
+            "description": "## Download metadata for chat attachment\n\n**Route:** `GET /api/chat/files/:fileId/download`  \n**Controller:** `MessageController.getFileDownloadUrl`\n\n**Important:** despite the `:fileId` segment name, the implementation calls `getMessageAttachments(parseInt(fileId))`, i.e. the value must be a **messageId** for a message that has attachments.\n\n### Response 200\n\n```json\n{\n  \"status\": 200,\n  \"message\": \"\",\n  \"error\": [],\n  \"data\": {\n    \"downloadUrl\": \"...\",\n    \"fileName\": \"...\",\n    \"mimeType\": \"...\",\n    \"fileSize\": 12345\n  }\n}\n```\n\nIf `cloudFileId` exists, URL comes from cloud; else local `fileUrl`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('data.downloadUrl', () => pm.expect(j.data).to.have.property('downloadUrl'));"
+                ],
+                "type": "text/javascript"
               }
-            ],
-            "description": "## Get File Download URL - Retrieve File Download Link\n\n**Endpoint:** `GET /chat/files/{attachmentId}/download`\n\n**Description:** Get download URL for a file attachment.\n\n---\n\n### Headers\n| Header | Value | Required |\n|--------|-------|----------|\n| Authorization | Bearer {{accessToken}} | Yes |\n| Content-Type | application/json | Yes |\n\n---\n\n### Path Parameters\n| Parameter | Type | Required | Description |\n|-----------|------|----------|-------------|\n| attachmentId | number | Yes | The attachment ID (use attachmentId from message attachments array) |\n\n---\n\n### Response 200 - OK\n```json\n{\n    \"success\": true,\n    \"message\": \"Download URL retrieved successfully\",\n    \"data\": {\n        \"downloadUrl\": \"http://localhost:3333/uploads/chat/photo.jpg\",\n        \"fileName\": \"photo.jpg\",\n        \"mimeType\": \"image/jpeg\",\n        \"fileSize\": 102400\n    }\n}\n```\n\n**Response Fields:**\n| Field | Type | Description |\n|-------|------|-------------|\n| data.downloadUrl | string | Full URL to download the file |\n| data.fileName | string | Original file name |\n| data.mimeType | string | MIME type of file |\n| data.fileSize | number | File size in bytes |\n\n**Notes:**\n- If file has cloudFileId (uploaded to Google Drive), returns cloud storage URL\n- Otherwise returns local file URL\n\n---\n\n### Error Responses\n- **401 Unauthorized:** Missing or invalid JWT token\n- **403 Forbidden:** User is not a participant of the conversation\n- **404 Not Found:** Attachment not found\n- **500 Internal Server Error:** Server error"
-          }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "Socket.IO Events",
+      "name": "Multimedia (binary stream)",
       "item": [
         {
-          "name": "Socket.IO Connection Info",
+          "name": "Stream file by multimedia fileId",
           "request": {
             "method": "GET",
+            "url": "{{baseUrl}}/files/{{multimediaFileId}}",
+            "description": "## Stream file\n\n**Route:** `GET /api/files/:fileId`  \n**Controller:** `FileController.getFile`  \n**Middleware:** `authenticateMiddleware`, `getFileValidate`\n\nThis uses the **multimedia** file table / cloud id — **not** the same id as chat `attachmentId`.\n\n### Success\n\nBinary stream; `Content-Type` from stored metadata (fallback `application/octet-stream`).\n\n### Error 404\n\nJSON `ResponseData.notFound('File not found')`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const code = pm.response.code;",
+                  "pm.test('HTTP 200 or 404', () => pm.expect([200, 404]).to.include(code));",
+                  "if (code === 200) {",
+                  "    pm.test('Has body', () => pm.expect(pm.response.responseSize).to.be.above(0));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Socket.IO (reference)",
+      "item": [
+        {
+          "name": "Connection notes",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
             "url": null,
-            "description": "## Socket.IO Testing Guide\n\n### Connection\n```javascript\nconst io = require('socket.io-client');\n\nconst socket = io('http://localhost:3333', {\n    auth: { userId: '1' },  // Use customerId from login\n    transports: ['websocket']\n});\n\nsocket.on('connect', () => {\n    console.log('Connected:', socket.id);\n});\n```\n\n### Join Conversation Room\n```javascript\nsocket.emit('join:conversation', conversationId);\n```\n\n### Events to Listen\n| Event | Description |\n|-------|-------------|\n| `message:received` | New text message received |\n| `file:received` | New file/image uploaded |\n| `user:online` | User came online |\n| `user:offline` | User went offline |\n\n### Events to Emit\n| Event | Payload |\n|-------|---------|\n| `join:conversation` | conversationId (number) |\n| `leave:conversation` | conversationId (number) |\n| `typing:start` | { conversationId, userId } |\n| `typing:stop` | { conversationId, userId } |\n\n---\n**Note:** This is informational only. Use a Socket.IO client (like Postman WebSocket or socket.io-client) to test real-time events."
+            "description": "## Socket.IO\n\n- **URL:** use collection variable **`hostUrl`** (e.g. `http://localhost:3333`) — not under `/api`.\n- Event names include: `message:received`, `file:received`, `typing:start`, `typing:stop`, `user:online`, `user:offline` — see `src/utils/types/socket-events.ts` and `socket-handlers.ts`.\n\nDocumentation-only item (no HTTP URL)."
           }
         }
       ]
     }
   ]
 }
-
