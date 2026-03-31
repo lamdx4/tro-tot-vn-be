@@ -65,7 +65,7 @@ export const env = cleanEnv(process.env, {
 
   // WebRTC / Coturn Configuration
   STUN_SERVER_URLS: str(),
-  // TURN_SERVER_IP: str(),
+  TURN_SERVER_IP: str({ default: '' }), // Optional: if missing, will fallback to Redis discovery
   TURN_SERVER_PORT: port(),
   TURN_SERVER_TLS_PORT: port(),
   TURN_USERNAME: str(),
