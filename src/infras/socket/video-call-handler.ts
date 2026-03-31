@@ -86,13 +86,6 @@ export class VideoCallHandler {
     if (userId !== undefined && userId !== null) {
       // Join user's personal room for direct notifications
       socket.join(`user:${userId}`)
-
-      // Save user-socket mapping to Redis for persistence
-      try {
-        await saveUserConnection(userId, socket.id)
-      } catch (error) {
-        console.error('[VideoCallHandler] Failed to save connection to Redis:', error)
-      }
     }
   }
 

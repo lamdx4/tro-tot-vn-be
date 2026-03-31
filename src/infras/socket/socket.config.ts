@@ -7,6 +7,7 @@ import { VIDEO_CALL_EVENTS } from '@/utils/types/webrtc-signaling'
 import { saveUserConnection, removeUserConnection } from '@/infras/redis/connection-cache'
 import JWTService from '@/services/jwt.service'
 import { Account } from '@/domains/entities/account.entity'
+import { ConfigService } from '@/services/config.service'
 
 /**
  * Socket.IO Configuration and Setup
@@ -22,6 +23,7 @@ export class SocketConfig {
   private handlers: SocketHandlers
   private videoCallHandler: VideoCallHandler
   private jwtService: JWTService
+  private config = ConfigService.gI()
 
   constructor(httpServer: HttpServer) {
     // Initialize handlers FIRST
@@ -32,7 +34,15 @@ export class SocketConfig {
     // Initialize Socket.IO server
     this.io = new SocketIOServer(httpServer, {
       cors: {
-        origin: '*',
+        origin: (origin, callback) => {
+          const allowedOrigins = [this.config.get('FRONTEND_URL')]
+          // !origin allows mobile apps, postman, and other non-browser clients
+          if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true)
+          } else {
+            callback(new Error('Not allowed by CORS'))
+          }
+        },
         methods: ['GET', 'POST'],
         credentials: true
       },
