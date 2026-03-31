@@ -1,17 +1,28 @@
+import { env } from '@/preload-env'
+
 export class ConfigService {
   private static instance: ConfigService
   private constructor() {}
 
-  get(key: string): string | undefined {
-    return process.env[key]
+  /**
+   * Lấy giá trị cấu hình đã được validate (Type-safe)
+   */
+  get<K extends keyof typeof env>(key: K): typeof env[K] {
+    return env[key]
   }
 
-  getOrThrow(key: string): string {
-    const value = process.env[key]
-    if (!value) {
-      throw new Error(`Config error - missing env.${key}`)
-    }
-    return value
+  /**
+   * Tương tự get nhưng giữ tên cũ để không break code cũ
+   */
+  getOrThrow<K extends keyof typeof env>(key: K): typeof env[K] {
+    return env[key]
+  }
+
+  /**
+   * Lấy data thô chưa qua validate (nếu cần)
+   */
+  getRaw(key: string): string | undefined {
+    return process.env[key]
   }
 
   public static gI(): ConfigService {

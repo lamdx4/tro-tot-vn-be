@@ -22,7 +22,6 @@ import {
   IceConnectionStateEvent,
   ConnectionStatsEvent
 } from '@/utils/types/webrtc-signaling'
-import { env } from '@/preload-env'
 import ResponseData from '@/utils/data-types/response'
 import {
   saveUserConnection,
@@ -39,6 +38,7 @@ import {
   getVideoCallRoom,
   getAllVideoCallRooms
 } from '@/infras/redis/connection-cache'
+import { ConfigService } from '@/services/config.service'
 
 /**
  * VideoCallHandler - Handles 1-on-1 video call signaling via Socket.IO
@@ -47,9 +47,10 @@ export class VideoCallHandler {
   private roomCleanupTimeouts: Map<string, NodeJS.Timeout> = new Map()
   private readonly isDebug: boolean
   private io: SocketIOServer | null = null
+  private config = ConfigService.gI()
 
   constructor() {
-    this.isDebug = process.env.NODE_ENV !== 'production'
+    this.isDebug = this.config.get('NODE_ENV') !== 'production'
   }
 
   setIO(io: SocketIOServer): void {
@@ -58,7 +59,7 @@ export class VideoCallHandler {
 
   /**
    * Wrap payload in REST-style envelope: { status, data }
-   */ 
+   */
   private wrap<T>(data: any, status = 200): ResponseData<T> {
     return new ResponseData<T>(status, 'success', data)
   }
@@ -115,7 +116,7 @@ export class VideoCallHandler {
   private buildIceServers(): IceServerConfig[] {
     const iceServers: IceServerConfig[] = []
 
-    const stunUrlsEnv = env.STUN_SERVER_URLS
+    const stunUrlsEnv = this.config.get('STUN_SERVER_URLS')
     if (stunUrlsEnv) {
       const stunUrls = stunUrlsEnv.split(',')
       for (const url of stunUrls) {
@@ -126,23 +127,23 @@ export class VideoCallHandler {
       }
     }
 
-    if (env.TURN_SERVER_IP && env.TURN_USERNAME && env.TURN_CREDENTIAL) {
+    if (this.config.get('TURN_SERVER_IP') && this.config.get('TURN_USERNAME') && this.config.get('TURN_CREDENTIAL')) {
       const turnUrls = [
-        `turn:${env.TURN_SERVER_IP}:${env.TURN_SERVER_PORT}?transport=udp`,
-        `turn:${env.TURN_SERVER_IP}:${env.TURN_SERVER_PORT}?transport=tcp`,
-        `turn:${env.TURN_SERVER_IP}:${env.TURN_SERVER_TLS_PORT}?transport=tcp`
+        `turn:${this.config.get('TURN_SERVER_IP')}:${this.config.get('TURN_SERVER_PORT')}?transport=udp`,
+        `turn:${this.config.get('TURN_SERVER_IP')}:${this.config.get('TURN_SERVER_PORT')}?transport=tcp`,
+        `turn:${this.config.get('TURN_SERVER_IP')}:${this.config.get('TURN_SERVER_TLS_PORT')}?transport=tcp`
       ]
 
       for (const url of turnUrls) {
         iceServers.push({
           urls: url,
-          username: env.TURN_USERNAME,
-          credential: env.TURN_CREDENTIAL
+          username: this.config.get('TURN_USERNAME'),
+          credential: this.config.get('TURN_CREDENTIAL')
         })
       }
 
       iceServers.push({
-        urls: `stun:${env.TURN_SERVER_IP}:${env.TURN_SERVER_PORT}`
+        urls: `stun:${this.config.get('TURN_SERVER_IP')}:${this.config.get('TURN_SERVER_PORT')}`
       })
     }
 
@@ -311,7 +312,10 @@ export class VideoCallHandler {
     socket.join(roomId)
 
     if (this.isDebug) {
-      console.log(`[VideoCallHandler] User ${userId} joined room ${roomId}. Active participants:`, room.activeParticipants)
+      console.log(
+        `[VideoCallHandler] User ${userId} joined room ${roomId}. Active participants:`,
+        room.activeParticipants
+      )
     }
 
     const participantEvent: RoomParticipantJoinedEvent = {
@@ -328,26 +332,36 @@ export class VideoCallHandler {
     }
     socket.emit(VIDEO_CALL_EVENTS.ROOM_JOINED, this.wrap(response))
 
-    const otherParticipant = room.activeParticipants.find(p => p !== userId)
+    const otherParticipant = room.activeParticipants.find((p) => p !== userId)
     if (otherParticipant) {
       // Notify existing peer that new user joined
-      socket.to(roomId).emit(VIDEO_CALL_EVENTS.PEER_CONNECTED, this.wrap({
-        roomId,
-        peerUserId: userId,
-        timestamp: new Date()
-      }))
+      socket.to(roomId).emit(
+        VIDEO_CALL_EVENTS.PEER_CONNECTED,
+        this.wrap({
+          roomId,
+          peerUserId: userId,
+          timestamp: new Date()
+        })
+      )
       if (this.isDebug) {
-        console.log(`[VideoCallHandler] Sent PEER_CONNECTED to room ${roomId}: User ${userId} joined, notifying peer ${otherParticipant}`)
+        console.log(
+          `[VideoCallHandler] Sent PEER_CONNECTED to room ${roomId}: User ${userId} joined, notifying peer ${otherParticipant}`
+        )
       }
 
       // Notify joining user that peer already exists in room
-      socket.emit(VIDEO_CALL_EVENTS.PEER_CONNECTED, this.wrap({
-        roomId,
-        peerUserId: otherParticipant,
-        timestamp: new Date()
-      }))
+      socket.emit(
+        VIDEO_CALL_EVENTS.PEER_CONNECTED,
+        this.wrap({
+          roomId,
+          peerUserId: otherParticipant,
+          timestamp: new Date()
+        })
+      )
       if (this.isDebug) {
-        console.log(`[VideoCallHandler] Sent PEER_CONNECTED to User ${userId}: Peer ${otherParticipant} already in room ${roomId}`)
+        console.log(
+          `[VideoCallHandler] Sent PEER_CONNECTED to User ${userId}: Peer ${otherParticipant} already in room ${roomId}`
+        )
       }
     }
 
@@ -667,15 +681,18 @@ export class VideoCallHandler {
 
     const room = await getVideoCallRoom(roomId)
     if (room) {
-      const otherParticipant = room.activeParticipants.find(p => p !== userId)
+      const otherParticipant = room.activeParticipants.find((p) => p !== userId)
       if (otherParticipant) {
-        socket.to(roomId).emit(VIDEO_CALL_EVENTS.ICE_STATE_CHANGED, this.wrap({
-          roomId,
-          peerUserId: userId,
-          iceConnectionState,
-          iceGatheringState,
-          timestamp: new Date()
-        }))
+        socket.to(roomId).emit(
+          VIDEO_CALL_EVENTS.ICE_STATE_CHANGED,
+          this.wrap({
+            roomId,
+            peerUserId: userId,
+            iceConnectionState,
+            iceGatheringState,
+            timestamp: new Date()
+          })
+        )
       }
     }
   }
@@ -689,17 +706,20 @@ export class VideoCallHandler {
 
     const room = await getVideoCallRoom(roomId)
     if (room) {
-      socket.to(roomId).emit(VIDEO_CALL_EVENTS.PEER_STATS, this.wrap({
-        roomId,
-        peerUserId: userId,
-        stats: {
-          bytesSent: stats.bytesSent,
-          bytesReceived: stats.bytesReceived,
-          packetsLost: stats.packetsLost ?? null,
-          rtt: stats.rtt
-        },
-        timestamp: new Date()
-      }))
+      socket.to(roomId).emit(
+        VIDEO_CALL_EVENTS.PEER_STATS,
+        this.wrap({
+          roomId,
+          peerUserId: userId,
+          stats: {
+            bytesSent: stats.bytesSent,
+            bytesReceived: stats.bytesReceived,
+            packetsLost: stats.packetsLost ?? null,
+            rtt: stats.rtt
+          },
+          timestamp: new Date()
+        })
+      )
     }
   }
 

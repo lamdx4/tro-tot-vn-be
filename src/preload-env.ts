@@ -14,70 +14,60 @@ import { cleanEnv, str, port, num } from 'envalid'
 
 export const env = cleanEnv(process.env, {
   // Application
-  NODE_ENV: str({ choices: ['development', 'test', 'production', 'staging'], default: 'development' }),
-  PORT: port({ default: 3333 }),
-  HOST: str({ default: 'localhost' }),
+  NODE_ENV: str({ choices: ['development', 'test', 'production', 'staging'] }),
+  PORT: port(),
+  HOST: str(),
 
   // Database
-  DB_HOST: str({ default: 'localhost' }),
-  DB_PORT: str({ default: '1433' }),
-  DB_USERNAME: str({ default: 'sa' }),
-  DB_PASSWORD: str({ default: '' }),
-  DB_DATABASE: str({ default: 'tro_tot_db' }),
-  DB_CONNECTION: str({ default: 'mssql' }),
+  DB_HOST: str(),
+  DB_PORT: port(),
+  DB_USERNAME: str(),
+  DB_PASSWORD: str(),
+  DB_DATABASE: str(),
+  DB_CONNECTION: str(),
 
   // Redis
-  REDIS_HOST: str({ default: 'localhost' }),
-  REDIS_PORT: str({ default: '6380' }),
+  REDIS_HOST: str(),
+  REDIS_PORT: port(),
 
   // JWT
-  JWT_ACCESS_TOKEN_SECRET: str({ default: '' }),
-  JWT_ACCESS_TOKEN_EXPIRES_IN: str({ default: '3600' }),
-  JWT_REFRESH_TOKEN_SECRET: str({ default: '' }),
-  JWT_REFRESH_TOKEN_EXPIRES_IN: str({ default: '604800' }),
+  JWT_ACCESS_TOKEN_SECRET: str(),
+  JWT_ACCESS_TOKEN_EXPIRES_IN: str(),
+  JWT_REFRESH_TOKEN_SECRET: str(),
+  JWT_REFRESH_TOKEN_EXPIRES_IN: str(),
 
   // Mail Service
-  MAIL_CLIENT_ID: str({ default: '' }),
-  MAIL_CLIENT_SECRET: str({ default: '' }),
-  MAIL_REFRESH_TOKEN: str({ default: '' }),
-  MAIL_USER: str({ default: '' }),
-  REDIRECT_URI: str({ default: '' }),
+  MAIL_CLIENT_ID: str(),
+  MAIL_CLIENT_SECRET: str(),
+  MAIL_REFRESH_TOKEN: str(),
+  MAIL_USER: str(),
+  REDIRECT_URI: str(),
 
   // Drive
-  DRIVE_CLIENT_ID: str({ default: '' }),
-  DRIVE_SECRET_ID: str({ default: '' }),
-  REFRESH_TOKEN_DRIVE: str({ default: '' }),
+  DRIVE_CLIENT_ID: str(),
+  DRIVE_SECRET_ID: str(),
+  REFRESH_TOKEN_DRIVE: str(),
 
   // Python Services
-  SEARCH_SERVICE_URL: str({ default: '' }),
-  RECOMMEND_SERVICE_URL: str({ default: '' }),
+  SEARCH_SERVICE_URL: str(),
+  RECOMMEND_SERVICE_URL: str(),
 
   // AI Moderation
-  MODERATION_SERVICE_URL: str({ default: '' }),
-  MODERATION_THRESHOLD: num({ default: 0.9 }),
+  MODERATION_SERVICE_URL: str(),
+  MODERATION_THRESHOLD: num(),
 
   // Frontend URL
-  FRONTEND_URL: str({ default: 'http://localhost:3000' }),
+  FRONTEND_URL: str(),
 
   // WebSocket
-  SOCKET_PORT: str({ default: '3333' }),
-  SOCKET_PATH: str({ default: '/socket.io/' }),
-
-  // Docker
-  DOCKER_MYSQL_PORT: str({ default: '3307' }),
-  DOCKER_REDIS_PORT: str({ default: '6380' }),
+  SOCKET_PORT: port(),
+  SOCKET_PATH: str(),
 
   // WebRTC / Coturn Configuration
-  // STUN servers for ICE candidate gathering (public, no auth required)
-  STUN_SERVER_URLS: str({ default: 'stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302' }),
-  // Coturn/TURN server IP address
-  TURN_SERVER_IP: str({ default: '' }),
-  // Coturn server port (default: 3478 for UDP/TCP, 5349 for TLS)
-  TURN_SERVER_PORT: str({ default: '3478' }),
-  // Coturn TLS port
-  TURN_SERVER_TLS_PORT: str({ default: '5349' }),
-  // Coturn credentials
-  TURN_USERNAME: str({ default: '' }),
-  TURN_CREDENTIAL: str({ default: '' }),
+  STUN_SERVER_URLS: str(),
+  TURN_SERVER_IP: str(),
+  TURN_SERVER_PORT: port(),
+  TURN_SERVER_TLS_PORT: port(),
+  TURN_USERNAME: str(),
+  TURN_CREDENTIAL: str(),
 })
-
