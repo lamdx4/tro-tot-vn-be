@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express'
 import ResponseData from '@/utils/data-types/response'
 import { ConfigService } from '@/services/config.service'
+import { redisClient } from '@/infras/redis/redis'
 
 class VideoCallController {
 
@@ -11,7 +12,7 @@ class VideoCallController {
    */
   async getIceConfig(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const iceServers = this.buildIceServers()
+      const iceServers = await this.buildIceServers()
       res.status(200).json(ResponseData.success({ iceServers }))
     } catch (error) {
       next(error)
@@ -21,7 +22,7 @@ class VideoCallController {
   /**
    * Build ICE servers configuration from environment variables
    */
-  private buildIceServers() {
+  private async buildIceServers() {
     const iceServers: { urls: string; username?: string; credential?: string }[] = [];
 
     // 1. Xử lý STUN Servers
@@ -37,7 +38,12 @@ class VideoCallController {
     }
 
     // 2. Xử lý TURN Servers
-    const turnIp = this.config.get("TURN_SERVER_IP");
+    // Try to get TURN IP from Config first, then fallback to Redis
+    let turnIp = this.config.get("TURN_SERVER_IP");
+    if (!turnIp) {
+      turnIp = (await redisClient.get('coturn:ip')) || ''
+    }
+
     const turnUser = this.config.get("TURN_USERNAME");
     const turnCred = this.config.get("TURN_CREDENTIAL");
 

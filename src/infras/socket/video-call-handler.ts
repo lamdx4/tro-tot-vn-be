@@ -39,6 +39,7 @@ import {
   getAllVideoCallRooms
 } from '@/infras/redis/connection-cache'
 import { ConfigService } from '@/services/config.service'
+import { redisClient } from '@/infras/redis/redis'
 
 /**
  * VideoCallHandler - Handles 1-on-1 video call signaling via Socket.IO
@@ -92,8 +93,8 @@ export class VideoCallHandler {
   /**
    * Get ICE server configuration for client
    */
-  handleGetIceConfig(socket: Socket): void {
-    const iceServers = this.buildIceServers()
+  async handleGetIceConfig(socket: Socket): Promise<void> {
+    const iceServers = await this.buildIceServers()
 
     const response: IceServersResponse = { iceServers }
 
@@ -106,7 +107,7 @@ export class VideoCallHandler {
   /**
    * Build ICE servers configuration from environment variables
    */
-  private buildIceServers(): IceServerConfig[] {
+  private async buildIceServers(): Promise<IceServerConfig[]> {
     const iceServers: IceServerConfig[] = []
 
     const stunUrlsEnv = this.config.get('STUN_SERVER_URLS')
@@ -120,23 +121,32 @@ export class VideoCallHandler {
       }
     }
 
-    if (this.config.get('TURN_SERVER_IP') && this.config.get('TURN_USERNAME') && this.config.get('TURN_CREDENTIAL')) {
+    // Try to get TURN IP from Config first, then fallback to Redis
+    let turnIp = this.config.get('TURN_SERVER_IP')
+    if (!turnIp) {
+      turnIp = (await redisClient.get('coturn:ip')) || ''
+    }
+
+    const turnUser = this.config.get('TURN_USERNAME')
+    const turnCred = this.config.get('TURN_CREDENTIAL')
+
+    if (turnIp && turnUser && turnCred) {
       const turnUrls = [
-        `turn:${this.config.get('TURN_SERVER_IP')}:${this.config.get('TURN_SERVER_PORT')}?transport=udp`,
-        `turn:${this.config.get('TURN_SERVER_IP')}:${this.config.get('TURN_SERVER_PORT')}?transport=tcp`,
-        `turn:${this.config.get('TURN_SERVER_IP')}:${this.config.get('TURN_SERVER_TLS_PORT')}?transport=tcp`
+        `turn:${turnIp}:${this.config.get('TURN_SERVER_PORT')}?transport=udp`,
+        `turn:${turnIp}:${this.config.get('TURN_SERVER_PORT')}?transport=tcp`,
+        `turn:${turnIp}:${this.config.get('TURN_SERVER_TLS_PORT')}?transport=tcp`
       ]
 
       for (const url of turnUrls) {
         iceServers.push({
           urls: url,
-          username: this.config.get('TURN_USERNAME'),
-          credential: this.config.get('TURN_CREDENTIAL')
+          username: turnUser,
+          credential: turnCred
         })
       }
 
       iceServers.push({
-        urls: `stun:${this.config.get('TURN_SERVER_IP')}:${this.config.get('TURN_SERVER_PORT')}`
+        urls: `stun:${turnIp}:${this.config.get('TURN_SERVER_PORT')}`
       })
     }
 
