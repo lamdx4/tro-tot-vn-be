@@ -8,6 +8,7 @@ function getRedis(): Redis {
     redis = new Redis({
       port: Number(ConfigService.gI().getOrThrow("REDIS_PORT")),
       host: ConfigService.gI().getOrThrow("REDIS_HOST"),
+      password: ConfigService.gI().getOrThrow("REDIS_PASSWORD"),
     });
 
     // Listen for successful connection
