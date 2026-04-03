@@ -9,6 +9,7 @@ The system provides:
 - **Socket.IO Signaling**: Real-time signaling for WebRTC offer/answer/ICE candidate exchange
 - **Room Management**: 1-on-1 video call room creation and management
 - **Coturn Integration**: TURN server for NAT/firewall traversal
+- **FCM Push Notifications**: Support for "Incoming Call" alerts when the app is in the background or closed.
 
 ## Architecture
 
@@ -17,11 +18,11 @@ The system provides:
 │   Client A  │◄──────────────────►│   Server    │
 │  (WebRTC)   │                    │  (Node.js)  │
 └─────────────┘                    └──────┬──────┘
-                                           │
-                                    ┌──────▼──────┐
-                                    │   Coturn    │
-                                    │  (TURN)     │
-                                    └─────────────┘
+                                          │
+                                   ┌──────┴──────┐      ┌─────────────┐
+                                   │   Firebase  │◄─────┤   Client B  │
+                                   │    (FCM)    │      │  (Offline)  │
+                                   └─────────────┘      └─────────────┘
 ```
 
 ## Configuration
@@ -68,6 +69,8 @@ This starts Coturn on:
 | `video:call:offer` | Send WebRTC offer | `{ roomId: string, offer: RTCSessionDescriptionInit }` |
 | `video:call:answer` | Send WebRTC answer | `{ roomId: string, answer: RTCSessionDescriptionInit }` |
 | `video:call:iceCandidate` | Send ICE candidate | `{ roomId: string, candidate: RTCIceCandidateInit }` |
+| `video:call:accepted` | Accept incoming call | `{ roomId: string }` |
+| `video:call:rejected` | Reject incoming call | `{ roomId: string, reason?: string }` |
 | `video:call:ended` | End the call | `{ roomId: string, reason?: string }` |
 
 ### Server → Client Events
@@ -83,6 +86,9 @@ This starts Coturn on:
 | `video:call:offer` | Received WebRTC offer | `{ roomId, offer, from }` |
 | `video:call:answer` | Received WebRTC answer | `{ roomId, answer, from }` |
 | `video:call:iceCandidate` | Received ICE candidate | `{ roomId, candidate, from }` |
+| `video:call:request` | **Incoming Call Request** | `{ roomId, callerId, calleeId }` |
+| `video:call:accepted` | Call accepted by peer | `{ roomId, callerId, calleeId }` |
+| `video:call:rejected` | Call rejected by peer | `{ roomId, callerId, calleeId, reason }` |
 | `video:call:ended` | Call ended | `{ roomId, endedBy, reason }` |
 | `video:call:error` | Error occurred | `{ code, message }` |
 
@@ -103,19 +109,64 @@ The server returns ICE server configuration in this format:
 }
 ```
 
+```
+
+## Notification & FCM Support
+
+To enable "Incoming Call" alerts when the app is backgrounded, the backend uses FCM (Firebase Cloud Messaging).
+
+### Device-level Tracking
+The system tracks which devices are active via Socket.IO using the FCM token as a unique identifier.
+- **Header**: Clients must pass the `x-fcm-token` in Socket.IO handshake headers.
+- **Registration**: Clients must register their FCM tokens via the `/api/notifications/tokens` endpoint.
+- **Fallback Logic**: If the callee has no active socket connection on a specific device, the server sends an FCM Push Notification with `high` priority.
+
+### Signaling via Push
+The following signaling events are sent via FCM Data messages:
+- `VIDEO_CALL_REQUEST`: For the incoming call screen/ringing.
+- `VIDEO_CALL_CANCELLED`: When the caller hangs up before the callee answers.
+- `VIDEO_CALL_REJECTED`: Notifies caller's other devices.
+
+**FCM Data Payload Format:**
+All signaling pushes are sent as "Data-only" messages with the following structure:
+```json
+{
+  "data": {
+    "type": "VIDEO_CALL_REQUEST" | "VIDEO_CALL_CANCELLED" | "VIDEO_CALL_REJECTED",
+    "roomId": "string",
+    "callerId": "string",
+    "callerName": "string", // Available for REQUEST
+    "reason": "string"      // Available for REJECTED
+  }
+}
+```
+
 ## API Endpoints
 
 ### GET /api/video-call/ice-config
 
 Get ICE server configuration via HTTP.
 
-**Response:**
+### POST /api/notifications/tokens
+
+Register or update an FCM push token for the current user.
+
+**Payload:**
 ```json
 {
-  "success": true,
-  "data": {
-    "iceServers": [...]
-  }
+  "fcmToken": "string",
+  "platform": "android" | "ios" | "web"
+}
+```
+
+### DELETE /api/notifications/tokens
+
+Unregister a push token (on logout).
+
+**Payload:**
+```json
+{
+  "fcmToken": "string"
 }
 ```
 
@@ -177,8 +228,10 @@ node tests/webrtc-test.js
 ```javascript
 // 1. Connect to Socket.IO
 const socket = io('http://localhost:3333', {
-  auth: { userId: '1' },
-  transports: ['websocket', 'polling']
+  extraHeaders: {
+    'x-fcm-token': 'YOUR_FCM_TOKEN_HERE'
+  },
+  transports: ['websocket']
 });
 
 // 2. Get ICE configuration

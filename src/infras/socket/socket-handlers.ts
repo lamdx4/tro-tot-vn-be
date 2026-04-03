@@ -1,6 +1,6 @@
 import { Socket } from 'socket.io'
 import { SOCKET_EVENTS, MessageSentEvent, MessageReadEvent, TypingEvent, FileUploadEvent, FileSentEvent, FileSentEventInput } from '@/utils/types/socket-events'
-import { ChatService, MessageService, FileService } from '@/services'
+import { ChatService, MessageService, FileService, NotificationService } from '@/services'
 import ResponseData from '@/utils/data-types/response'
 
 /**
@@ -10,11 +10,13 @@ export class SocketHandlers {
   private chatService: ChatService
   private messageService: MessageService
   private fileService: FileService
+  private notificationService: NotificationService
 
   constructor() {
     this.chatService = new ChatService()
     this.messageService = new MessageService()
     this.fileService = new FileService()
+    this.notificationService = NotificationService.gI()
   }
 
   /**
@@ -109,6 +111,22 @@ export class SocketHandlers {
         SOCKET_EVENTS.MESSAGE_RECEIVED,
         eventData
       )
+
+      // 4. Send Push Notifications (via FCM for offline devices)
+      // Extract sender name from socket data
+      const customer = (socket.data.user as any)?.customer
+      const senderName = customer ? `${customer.firstName} ${customer.lastName}`.trim() : 'Người dùng'
+      
+      this.chatService.getConversationParticipants(conversationId).then(participants => {
+        participants.forEach(participant => {
+          if (participant.customerId !== Number(userId)) {
+            this.notificationService.notifyChatMessage(participant.customerId, {
+              ...eventData,
+              senderName
+            }).catch(err => console.error(`[Socket] Failed to send FCM for user ${participant.customerId}:`, err))
+          }
+        })
+      }).catch(err => console.error('[Socket] Failed to get participants for FCM:', err))
 
       // Acknowledge to sender (direct reply — wrapped)
       socket.emit(SOCKET_EVENTS.MESSAGE_SENT, this.wrap(eventData))
@@ -309,6 +327,22 @@ export class SocketHandlers {
         SOCKET_EVENTS.FILE_RECEIVED,
         eventData
       )
+
+      // 4. Send Push Notifications (via FCM for offline devices)
+      const customer = (socket.data.user as any)?.customer
+      const senderName = customer ? `${customer.firstName} ${customer.lastName}`.trim() : 'Người dùng'
+      
+      this.chatService.getConversationParticipants(conversationId).then(participants => {
+        participants.forEach(participant => {
+          if (participant.customerId !== Number(userId)) {
+            this.notificationService.notifyChatMessage(participant.customerId, {
+              ...eventData,
+              senderName,
+              content: message.messageType === 'Image' ? '[Hình ảnh]' : '[Tập tin]'
+            }).catch(err => console.error(`[Socket] Failed to send FCM for user ${participant.customerId}:`, err))
+          }
+        })
+      }).catch(err => console.error('[Socket] Failed to get participants for FCM:', err))
 
       // Acknowledge to sender (direct reply — wrapped)
       socket.emit(SOCKET_EVENTS.FILE_SENT, this.wrap(eventData))

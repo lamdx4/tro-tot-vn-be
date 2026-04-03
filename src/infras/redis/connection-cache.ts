@@ -17,6 +17,7 @@ export interface UserSocketMapping {
   userId: string
   socketId: string
   roomId?: string
+  fcmToken?: string
 }
 
 /**
@@ -57,7 +58,8 @@ const DEFAULT_TTL_SECONDS = 24 * 60 * 60
 export async function saveUserConnection(
   userId: string,
   socketId: string,
-  roomId?: string
+  roomId?: string,
+  fcmToken?: string
 ): Promise<void> {
   const pipeline = redisClient.pipeline()
 
@@ -65,7 +67,8 @@ export async function saveUserConnection(
   pipeline.hset(KEY_SOCKET_USER(socketId), {
     userId,
     roomId: roomId || '',
-    socketId
+    socketId,
+    fcmToken: fcmToken || ''
   })
   // Feature 2C: Add TTL to prevent orphaned entries
   pipeline.expire(KEY_SOCKET_USER(socketId), DEFAULT_TTL_SECONDS)
@@ -73,6 +76,12 @@ export async function saveUserConnection(
   // Store user -> socket mapping (String)
   pipeline.set(KEY_USER_SOCKET(userId), socketId)
   pipeline.expire(KEY_USER_SOCKET(userId), DEFAULT_TTL_SECONDS)
+
+  // Device-level tracking: user:device:socket:userId (Hash)
+  if (fcmToken) {
+    pipeline.hset(`user:device:socket:${userId}`, fcmToken, socketId)
+    pipeline.expire(`user:device:socket:${userId}`, DEFAULT_TTL_SECONDS)
+  }
 
   // If roomId provided, also add to room users set
   if (roomId) {
@@ -109,7 +118,8 @@ export async function getUserBySocket(socketId: string): Promise<UserSocketMappi
   return {
     userId: data.userId,
     socketId: data.socketId,
-    roomId: data.roomId || undefined
+    roomId: data.roomId || undefined,
+    fcmToken: data.fcmToken || undefined
   }
 }
 
@@ -204,6 +214,11 @@ export async function removeUserConnection(socketId: string): Promise<void> {
   }
 
   await pipeline.exec()
+
+  // Clean up device mapping
+  if (userMapping.fcmToken) {
+    await redisClient.hdel(`user:device:socket:${userId}`, userMapping.fcmToken)
+  }
 
   console.log(`[RedisCache] Removed connection: userId=${userId}, socketId=${socketId}, roomId=${roomId || 'none'}`)
 }

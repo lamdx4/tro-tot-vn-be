@@ -10,4 +10,6 @@ export * from './message.controller'
 export * from './post.controller'
 export * from './recommend.controller'
 export * from './search.controller'
+export { default as NotificationController } from './notification.controller'
+export { default as VideoCallController } from './video-call.controller'
 

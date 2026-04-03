@@ -39,6 +39,7 @@ import {
   getAllVideoCallRooms
 } from '@/infras/redis/connection-cache'
 import { ConfigService } from '@/services/config.service'
+import { NotificationService } from '@/services/notification.service'
 import { redisClient } from '@/infras/redis/redis'
 
 /**
@@ -49,6 +50,7 @@ export class VideoCallHandler {
   private readonly isDebug: boolean
   private io: SocketIOServer | null = null
   private config = ConfigService.gI()
+  private notificationService = NotificationService.gI()
 
   constructor() {
     this.isDebug = this.config.get('NODE_ENV') !== 'production'
@@ -239,7 +241,11 @@ export class VideoCallHandler {
       createdBy: callerId,
       isActive: true
     }
-    this.notifyCallee(room, calleeId, callerId)
+
+    const customer = (socket.data.user as any)?.customer
+    const callerName = customer ? `${customer.firstName} ${customer.lastName}`.trim() : 'Người dùng'
+    
+    this.notifyCallee(room, calleeId, callerId, callerName)
 
     if (this.isDebug) {
       console.log(`[VideoCallHandler] Room created: ${roomId} by caller`)
@@ -429,6 +435,9 @@ export class VideoCallHandler {
     for (const participantId of allParticipants) {
       if (participantId === userId) continue
       this.emitToUserSockets(participantId, VIDEO_CALL_EVENTS.CALL_ENDED, callEndedPayload)
+      this.notificationService.notifyCallCancelled(participantId, roomId).catch(err => 
+        console.error(`[VideoCall] Failed to send FCM call ended to ${participantId}:`, err)
+      )
     }
 
     if (this.isDebug) {
@@ -575,6 +584,17 @@ export class VideoCallHandler {
 
     this.emitToUserSockets(room.createdBy, VIDEO_CALL_EVENTS.CALL_REJECTED, callRejectedPayload)
 
+    // Notify caller devices via Push
+    this.notificationService.notifyUser(room.createdBy, {
+      data: {
+        type: 'VIDEO_CALL_REJECTED',
+        roomId,
+        reason: reason || 'N/A'
+      },
+      priority: 'high',
+      ttl: 60
+    }).catch(err => console.error(`[VideoCall] Failed to send FCM call rejected to ${room.createdBy}:`, err))
+
     // Mark room as inactive in Redis
     try {
       await deactivateRoom(roomId)
@@ -636,6 +656,9 @@ export class VideoCallHandler {
     for (const participantId of allParticipants) {
       if (participantId === userId) continue
       this.emitToUserSockets(participantId, VIDEO_CALL_EVENTS.CALL_ENDED, callEndedPayload)
+      this.notificationService.notifyCallCancelled(participantId, roomId).catch(err => 
+        console.error(`[VideoCall] Failed to send FCM call ended to ${participantId}:`, err)
+      )
     }
   }
 
@@ -737,7 +760,7 @@ export class VideoCallHandler {
   /**
    * Notify callee about incoming call
    */
-  private notifyCallee(room: VideoCallRoom, calleeId: string, callerId: string): void {
+  private notifyCallee(room: VideoCallRoom, calleeId: string, callerId: string, callerName: string): void {
     const callRequest: CallRequestEvent = {
       roomId: room.roomId,
       callerId,
@@ -748,6 +771,13 @@ export class VideoCallHandler {
     if (this.io) {
       this.io.to(`user:${calleeId}`).emit(VIDEO_CALL_EVENTS.CALL_REQUEST, this.wrap(callRequest))
     }
+
+    // Send Push Notification (FCM)
+    this.notificationService.notifyCallRequest(calleeId, {
+      roomId: room.roomId,
+      callerId,
+      callerName
+    }).catch(err => console.error(`[VideoCall] Failed to send FCM call request to ${calleeId}:`, err))
   }
 
   /**

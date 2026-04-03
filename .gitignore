@@ -7,3 +7,4 @@ uploads/
 .augment
 .claude-code
 server.log
+.jsontrot-tot-firebase-adminsdk-fbsvc-*.json

@@ -142,8 +142,9 @@ export class SocketConfig {
 
       // Save user connection to Redis for persistent tracking
       try {
-        await saveUserConnection(String(userId), socket.id)
-        console.log(`[SocketConfig] Saved user connection to Redis: userId=${userId}, socketId=${socket.id}`)
+        const fcmToken = socket.handshake.headers['x-fcm-token'] as string | undefined
+        await saveUserConnection(String(userId), socket.id, undefined, fcmToken)
+        console.log(`[SocketConfig] Saved user connection to Redis: userId=${userId}, socketId=${socket.id}, fcmToken=${fcmToken ? 'provided' : 'none'}`)
       } catch (error) {
         console.error(`[SocketConfig] Failed to save user connection to Redis:`, error)
       }

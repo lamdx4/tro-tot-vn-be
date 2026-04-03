@@ -71,4 +71,9 @@ export const env = cleanEnv(process.env, {
   TURN_SERVER_TLS_PORT: port(),
   TURN_USERNAME: str(),
   TURN_CREDENTIAL: str(),
+
+  // Firebase
+  FIREBASE_PROJECT_ID: str(),
+  FIREBASE_CLIENT_EMAIL: str(),
+  FIREBASE_PRIVATE_KEY: str(),
 })
