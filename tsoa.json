@@ -1,0 +1,29 @@
+{
+  "entryFile": "app.ts",
+  "noImplicitAdditionalProperties": "throw-on-extras",
+  "controllerPathGlobs": [
+    "src/web/controllers/*.controller.ts"
+  ],
+  "spec": {
+    "outputDirectory": "docs",
+    "specVersion": 3,
+    "basePath": "/api/v1",
+    "securityDefinitions": {
+      "jwt": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      }
+    }
+  },
+  "routes": {
+    "routesDir": "src/web/routers",
+    "authenticationModule": "src/infras/auth/tsoa-auth.ts"
+  },
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  }
+}

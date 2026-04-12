@@ -1,340 +1,282 @@
-import { PostRepository } from '@/infras/repositories'
+import { 
+  Body, 
+  Get, 
+  Put, 
+  Post, 
+  Route, 
+  Security, 
+  Tags, 
+  Query, 
+  Path, 
+  Controller,
+  Request
+} from '@tsoa/runtime'
 import AdminService from '@/services/admin.service'
-import { ConfigService } from '@/services/config.service'
+import { 
+  DashboardStatsResponse, 
+  ModeratePostRequest, 
+  ModeratorProfileResponse, 
+  ModeratorActionHistoryResponse, 
+  PostModerationHistoryResponse, 
+  AddModeratorRequest, 
+  UpdateModeratorStatusRequest, 
+  ModerationStatsResponse,
+  ModeratorSummary
+} from './dto/admin.dto'
 import ResponseData from '@/utils/data-types/response'
-import { Request, Response, NextFunction } from 'express'
 
-class AdminController {
-  private adminService: AdminService
+@Route("admin")
+@Tags("Admin")
+export class AdminController extends Controller {
+  private adminService = new AdminService()
 
   constructor() {
-    this.adminService = new AdminService()
-  }
-
-  resetPasswordOfModerator = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const newPassword = String(req.body.newPassword)
-      console.log('newPassword', newPassword)
-      const moderatorId = Number(req.params.moderatorId)
-      console.log('moderatorId', moderatorId)
-      const result = await this.adminService.resetPasswordOfModerator(moderatorId)
-      if (result.isSuccess) {
-        res.status(200).json(ResponseData.success(result.getValue()))
-      } else if (result.code === 404) {
-        res.status(404).json(ResponseData.error(404, 'User not found', 'User not found'))
-      } else {
-        res.status(500).json(ResponseData.error(500, 'Internal Server Error', 'An unexpected error occurred'))
-      }
-    } catch (error) {
-      next(error)
-    }
-  }
-
-  //DONE
-  async getReviewPost(req: Request, res: Response, next: NextFunction) {
-    try {
-      const result = await this.adminService.listPostPending()
-      if (result.isSuccess) {
-        res.status(200).json(ResponseData.success(result.getValue()))
-      } else if (result.code === 404) {
-        res.status(404).json(ResponseData.error(404, 'No pending posts found', 'No pending posts found'))
-      } else {
-        res.status(500).json(ResponseData.error(500, 'Internal Server Error', 'An unexpected error occurred'))
-      }
-    } catch (error) {
-      console.error('Error in resetPassword:', error)
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'Something went wrong'))
-    }
-  }
-
-  //DONE
-  async moderatePost(req: Request, res: Response, next: NextFunction) {
-    try {
-      const actionType = String(req.body.actionType)
-      const postId = Number(req.params.postId)
-      const reason = String(req.body.reason)
-      const isHateContent = req.body.isHateContent === true // Boolean from FE checkbox
-      const reviewerId = Number(req.user?.admin.adminId)
-
-      const result = await this.adminService.moderatePost(reviewerId, actionType, postId, reason, isHateContent)
-      if (result.isSuccess) {
-        res.status(200).json(ResponseData.success(result.getValue()))
-      } else {
-        res
-          .status(result.code)
-          .json(
-            ResponseData.error(
-              result.code,
-              result.error ?? 'NOT_DEFINE_ERROR',
-              result.error ?? 'An unexpected error occurred'
-            )
-          )
-      }
-    } catch (error) {
-      next(error)
-    }
-  }
-
-  //DONE
-  async getHistoryOfPost(req: Request, res: Response, next: NextFunction) {
-    try {
-      const postId = Number(req.params.postId)
-      const result = await this.adminService.getHistoryOfPost(postId)
-      if (result.isSuccess) {
-        res.status(200).json(ResponseData.success(result.getValue()))
-      } else
-        res
-          .status(result.code)
-          .json(
-            ResponseData.error(
-              result.code,
-              result.error ?? 'NOT_DEFINE_ERROR',
-              result.error ?? 'An unexpected error occurred'
-            )
-          )
-    } catch (error) {
-      next(error)
-    }
-  }
-
-  //DONE
-  async getHistoryByModeratorId(req: Request, res: Response, next: NextFunction) {
-    try {
-      const moderatorId = Number(req.params.moderatorId)
-      const result = await this.adminService.getHistoryByModeratorId(moderatorId)
-      if (result.isSuccess) {
-        res.status(200).json(ResponseData.success(result.getValue()))
-      } else {
-        res
-          .status(result.code)
-          .json(
-            ResponseData.error(
-              result.code,
-              result.error ?? 'NOT_DEFINE_ERROR',
-              result.error ?? 'An unexpected error occurred'
-            )
-          )
-      }
-    } catch (error) {
-      next(error)
-    }
-  }
-
-  //DONE
-  async getModerators(req: Request, res: Response, next: NextFunction) {
-    try {
-      const key = req.query.key ? String(req.query.key) : null
-      const result = await this.adminService.getModeratorsService(key)
-      if (result.isSuccess) {
-        res.status(200).json(ResponseData.success(result.getValue()))
-      } else {
-        res
-          .status(result.code)
-          .json(
-            ResponseData.error(
-              result.code,
-              result.error ?? 'NOT_DEFINE_ERROR',
-              result.error ?? 'An unexpected error occurred'
-            )
-          )
-      }
-    } catch (error) {
-      next(error)
-    }
-  }
-
-  //DONE
-  async addModerator(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { firstName, lastName, email, phone, gender, birthday } = req.body
-      console.log('req.body', req.body)
-      const result = await this.adminService.addModeratorsService(
-        firstName,
-        lastName,
-        email,
-        phone,
-        gender,
-        birthday
-      )
-      if (result.isSuccess) {
-        res.status(200).json(ResponseData.success(result.getValue()))
-      } else if (result.code === 400) {
-        res.status(400).json(ResponseData.badRequest(result.error || 'MESSAGE_NOT_DEFINE'))
-      } else if (result.code === 404) {
-        res.status(404).json(ResponseData.error(404, 'User not found', 'User not found'))
-      } else {
-        res.status(500).json(ResponseData.error(500, 'Internal Server Error', 'An unexpected error occurred'))
-      }
-    } catch (error) {
-      console.error('Error in resetPassword:', error)
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'Something went wrong'))
-    }
-  }
-
-  // DONE
-  async setModeratorStatus(req: Request, res: Response, next: NextFunction) {
-    try {
-      const status = String(req.body.status)
-      console.log('status', status)
-      console.log('req.params', req.params)
-      const moderatorId = Number(req.params.moderatorId)
-      const result = await this.adminService.updateModeratorService(status, moderatorId)
-      if (result.isSuccess) {
-        res.status(200).json(ResponseData.success(result.getValue()))
-      } else if (result.code === 404) {
-        res.status(404).json(ResponseData.error(404, 'User not found', 'User not found'))
-      } else {
-        res.status(500).json(ResponseData.error(500, 'Internal Server Error', 'An unexpected error occurred'))
-      }
-    } catch (error) {
-      console.error('Error in resetPassword:', error)
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'Something went wrong'))
-    }
-  }
-
-  //DONE
-  async getProfileModerator(req: Request, res: Response, next: NextFunction) {
-    try {
-      const adminId = Number(req.params.moderatorId)
-      console.log('adminId', adminId)
-      const result = await this.adminService.getProfileModeratorService(adminId)
-      if (result.isSuccess) {
-        res.status(200).json(ResponseData.success(result.getValue()))
-      } else if (result.code === 404) {
-        res.status(404).json(ResponseData.error(404, 'MODERATOR_NOT_FOUND', 'User not found'))
-      } else {
-        res.status(500).json(ResponseData.error(500, 'Internal Server Error', 'An unexpected error occurred'))
-      }
-    } catch (error) {
-      console.error('Error in resetPassword:', error)
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'Something went wrong'))
-    }
-  }
-
-  //DONE
-  async getMyProfile(req: Request, res: Response, next: NextFunction) {
-    try {
-      const adminId = Number(req.user?.admin.adminId)
-      console.log(req.user)
-      const result = await this.adminService.getMyProfileService(adminId)
-      if (result.isSuccess) {
-        res.status(200).json(ResponseData.success(result.getValue()))
-      } else if (result.code === 404) {
-        res.status(404).json(ResponseData.error(404, 'User not found', 'User not found'))
-      } else {
-        res.status(500).json(ResponseData.error(500, 'Internal Server Error', 'An unexpected error occurred'))
-      }
-    } catch (error) {
-      console.error('Error in resetPassword:', error)
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'Something went wrong'))
-    }
-  }
-
-  async updateMyProfile(req: Request, res: Response, next: NextFunction) {
-    try {
-      console.log('req.body', req.user)
-      const accountId = Number(req.user?.accountId)
-      const gender = req.body.gender ? String(req.body.gender) : undefined
-      const birthday = req.body.birthday ? String(req.body.birthday) : undefined
-      const firstName = req.body.firstName ? String(req.body.firstName) : undefined
-      const lastName = req.body.lastName ? String(req.body.lastName) : undefined
-      const phone = req.body.phone ? String(req.body.phone) : undefined
-      const email = req.body.email ? String(req.body.email) : undefined
-
-      console.log('accountId', accountId)
-      console.log(gender)
-      console.log(birthday)
-      console.log(firstName)
-      console.log(lastName)
-      console.log(phone)
-      console.log(email)
-
-      const result = await this.adminService.updateMyProfileService(
-        accountId,
-        phone,
-        email,
-        gender,
-        birthday,
-        firstName,
-        lastName
-      )
-      if (result.isSuccess) {
-        res.status(200).json(ResponseData.success(result.getValue()))
-      } else if (result.code === 404) {
-        res.status(404).json(ResponseData.error(404, 'User not found', 'User not found'))
-      } else if (result.code === 400) {
-        res.status(400).json(ResponseData.error(400, 'Email or phone already exists', 'Email or phone already exists'))
-      } else if (result.code === 200 && result.getValue() === 'No changes detected') {
-        res.status(200).json(ResponseData.success('No changes detected'))
-      } else {
-        res.status(500).json(ResponseData.error(500, 'Internal Server Error', 'An unexpected error occurred'))
-      }
-    } catch (error) {
-      console.error('Error in resetPassword:', error)
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'Something went wrong'))
-    }
-  }
-  getStatistics = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const result = await this.adminService.getStatisticsForDashBoard()
-      if (result.isSuccess) {
-        res.status(200).json(ResponseData.success(result.getValue()))
-      } else {
-        res
-          .status(result.code)
-          .json(
-            ResponseData.error(
-              result.code,
-              result.error ?? 'NOT_DEFINE_ERROR',
-              result.error ?? 'An unexpected error occurred'
-            )
-          )
-      }
-    } catch (error) {
-      next(error)
-    }
+    super()
   }
 
   /**
-   * GET /admin/moderation/stats
-   * Get statistics of AI vs Admin rejections
+   * Get overall dashboard statistics.
    */
-  async getModerationStats(req: Request, res: Response, next: NextFunction) {
-    try {
-      const result = await this.adminService.getModerationStats()
-      if (result.isSuccess) {
-        res.status(200).json(ResponseData.success(result.getValue()))
-      } else {
-        res.status(500).json(ResponseData.error(500, 'Failed to get stats', 'An unexpected error occurred'))
-      }
-    } catch (error) {
-      next(error)
+  @Get("dashboard-stats")
+  @Security("jwt", ["Admin", "Manager"])
+  public async getStatisticsForDashBoard(): Promise<ResponseData<DashboardStatsResponse>> {
+    const result = await this.adminService.getStatisticsForDashBoard()
+    if (result.isSuccess) {
+      return ResponseData.success(result.getValue())
     }
+    this.setStatus(result.code)
+    return ResponseData.error(result.code, result.error ?? '', '') as any
   }
 
   /**
-   * GET /admin/moderation/export?limit=1000
-   * Export training data for PhoBERT retraining
+   * Reset moderator password.
    */
-  async exportTrainingData(req: Request, res: Response, next: NextFunction) {
-    try {
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 1000
-      const result = await this.adminService.exportTrainingData(limit)
-      
-      if (result.isSuccess) {
-        const data = result.getValue()
-        
-        // Return as JSON (admin can download as CSV from frontend)
-        res.status(200).json(ResponseData.success({
-          total: data.length,
-          data: data
-        }))
-      } else {
-        res.status(500).json(ResponseData.error(500, 'Failed to export data', 'An unexpected error occurred'))
-      }
-    } catch (error) {
-      next(error)
+  @Put("moderators/{moderatorId}/reset-password")
+  @Security("jwt", ["Manager"])
+  public async resetPasswordOfModerator(
+    @Path() moderatorId: number
+  ): Promise<ResponseData<string | any>> {
+    const result = await this.adminService.resetPasswordOfModerator(moderatorId)
+    if (result.isSuccess) {
+      return ResponseData.success(result.getValue() as any)
     }
+    this.setStatus(result.code)
+    return ResponseData.error(result.code, result.error ?? '', '') as any
+  }
+
+  /**
+   * List all pending posts for review.
+   */
+  @Get("posts/pending")
+  @Security("jwt", ["Admin", "Manager"])
+  public async listPostPending(): Promise<ResponseData<any[]>> {
+    const result = await this.adminService.listPostPending()
+    if (result.isSuccess) {
+      return ResponseData.success(result.getValue() as any)
+    }
+    this.setStatus(result.code)
+    return ResponseData.error(result.code, result.error ?? '', '') as any
+  }
+
+  /**
+   * Moderate a post (Approve or Reject).
+   */
+  @Post("posts/{postId}/moderate")
+  @Security("jwt", ["Admin", "Manager"])
+  public async moderatePost(
+    @Path() postId: number,
+    @Body() body: ModeratePostRequest,
+    @Request() req: any
+  ): Promise<ResponseData<any>> {
+    const reviewerId = req.user?.admin?.adminId
+    const result = await this.adminService.moderatePost(
+      reviewerId,
+      body.actionType,
+      postId,
+      body.reason || '',
+      body.isHateContent
+    )
+    if (result.isSuccess) {
+      return ResponseData.success(result.getValue() || 'Moderated successfully')
+    }
+    this.setStatus(result.code)
+    return ResponseData.error(result.code, result.error ?? '', '') as any
+  }
+
+  /**
+   * Get moderation history for a specific post.
+   */
+  @Get("posts/{postId}/history")
+  @Security("jwt", ["Admin", "Manager"])
+  public async getHistoryOfPost(
+    @Path() postId: number
+  ): Promise<ResponseData<PostModerationHistoryResponse[]>> {
+    const result = await this.adminService.getHistoryOfPost(postId)
+    if (result.isSuccess) {
+      return ResponseData.success(result.getValue() as any)
+    }
+    this.setStatus(result.code)
+    return ResponseData.error(result.code, result.error ?? '', '') as any
+  }
+
+  /**
+   * Get moderation history for a specific moderator.
+   */
+  @Get("moderators/{moderatorId}/history")
+  @Security("jwt", ["Manager"])
+  public async getHistoryByModeratorId(
+    @Path() moderatorId: number
+  ): Promise<ResponseData<ModeratorActionHistoryResponse[]>> {
+    const result = await this.adminService.getHistoryByModeratorId(moderatorId)
+    if (result.isSuccess) {
+      return ResponseData.success(result.getValue() as any)
+    }
+    this.setStatus(result.code)
+    return ResponseData.error(result.code, result.error ?? '', '') as any
+  }
+
+  /**
+   * List all moderators (excluding managers).
+   */
+  @Get("moderators")
+  @Security("jwt", ["Manager"])
+  public async getModerators(
+    @Query() key?: string
+  ): Promise<ResponseData<ModeratorSummary[]>> {
+    const result = await this.adminService.getModeratorsService(key || null)
+    if (result.isSuccess) {
+      return ResponseData.success(result.getValue() as any)
+    }
+    this.setStatus(result.code)
+    return ResponseData.error(result.code, result.error ?? '', '') as any
+  }
+
+  /**
+   * Create a new moderator account.
+   */
+  @Post("moderators")
+  @Security("jwt", ["Manager"])
+  public async addModerators(
+    @Body() body: AddModeratorRequest
+  ): Promise<ResponseData<string | any>> {
+    const result = await this.adminService.addModeratorsService(
+      body.firstName,
+      body.lastName,
+      body.email,
+      body.phone,
+      body.gender,
+      new Date(body.birthday)
+    )
+    if (result.isSuccess) {
+      return ResponseData.success(result.getValue() as any)
+    }
+    this.setStatus(result.code)
+    return ResponseData.error(result.code, result.error ?? '', '') as any
+  }
+
+  /**
+   * Update moderator account status.
+   */
+  @Put("moderators/{moderatorId}/status")
+  @Security("jwt", ["Manager"])
+  public async updateModerator(
+    @Path() moderatorId: number,
+    @Body() body: UpdateModeratorStatusRequest
+  ): Promise<ResponseData<string | any>> {
+    const result = await this.adminService.updateModeratorService(body.status, moderatorId)
+    if (result.isSuccess) {
+      return ResponseData.success(result.getValue() as any)
+    }
+    this.setStatus(result.code)
+    return ResponseData.error(result.code, result.error ?? '', '') as any
+  }
+
+  /**
+   * Get detailed profile of a moderator.
+   */
+  @Get("moderators/{moderatorId}/profile")
+  @Security("jwt", ["Manager"])
+  public async getProfileModerator(
+    @Path() moderatorId: number
+  ): Promise<ResponseData<ModeratorProfileResponse>> {
+    const result = await this.adminService.getProfileModeratorService(moderatorId)
+    if (result.isSuccess) {
+      return ResponseData.success(result.getValue() as any)
+    }
+    this.setStatus(result.code)
+    return ResponseData.error(result.code, result.error ?? '', '') as any
+  }
+
+  /**
+   * Get current moderator's own profile.
+   */
+  @Get("me/profile")
+  @Security("jwt", ["Admin", "Manager"])
+  public async getMyProfile(
+    @Request() req: any
+  ): Promise<ResponseData<any>> {
+    const adminId = req.user?.admin?.adminId
+    const result = await this.adminService.getMyProfileService(adminId)
+    if (result.isSuccess) {
+      return ResponseData.success(result.getValue())
+    }
+    this.setStatus(result.code)
+    return ResponseData.error(result.code, result.error ?? '', '') as any
+  }
+
+  /**
+   * Update current moderator's own profile.
+   */
+  @Put("me/profile")
+  @Security("jwt", ["Admin", "Manager"])
+  public async updateMyProfile(
+    @Request() req: any,
+    @Body() body: any
+  ): Promise<ResponseData<string | any>> {
+    const accountId = req.user?.accountId
+    const result = await this.adminService.updateMyProfileService(
+      accountId,
+      body.phone,
+      body.email,
+      body.gender,
+      body.birthday,
+      body.firstName,
+      body.lastName
+    )
+    if (result.isSuccess) {
+      return ResponseData.success(result.getValue() as any)
+    }
+    this.setStatus(result.code)
+    return ResponseData.error(result.code, result.error ?? '', '') as any
+  }
+
+  /**
+   * Get moderation performance statistics.
+   */
+  @Get("moderation-stats")
+  @Security("jwt", ["Admin", "Manager"])
+  public async getModerationStats(): Promise<ResponseData<ModerationStatsResponse>> {
+    const result = await this.adminService.getModerationStats()
+    if (result.isSuccess) {
+      return ResponseData.success(result.getValue() as any)
+    }
+    this.setStatus(result.code)
+    return ResponseData.error(result.code, result.error ?? '', '') as any
+  }
+
+  /**
+   * Export training data for AI retraining.
+   */
+  @Get("export-training-data")
+  @Security("jwt", ["Admin", "Manager"])
+  public async exportTrainingData(
+    @Query() limit?: number
+  ): Promise<ResponseData<any>> {
+    const result = await this.adminService.exportTrainingData(limit)
+    if (result.isSuccess) {
+      return ResponseData.success(result.getValue())
+    }
+    this.setStatus(result.code)
+    return ResponseData.error(result.code, result.error ?? '', '') as any
   }
 }
-export default new AdminController()

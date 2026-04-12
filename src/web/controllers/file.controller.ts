@@ -1,32 +1,54 @@
+import { 
+  Get, 
+  Route, 
+  Tags, 
+  Path, 
+  Controller,
+  Request,
+  Produces
+} from '@tsoa/runtime'
 import FileService from '@/services/file.service'
-import ResponseData from '@/utils/data-types/response'
-import { NextFunction, Request, Response } from 'express'
+import { Response as ExpressResponse } from 'express'
 
-class FileController {
-  private fileService: FileService
+@Route("files")
+@Tags("Multimedia")
+export class MultimediaController extends Controller {
+  private fileService = new FileService()
+
   constructor() {
-    this.fileService = new FileService()
+    super()
   }
-  async getFile(req: Request, res: Response, next: NextFunction): Promise<void> {
+
+  /**
+   * Get a file by ID.
+   * Serves the file as a stream with the correct Content-Type.
+   */
+  @Get("{fileId}")
+  @Produces("image/*")
+  public async getFile(
+    @Path() fileId: number,
+    @Request() req: any
+  ): Promise<void> {
+    const res = req.res as ExpressResponse
     try {
-      const r = await this.fileService.getFile(Number(req.params.fileId))
+      const r = await this.fileService.getFile(fileId)
       if (r.isSuccess) {
         res.setHeader('Content-Type', r.getValue()!.metaData ?? 'application/octet-stream')
         r.getValue()!.data.pipe(res)
         return
       }
-      if (r.code === 404) {
-        res.status(404).json(ResponseData.notFound('File not found'))
-        return
-      }
-      if (!r) {
-        res.status(404).json(ResponseData.notFound('File not found'))
-        return
-      }
-      res.status(r.code).json(ResponseData.error(r.code, r.error ?? '', ''))
-    } catch (e) {
-      next(e)
+      
+      this.setStatus(r.code)
+      res.status(r.code).json({
+        success: false,
+        message: r.error || 'File not found'
+      })
+    } catch (error: any) {
+      this.setStatus(500)
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Internal server error'
+      })
     }
   }
 }
-export default new FileController()

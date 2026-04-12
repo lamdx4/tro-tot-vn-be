@@ -1,0 +1,5570 @@
+{
+	"openapi": "3.0.0",
+	"components": {
+		"examples": {},
+		"headers": {},
+		"parameters": {},
+		"requestBodies": {},
+		"responses": {},
+		"schemas": {
+			"IceServer": {
+				"properties": {
+					"urls": {
+						"type": "string"
+					},
+					"username": {
+						"type": "string"
+					},
+					"credential": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"urls"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"IceConfigResponse": {
+				"properties": {
+					"iceServers": {
+						"items": {
+							"$ref": "#/components/schemas/IceServer"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"iceServers"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_IceConfigResponse_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/IceConfigResponse"
+							}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"SearchResponse": {
+				"properties": {
+					"searchLogId": {
+						"type": "number",
+						"format": "double"
+					},
+					"data": {
+						"items": {},
+						"type": "array"
+					},
+					"pagination": {
+						"properties": {
+							"totalPages": {
+								"type": "number",
+								"format": "double"
+							},
+							"pageSize": {
+								"type": "number",
+								"format": "double"
+							},
+							"page": {
+								"type": "number",
+								"format": "double"
+							},
+							"total": {
+								"type": "number",
+								"format": "double"
+							}
+						},
+						"required": [
+							"totalPages",
+							"pageSize",
+							"page",
+							"total"
+						],
+						"type": "object"
+					},
+					"searchTimeMs": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"data",
+					"pagination",
+					"searchTimeMs"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"SearchHealthResponse": {
+				"properties": {
+					"status": {
+						"type": "string",
+						"enum": [
+							"healthy",
+							"unhealthy",
+							"error"
+						]
+					},
+					"searchService": {
+						"type": "string",
+						"enum": [
+							"connected",
+							"disconnected"
+						]
+					}
+				},
+				"required": [
+					"status",
+					"searchService"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"SearchFeedbackRequest": {
+				"properties": {
+					"searchLogId": {
+						"type": "number",
+						"format": "double"
+					},
+					"isHelpful": {
+						"type": "boolean"
+					},
+					"issues": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"comment": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"searchLogId",
+					"isHelpful"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"SearchClickRequest": {
+				"properties": {
+					"searchLogId": {
+						"type": "number",
+						"format": "double"
+					},
+					"searchLogItemId": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"searchLogId",
+					"searchLogItemId"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"RecommendationResponse": {
+				"properties": {
+					"recommendationLogId": {
+						"type": "number",
+						"format": "double"
+					},
+					"data": {
+						"items": {},
+						"type": "array"
+					},
+					"pagination": {
+						"properties": {
+							"totalPages": {
+								"type": "number",
+								"format": "double"
+							},
+							"pageSize": {
+								"type": "number",
+								"format": "double"
+							},
+							"page": {
+								"type": "number",
+								"format": "double"
+							},
+							"total": {
+								"type": "number",
+								"format": "double"
+							}
+						},
+						"required": [
+							"totalPages",
+							"pageSize",
+							"page",
+							"total"
+						],
+						"type": "object"
+					},
+					"processingTimeMs": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"data",
+					"pagination",
+					"processingTimeMs"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"RecommendHealthResponse": {
+				"properties": {
+					"status": {
+						"type": "string",
+						"enum": [
+							"healthy",
+							"unhealthy",
+							"error"
+						]
+					},
+					"recommendService": {
+						"type": "string",
+						"enum": [
+							"connected",
+							"disconnected"
+						]
+					}
+				},
+				"required": [
+					"status",
+					"recommendService"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"RecommendationClickRequest": {
+				"properties": {
+					"recommendationLogId": {
+						"type": "number",
+						"format": "double"
+					},
+					"recommendationLogItemId": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"recommendationLogId",
+					"recommendationLogItemId"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"PostResponse": {
+				"properties": {
+					"postId": {
+						"type": "number",
+						"format": "double"
+					},
+					"ownerId": {
+						"type": "number",
+						"format": "double"
+					},
+					"status": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"title": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"price": {
+						"type": "number",
+						"format": "double"
+					},
+					"streetNumber": {
+						"type": "string"
+					},
+					"street": {
+						"type": "string"
+					},
+					"ward": {
+						"type": "string"
+					},
+					"district": {
+						"type": "string"
+					},
+					"city": {
+						"type": "string"
+					},
+					"interiorCondition": {
+						"type": "string"
+					},
+					"acreage": {
+						"type": "number",
+						"format": "double"
+					},
+					"multimediaFiles": {
+						"items": {},
+						"type": "array"
+					}
+				},
+				"required": [
+					"postId",
+					"ownerId",
+					"status",
+					"createdAt",
+					"title",
+					"description",
+					"price",
+					"streetNumber",
+					"street",
+					"ward",
+					"district",
+					"city",
+					"interiorCondition",
+					"acreage"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_PostResponse-or-string-or-null_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/PostResponse"
+							},
+							{
+								"type": "string"
+							}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"CursorPagingResponse_PostResponse.number_": {
+				"properties": {
+					"dataPag": {
+						"items": {
+							"$ref": "#/components/schemas/PostResponse"
+						},
+						"type": "array"
+					},
+					"nextCursor": {
+						"type": "number",
+						"format": "double",
+						"nullable": true
+					},
+					"hasMore": {
+						"type": "boolean"
+					}
+				},
+				"required": [
+					"dataPag",
+					"nextCursor",
+					"hasMore"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_CursorPagingResponse_PostResponse.number__": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/CursorPagingResponse_PostResponse.number_"
+							}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_PostResponse-or-null_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/PostResponse"
+							}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_any_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"HidePostRequest": {
+				"properties": {
+					"postId": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"postId"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"CursorPagingResponse_PostResponse.any_": {
+				"properties": {
+					"dataPag": {
+						"items": {
+							"$ref": "#/components/schemas/PostResponse"
+						},
+						"type": "array"
+					},
+					"nextCursor": {
+						"nullable": true
+					},
+					"hasMore": {
+						"type": "boolean"
+					}
+				},
+				"required": [
+					"dataPag",
+					"nextCursor",
+					"hasMore"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_CursorPagingResponse_PostResponse.any__": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/CursorPagingResponse_PostResponse.any_"
+							}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"TokenRequest": {
+				"properties": {
+					"fcmToken": {
+						"type": "string"
+					},
+					"platform": {
+						"type": "string",
+						"enum": [
+							"android",
+							"ios",
+							"web"
+						]
+					}
+				},
+				"required": [
+					"fcmToken",
+					"platform"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UnregisterTokenRequest": {
+				"properties": {
+					"fcmToken": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"fcmToken"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"AttachmentDTO": {
+				"properties": {
+					"attachmentId": {
+						"type": "number",
+						"format": "double"
+					},
+					"messageId": {
+						"type": "number",
+						"format": "double"
+					},
+					"fileName": {
+						"type": "string"
+					},
+					"fileUrl": {
+						"type": "string"
+					},
+					"fileType": {
+						"type": "string"
+					},
+					"fileSize": {
+						"type": "number",
+						"format": "double"
+					},
+					"mimeType": {
+						"type": "string"
+					},
+					"cloudFileId": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": [
+					"attachmentId",
+					"messageId",
+					"fileName",
+					"fileUrl",
+					"fileType",
+					"createdAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"MessageDTO": {
+				"properties": {
+					"messageId": {
+						"type": "number",
+						"format": "double"
+					},
+					"conversationId": {
+						"type": "number",
+						"format": "double"
+					},
+					"senderId": {
+						"type": "number",
+						"format": "double"
+					},
+					"content": {
+						"type": "string"
+					},
+					"messageType": {
+						"type": "string"
+					},
+					"status": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"deletedAt": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true
+					},
+					"attachments": {
+						"items": {
+							"$ref": "#/components/schemas/AttachmentDTO"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"messageId",
+					"conversationId",
+					"senderId",
+					"content",
+					"messageType",
+					"status",
+					"createdAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_MessageDTO-Array_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"items": {
+							"$ref": "#/components/schemas/MessageDTO"
+						},
+						"type": "array",
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_MessageDTO-or-null_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/MessageDTO"
+							}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_MessageDTO_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/MessageDTO"
+							}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"SendMessageRequest": {
+				"properties": {
+					"conversationId": {
+						"type": "number",
+						"format": "double"
+					},
+					"content": {
+						"type": "string"
+					},
+					"messageType": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"conversationId",
+					"content"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"EditMessageRequest": {
+				"properties": {
+					"content": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"content"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData__message-string__": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"properties": {
+							"message": {
+								"type": "string"
+							}
+						},
+						"required": [
+							"message"
+						],
+						"type": "object",
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData__downloadUrl-string-or-null__": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"properties": {
+							"downloadUrl": {
+								"type": "string",
+								"nullable": true
+							}
+						},
+						"required": [
+							"downloadUrl"
+						],
+						"type": "object",
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"WardResponse": {
+				"properties": {
+					"ward_id": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"ward_id",
+					"name"
+				],
+				"type": "object",
+				"additionalProperties": {}
+			},
+			"ResponseData_null_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"anyOf": [],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ContactLogRequest": {
+				"properties": {
+					"postId": {
+						"type": "number",
+						"format": "double",
+						"description": "The ID of the post being contacted"
+					}
+				},
+				"required": [
+					"postId"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"CustomerProfileResponse": {
+				"properties": {
+					"customerId": {
+						"type": "number",
+						"format": "double"
+					},
+					"phone": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"firstName": {
+						"type": "string"
+					},
+					"lastName": {
+						"type": "string"
+					},
+					"avatarUrl": {
+						"type": "string"
+					},
+					"gender": {
+						"type": "string"
+					},
+					"birthday": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"currentCity": {
+						"type": "string"
+					},
+					"currentDistrict": {
+						"type": "string"
+					},
+					"currentJob": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"customerId"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_CustomerProfileResponse-or-any_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/CustomerProfileResponse"
+							},
+							{}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_CustomerProfileResponse-or-null_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/CustomerProfileResponse"
+							}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"RateRequest": {
+				"properties": {
+					"numStar": {
+						"type": "number",
+						"format": "double"
+					},
+					"comment": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"numStar",
+					"comment"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"RateResponse": {
+				"properties": {
+					"rateId": {
+						"type": "number",
+						"format": "double"
+					},
+					"customerId": {
+						"type": "number",
+						"format": "double"
+					},
+					"postId": {
+						"type": "number",
+						"format": "double"
+					},
+					"numStar": {
+						"type": "number",
+						"format": "double"
+					},
+					"comment": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": [
+					"rateId",
+					"customerId",
+					"postId",
+					"numStar",
+					"comment",
+					"createdAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"CursorPagingResponse_RateResponse.string_": {
+				"properties": {
+					"dataPag": {
+						"items": {
+							"$ref": "#/components/schemas/RateResponse"
+						},
+						"type": "array"
+					},
+					"nextCursor": {
+						"type": "string",
+						"nullable": true
+					},
+					"hasMore": {
+						"type": "boolean"
+					}
+				},
+				"required": [
+					"dataPag",
+					"nextCursor",
+					"hasMore"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_CursorPagingResponse_RateResponse.string__": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/CursorPagingResponse_RateResponse.string_"
+							}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData__avgRate-number--countRate-number_-or-any_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"anyOf": [
+							{
+								"properties": {
+									"countRate": {
+										"type": "number",
+										"format": "double"
+									},
+									"avgRate": {
+										"type": "number",
+										"format": "double"
+									}
+								},
+								"required": [
+									"countRate",
+									"avgRate"
+								],
+								"type": "object"
+							},
+							{}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"SavePostRequest": {
+				"properties": {
+					"postId": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"postId"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_any-Array_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"items": {},
+						"type": "array",
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"SubscriptionResponse": {
+				"properties": {
+					"subscriptionId": {
+						"type": "number",
+						"format": "double"
+					},
+					"customerId": {
+						"type": "number",
+						"format": "double"
+					},
+					"city": {
+						"type": "string"
+					},
+					"district": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": [
+					"subscriptionId",
+					"customerId",
+					"city",
+					"district",
+					"createdAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_SubscriptionResponse-Array_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"items": {
+							"$ref": "#/components/schemas/SubscriptionResponse"
+						},
+						"type": "array",
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_SubscriptionResponse-or-any_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/SubscriptionResponse"
+							},
+							{}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"CreateSubscriptionRequest": {
+				"properties": {
+					"city": {
+						"type": "string"
+					},
+					"district": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"city",
+					"district"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ConversationDTO": {
+				"properties": {
+					"conversationId": {
+						"type": "number",
+						"format": "double"
+					},
+					"conversationType": {
+						"type": "string"
+					},
+					"createdBy": {
+						"type": "number",
+						"format": "double"
+					},
+					"createdAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"updatedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"participantCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"lastMessage": {
+						"type": "string"
+					},
+					"lastMessageAt": {
+						"type": "string",
+						"format": "date-time"
+					}
+				},
+				"required": [
+					"conversationId",
+					"conversationType",
+					"createdBy",
+					"createdAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_ConversationDTO-Array_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"items": {
+							"$ref": "#/components/schemas/ConversationDTO"
+						},
+						"type": "array",
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_ConversationDTO-or-null_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/ConversationDTO"
+							}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_ConversationDTO_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/ConversationDTO"
+							}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"CreateConversationRequest": {
+				"properties": {
+					"conversationType": {
+						"type": "string"
+					},
+					"participantIds": {
+						"items": {
+							"type": "number",
+							"format": "double"
+						},
+						"type": "array"
+					},
+					"name": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"conversationType",
+					"participantIds"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ParticipantDTO": {
+				"properties": {
+					"participantId": {
+						"type": "number",
+						"format": "double"
+					},
+					"conversationId": {
+						"type": "number",
+						"format": "double"
+					},
+					"customerId": {
+						"type": "number",
+						"format": "double"
+					},
+					"role": {
+						"type": "string"
+					},
+					"joinedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"leftAt": {
+						"type": "string",
+						"format": "date-time",
+						"nullable": true
+					}
+				},
+				"required": [
+					"participantId",
+					"conversationId",
+					"customerId",
+					"role",
+					"joinedAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_ParticipantDTO_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/ParticipantDTO"
+							}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"AddParticipantRequest": {
+				"properties": {
+					"customerId": {
+						"type": "number",
+						"format": "double"
+					},
+					"role": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"customerId"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_ParticipantDTO-Array_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"items": {
+							"$ref": "#/components/schemas/ParticipantDTO"
+						},
+						"type": "array",
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_string-or-null_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"type": "string",
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"RegisterRequest": {
+				"properties": {
+					"phone": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"firstName": {
+						"type": "string"
+					},
+					"lastName": {
+						"type": "string"
+					},
+					"birthday": {
+						"type": "string"
+					},
+					"gender": {
+						"type": "string"
+					},
+					"password": {
+						"type": "string"
+					},
+					"currentCity": {
+						"type": "string"
+					},
+					"currentDistrict": {
+						"type": "string"
+					},
+					"currentJob": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"phone",
+					"email",
+					"firstName",
+					"lastName"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"OTPResponse": {
+				"properties": {
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_OTPResponse_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/OTPResponse"
+							}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"OTPRequest": {
+				"properties": {
+					"email": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"email"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"VerifyOTPRequest": {
+				"properties": {
+					"email": {
+						"type": "string"
+					},
+					"otp": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"email",
+					"otp"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_OTPResponse-or-any_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/OTPResponse"
+							},
+							{}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResetPasswordRequest": {
+				"properties": {
+					"password": {
+						"type": "string"
+					},
+					"resetToken": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"resetToken"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LoginResponse": {
+				"properties": {
+					"token": {
+						"properties": {
+							"refreshToken": {
+								"type": "string"
+							},
+							"accessToken": {
+								"type": "string"
+							}
+						},
+						"required": [
+							"refreshToken",
+							"accessToken"
+						],
+						"type": "object"
+					},
+					"account": {}
+				},
+				"required": [
+					"token",
+					"account"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_LoginResponse-or-any_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/LoginResponse"
+							},
+							{}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LoginRequest": {
+				"properties": {
+					"identifier": {
+						"type": "string"
+					},
+					"password": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"identifier"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"RefreshTokenResponse": {
+				"properties": {
+					"accessToken": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"accessToken"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_RefreshTokenResponse-or-any_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/RefreshTokenResponse"
+							},
+							{}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"RefreshTokenRequest": {
+				"properties": {
+					"refreshToken": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"refreshToken"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_string-or-any_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LogoutRequest": {
+				"properties": {
+					"token": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"token"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ChangePasswordRequest": {
+				"properties": {
+					"oldPassword": {
+						"type": "string"
+					},
+					"newPassword": {
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"DashboardStatsResponse": {
+				"properties": {
+					"totalPendingPost": {
+						"type": "number",
+						"format": "double"
+					},
+					"totalRejectedPostInWeek": {
+						"type": "number",
+						"format": "double"
+					},
+					"totalApprovedPostInWeek": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"totalPendingPost",
+					"totalRejectedPostInWeek",
+					"totalApprovedPostInWeek"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_DashboardStatsResponse_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/DashboardStatsResponse"
+							}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ModeratePostRequest": {
+				"properties": {
+					"actionType": {
+						"type": "string",
+						"enum": [
+							"Approved",
+							"Rejected"
+						]
+					},
+					"reason": {
+						"type": "string"
+					},
+					"isHateContent": {
+						"type": "boolean"
+					}
+				},
+				"required": [
+					"actionType"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"PostModerationHistoryResponse": {
+				"properties": {
+					"postId": {
+						"type": "number",
+						"format": "double"
+					},
+					"actionType": {
+						"type": "string"
+					},
+					"reason": {
+						"type": "string"
+					},
+					"execAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"admin": {
+						"properties": {
+							"account": {
+								"properties": {
+									"email": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"email"
+								],
+								"type": "object"
+							},
+							"lastName": {
+								"type": "string"
+							},
+							"firstName": {
+								"type": "string"
+							},
+							"accountId": {
+								"type": "number",
+								"format": "double"
+							}
+						},
+						"required": [
+							"account",
+							"lastName",
+							"firstName",
+							"accountId"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"postId",
+					"actionType",
+					"execAt",
+					"admin"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_PostModerationHistoryResponse-Array_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"items": {
+							"$ref": "#/components/schemas/PostModerationHistoryResponse"
+						},
+						"type": "array",
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ModeratorActionHistoryResponse": {
+				"properties": {
+					"postId": {
+						"type": "number",
+						"format": "double"
+					},
+					"actionType": {
+						"type": "string"
+					},
+					"reason": {
+						"type": "string"
+					},
+					"execAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"post": {
+						"properties": {
+							"title": {
+								"type": "string"
+							},
+							"postId": {
+								"type": "number",
+								"format": "double"
+							}
+						},
+						"required": [
+							"title",
+							"postId"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"postId",
+					"actionType",
+					"execAt",
+					"post"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_ModeratorActionHistoryResponse-Array_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"items": {
+							"$ref": "#/components/schemas/ModeratorActionHistoryResponse"
+						},
+						"type": "array",
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ModeratorSummary": {
+				"properties": {
+					"adminId": {
+						"type": "number",
+						"format": "double"
+					},
+					"firstName": {
+						"type": "string"
+					},
+					"lastName": {
+						"type": "string"
+					},
+					"birthday": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"gender": {
+						"type": "string"
+					},
+					"joinedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"account": {
+						"properties": {
+							"status": {
+								"type": "string"
+							},
+							"phone": {
+								"type": "string"
+							},
+							"email": {
+								"type": "string"
+							}
+						},
+						"required": [
+							"status",
+							"phone",
+							"email"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"adminId",
+					"firstName",
+					"lastName",
+					"birthday",
+					"gender",
+					"joinedAt",
+					"account"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_ModeratorSummary-Array_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"items": {
+							"$ref": "#/components/schemas/ModeratorSummary"
+						},
+						"type": "array",
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"AddModeratorRequest": {
+				"properties": {
+					"firstName": {
+						"type": "string"
+					},
+					"lastName": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"phone": {
+						"type": "string"
+					},
+					"gender": {
+						"type": "string"
+					},
+					"birthday": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"firstName",
+					"lastName",
+					"email",
+					"phone",
+					"gender",
+					"birthday"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UpdateModeratorStatusRequest": {
+				"properties": {
+					"status": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"status"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ModeratorProfileResponse": {
+				"properties": {
+					"adminId": {
+						"type": "number",
+						"format": "double"
+					},
+					"firstName": {
+						"type": "string"
+					},
+					"lastName": {
+						"type": "string"
+					},
+					"birthday": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"gender": {
+						"type": "string"
+					},
+					"joinedAt": {
+						"type": "string",
+						"format": "date-time"
+					},
+					"account": {
+						"properties": {
+							"status": {
+								"type": "string"
+							},
+							"phone": {
+								"type": "string"
+							},
+							"email": {
+								"type": "string"
+							}
+						},
+						"required": [
+							"status",
+							"phone",
+							"email"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"adminId",
+					"firstName",
+					"lastName",
+					"birthday",
+					"gender",
+					"joinedAt",
+					"account"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResponseData_ModeratorProfileResponse_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/ModeratorProfileResponse"
+							}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ModerationStatsResponse": {
+				"properties": {
+					"aiRejections": {
+						"type": "number",
+						"format": "double"
+					},
+					"adminRejections": {
+						"type": "number",
+						"format": "double"
+					},
+					"totalProcessed": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"aiRejections",
+					"adminRejections",
+					"totalProcessed"
+				],
+				"type": "object",
+				"additionalProperties": {}
+			},
+			"ResponseData_ModerationStatsResponse_": {
+				"properties": {
+					"status": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					},
+					"error": {
+						"items": {},
+						"type": "array"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/ModerationStatsResponse"
+							}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"status",
+					"message",
+					"error",
+					"data"
+				],
+				"type": "object",
+				"additionalProperties": false
+			}
+		},
+		"securitySchemes": {
+			"jwt": {
+				"type": "apiKey",
+				"name": "Authorization",
+				"in": "header"
+			}
+		}
+	},
+	"info": {
+		"title": "tro-tot-vn-be",
+		"version": "1.0.0",
+		"license": {
+			"name": "ISC"
+		},
+		"contact": {
+			"name": "lamdx4"
+		}
+	},
+	"paths": {
+		"/video-call/ice-config": {
+			"get": {
+				"operationId": "GetIceConfig",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_IceConfigResponse_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get ICE server configuration for WebRTC.\nThis is used by the frontend to establish peer-to-peer connections.",
+				"tags": [
+					"VideoCall"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/search": {
+			"get": {
+				"operationId": "Search",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/SearchResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Hybrid vector search with filters and pagination",
+				"tags": [
+					"Search"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "query",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "city",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "district",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "ward",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "priceMin",
+						"required": false,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "priceMax",
+						"required": false,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "acreageMin",
+						"required": false,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "acreageMax",
+						"required": false,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "interiorCondition",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "page",
+						"required": false,
+						"schema": {
+							"default": 1,
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "pageSize",
+						"required": false,
+						"schema": {
+							"default": 20,
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/search/health": {
+			"get": {
+				"operationId": "Health",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/SearchHealthResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Health check for search service",
+				"tags": [
+					"Search"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/search/feedback": {
+			"post": {
+				"operationId": "SubmitFeedback",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {}
+							}
+						}
+					}
+				},
+				"description": "Submit user feedback on search quality",
+				"tags": [
+					"Search"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/SearchFeedbackRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/search/click": {
+			"post": {
+				"operationId": "LogClick",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {}
+							}
+						}
+					}
+				},
+				"description": "Log user click on search result",
+				"tags": [
+					"Search"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/SearchClickRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/recommend": {
+			"get": {
+				"operationId": "GetRecommendations",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/RecommendationResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get personalized recommendations for authenticated customer",
+				"tags": [
+					"Recommend"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "page",
+						"required": false,
+						"schema": {
+							"default": 1,
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "pageSize",
+						"required": false,
+						"schema": {
+							"default": 20,
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "logId",
+						"required": false,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/recommend/health": {
+			"get": {
+				"operationId": "Health",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/RecommendHealthResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Health check for recommend service",
+				"tags": [
+					"Recommend"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/recommend/click": {
+			"post": {
+				"operationId": "LogClick",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {}
+							}
+						}
+					}
+				},
+				"description": "Log user click on recommendation",
+				"tags": [
+					"Recommend"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/RecommendationClickRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/posts": {
+			"post": {
+				"operationId": "CreatePost",
+				"responses": {
+					"200": {
+						"description": "Post created successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_PostResponse-or-string-or-null_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Create a new property post\nRequires images and optionally a video",
+				"tags": [
+					"Posts"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"multipart/form-data": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"title": {
+										"type": "string"
+									},
+									"description": {
+										"type": "string"
+									},
+									"price": {
+										"type": "string"
+									},
+									"acreage": {
+										"type": "string"
+									},
+									"streetNumber": {
+										"type": "string"
+									},
+									"street": {
+										"type": "string"
+									},
+									"ward": {
+										"type": "string"
+									},
+									"district": {
+										"type": "string"
+									},
+									"city": {
+										"type": "string"
+									},
+									"interiorStatus": {
+										"type": "string"
+									},
+									"images": {
+										"items": {
+											"type": "string",
+											"format": "binary"
+										},
+										"type": "array"
+									},
+									"video": {
+										"type": "string",
+										"format": "binary"
+									}
+								},
+								"required": [
+									"title",
+									"description",
+									"price",
+									"acreage",
+									"streetNumber",
+									"street",
+									"ward",
+									"district",
+									"city",
+									"interiorStatus",
+									"images",
+									"video"
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		"/posts/{postId}": {
+			"put": {
+				"operationId": "EditPost",
+				"responses": {
+					"200": {
+						"description": "Post updated successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_PostResponse-or-string-or-null_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Edit an existing property post",
+				"tags": [
+					"Posts"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "postId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"multipart/form-data": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"title": {
+										"type": "string"
+									},
+									"description": {
+										"type": "string"
+									},
+									"price": {
+										"type": "string"
+									},
+									"acreage": {
+										"type": "string"
+									},
+									"streetNumber": {
+										"type": "string"
+									},
+									"street": {
+										"type": "string"
+									},
+									"ward": {
+										"type": "string"
+									},
+									"district": {
+										"type": "string"
+									},
+									"city": {
+										"type": "string"
+									},
+									"interiorStatus": {
+										"type": "string"
+									},
+									"oldFiles": {
+										"type": "string"
+									},
+									"images": {
+										"items": {
+											"type": "string",
+											"format": "binary"
+										},
+										"type": "array"
+									},
+									"video": {
+										"type": "string",
+										"format": "binary"
+									}
+								},
+								"required": [
+									"title",
+									"description",
+									"price",
+									"acreage",
+									"streetNumber",
+									"street",
+									"ward",
+									"district",
+									"city",
+									"interiorStatus",
+									"oldFiles",
+									"images",
+									"video"
+								]
+							}
+						}
+					}
+				}
+			},
+			"get": {
+				"operationId": "GetPostDetail",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_PostResponse-or-null_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get post detail by ID (Public)",
+				"tags": [
+					"Posts"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "postId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/posts/my-posts": {
+			"get": {
+				"operationId": "GetMyPosts",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_CursorPagingResponse_PostResponse.number__"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get posts belong to current user",
+				"tags": [
+					"Posts"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "status",
+						"required": false,
+						"schema": {
+							"default": "Approved",
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "cursor",
+						"required": false,
+						"schema": {
+							"default": 0,
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"default": 10,
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/posts/my-posts/{postId}": {
+			"get": {
+				"operationId": "GetDetailMyPost",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get own post detail (Authorized)",
+				"tags": [
+					"Posts"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "postId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/posts/latest": {
+			"get": {
+				"operationId": "GetLastPost",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get latest posts (Home page)",
+				"tags": [
+					"Posts"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"default": 4,
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/posts/hide": {
+			"post": {
+				"operationId": "HideMyPost",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Hide a post",
+				"tags": [
+					"Posts"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/HidePostRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/posts/unhide": {
+			"post": {
+				"operationId": "UnHideMyPost",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Unhide a post",
+				"tags": [
+					"Posts"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/HidePostRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/posts/search": {
+			"get": {
+				"operationId": "SearchPost",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_CursorPagingResponse_PostResponse.any__"
+								}
+							}
+						}
+					}
+				},
+				"description": "Search posts with filters",
+				"tags": [
+					"Posts"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "keyword",
+						"required": false,
+						"schema": {
+							"default": "",
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "city",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "district",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "ward",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "interiorCondition",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "acreage",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "price",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "cursor",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"default": 10,
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/notifications/tokens": {
+			"post": {
+				"operationId": "RegisterToken",
+				"responses": {
+					"200": {
+						"description": "Token registered successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Register or update an FCM token for the current user",
+				"tags": [
+					"Notifications"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/TokenRequest"
+							}
+						}
+					}
+				}
+			},
+			"get": {
+				"operationId": "GetMyTokens",
+				"responses": {
+					"200": {
+						"description": "Tokens retrieved successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get all registered tokens for the current user",
+				"tags": [
+					"Notifications"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/notifications/tokens/unregister": {
+			"post": {
+				"operationId": "UnregisterToken",
+				"responses": {
+					"200": {
+						"description": "Token unregistered successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Unregister an FCM token (e.g., on logout)",
+				"tags": [
+					"Notifications"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UnregisterTokenRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/messages/conversations/{conversationId}": {
+			"get": {
+				"operationId": "GetMessages",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_MessageDTO-Array_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get messages in a conversation",
+				"tags": [
+					"Chat Messages"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "conversationId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"default": 20,
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "offset",
+						"required": false,
+						"schema": {
+							"default": 0,
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "before",
+						"required": false,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/messages/{messageId}": {
+			"get": {
+				"operationId": "GetMessageById",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_MessageDTO-or-null_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get message details by ID",
+				"tags": [
+					"Chat Messages"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "messageId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			},
+			"put": {
+				"operationId": "EditMessage",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_MessageDTO_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Edit an existing message",
+				"tags": [
+					"Chat Messages"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "messageId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/EditMessageRequest"
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"operationId": "DeleteMessage",
+				"responses": {
+					"204": {
+						"description": "Message deleted successfully"
+					}
+				},
+				"description": "Soft delete a message",
+				"tags": [
+					"Chat Messages"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "messageId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/messages": {
+			"post": {
+				"operationId": "SendMessage",
+				"responses": {
+					"201": {
+						"description": "Message sent successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_MessageDTO_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Send a text message",
+				"tags": [
+					"Chat Messages"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/SendMessageRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/messages/conversations/{conversationId}/read": {
+			"post": {
+				"operationId": "MarkMessagesAsRead",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData__message-string__"
+								}
+							}
+						}
+					}
+				},
+				"description": "Mark all messages in a conversation as read",
+				"tags": [
+					"Chat Messages"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "conversationId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"messageIds": {
+										"items": {
+											"type": "number",
+											"format": "double"
+										},
+										"type": "array"
+									}
+								},
+								"required": [
+									"messageIds"
+								],
+								"type": "object"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/messages/conversations/{conversationId}/files": {
+			"post": {
+				"operationId": "UploadFile",
+				"responses": {
+					"201": {
+						"description": "File uploaded and message sent",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_MessageDTO_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Upload and send a file as a message",
+				"tags": [
+					"Chat Messages"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "conversationId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/messages/files/{fileId}/download": {
+			"get": {
+				"operationId": "GetFileDownloadUrl",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData__downloadUrl-string-or-null__"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get file download URL",
+				"tags": [
+					"Chat Messages"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "fileId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/location/wards/{districtId}": {
+			"get": {
+				"operationId": "GetWards",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/WardResponse"
+									},
+									"type": "array"
+								}
+							}
+						}
+					}
+				},
+				"description": "Proxy to Chợ Tốt wards API to avoid CORS.\nFetches all wards for a given district ID.",
+				"tags": [
+					"Location"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "districtId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/interactions/contact": {
+			"post": {
+				"operationId": "LogContact",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_null_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Log contact interaction when user views phone number.\nThis is used for tracking user interest and improving recommendations.",
+				"tags": [
+					"Interaction"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ContactLogRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/files/{fileId}": {
+			"get": {
+				"operationId": "GetFile",
+				"responses": {
+					"204": {
+						"description": "No content"
+					}
+				},
+				"description": "Get a file by ID.\nServes the file as a stream with the correct Content-Type.",
+				"tags": [
+					"Multimedia"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "fileId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/examples": {
+			"get": {
+				"operationId": "GetAll",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get all customers (example data)",
+				"tags": [
+					"Example"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/customer/{customerId}/profile": {
+			"get": {
+				"operationId": "GetInformation",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_CustomerProfileResponse-or-any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get public profile information for a customer",
+				"tags": [
+					"Customer"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "customerId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/customer/me": {
+			"get": {
+				"operationId": "GetMyProfile",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_CustomerProfileResponse-or-null_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get private profile of the current authenticated user",
+				"tags": [
+					"Customer"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			},
+			"post": {
+				"operationId": "UpdateMyProfile",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Update the current user's profile",
+				"tags": [
+					"Customer"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"multipart/form-data": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"avatar": {
+										"type": "string",
+										"format": "binary"
+									},
+									"firstName": {
+										"type": "string"
+									},
+									"lastName": {
+										"type": "string"
+									},
+									"gender": {
+										"type": "string"
+									},
+									"birthday": {
+										"type": "string"
+									},
+									"currentCity": {
+										"type": "string"
+									},
+									"currentDistrict": {
+										"type": "string"
+									},
+									"currentJob": {
+										"type": "string"
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"/customer/posts/{postId}/rate": {
+			"post": {
+				"operationId": "AddRate",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Add or update a rating for a post",
+				"tags": [
+					"Customer"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "postId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/RateRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/customer/posts/{postId}/rates": {
+			"get": {
+				"operationId": "GetRateFromPost",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_CursorPagingResponse_RateResponse.string__"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get all ratings for a specific post (Paginated)",
+				"tags": [
+					"Customer"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "postId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "cursor",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"default": 10,
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/customer/posts/{postId}/rate-avg": {
+			"get": {
+				"operationId": "GetAvgRateFromPost",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData__avgRate-number--countRate-number_-or-any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get avg rating and total count for a post",
+				"tags": [
+					"Customer"
+				],
+				"security": [],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "postId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/customer/saved-posts": {
+			"post": {
+				"operationId": "SavePost",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Save a post to bookmarks",
+				"tags": [
+					"Customer"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/SavePostRequest"
+							}
+						}
+					}
+				}
+			},
+			"get": {
+				"operationId": "GetSavedPost",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any-Array_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get all saved posts for current user",
+				"tags": [
+					"Customer"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/customer/saved-posts/{postId}": {
+			"delete": {
+				"operationId": "DeleteSavedPost",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Delete a saved post",
+				"tags": [
+					"Customer"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "postId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/customer/subscriptions": {
+			"get": {
+				"operationId": "GetSubscription",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_SubscriptionResponse-Array_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get user's search subscriptions",
+				"tags": [
+					"Customer"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			},
+			"post": {
+				"operationId": "CreateSubscription",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_SubscriptionResponse-or-any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Create a new search subscription",
+				"tags": [
+					"Customer"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateSubscriptionRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/customer/subscriptions/{subscriptionId}": {
+			"delete": {
+				"operationId": "DeleteSubscription",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Delete a search subscription",
+				"tags": [
+					"Customer"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "subscriptionId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/customer/view-history": {
+			"get": {
+				"operationId": "GetHistoryViewPost",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any-Array_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get history of viewed posts",
+				"tags": [
+					"Customer"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/conversations": {
+			"get": {
+				"operationId": "GetConversations",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_ConversationDTO-Array_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get all conversations for the current user",
+				"tags": [
+					"Chat Conversations"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"default": 20,
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "offset",
+						"required": false,
+						"schema": {
+							"default": 0,
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			},
+			"post": {
+				"operationId": "CreateConversation",
+				"responses": {
+					"201": {
+						"description": "Conversation created successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_ConversationDTO_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Create a new conversation (Direct or Group)",
+				"tags": [
+					"Chat Conversations"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateConversationRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/conversations/{conversationId}": {
+			"get": {
+				"operationId": "GetConversationById",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_ConversationDTO-or-null_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get conversation details by ID",
+				"tags": [
+					"Chat Conversations"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "conversationId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/conversations/{conversationId}/participants": {
+			"post": {
+				"operationId": "AddParticipant",
+				"responses": {
+					"201": {
+						"description": "Participant added successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_ParticipantDTO_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Add a participant to a group conversation",
+				"tags": [
+					"Chat Conversations"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "conversationId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/AddParticipantRequest"
+							}
+						}
+					}
+				}
+			},
+			"get": {
+				"operationId": "GetParticipants",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_ParticipantDTO-Array_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get all participants in a conversation",
+				"tags": [
+					"Chat Conversations"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "conversationId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/conversations/{conversationId}/participants/{customerId}": {
+			"delete": {
+				"operationId": "RemoveParticipant",
+				"responses": {
+					"204": {
+						"description": "Participant removed successfully"
+					}
+				},
+				"description": "Remove a participant from a group conversation",
+				"tags": [
+					"Chat Conversations"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "conversationId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "path",
+						"name": "customerId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/auth/register": {
+			"post": {
+				"operationId": "RegisterAccount",
+				"responses": {
+					"201": {
+						"description": "User registered successfully",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_string-or-null_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Register a new account",
+				"tags": [
+					"Authentication"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/RegisterRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/send-otp-register": {
+			"post": {
+				"operationId": "SendOTPRegister",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_OTPResponse_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Send OTP for registration",
+				"tags": [
+					"Authentication"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/OTPRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/verify-otp-register": {
+			"post": {
+				"operationId": "VerifyOTPRegister",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Verify OTP for registration",
+				"tags": [
+					"Authentication"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/VerifyOTPRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/forgot-password": {
+			"post": {
+				"operationId": "ForgotPassword",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_OTPResponse-or-any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Request password reset OTP",
+				"tags": [
+					"Authentication"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/OTPRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/verify-otp": {
+			"post": {
+				"operationId": "VerifyOtp",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Verify password reset OTP",
+				"tags": [
+					"Authentication"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/VerifyOTPRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/reset-password": {
+			"post": {
+				"operationId": "ResetPassword",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Reset password with reset token",
+				"tags": [
+					"Authentication"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ResetPasswordRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/login": {
+			"post": {
+				"operationId": "Login",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_LoginResponse-or-any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Login to account",
+				"tags": [
+					"Authentication"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LoginRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/refresh-token": {
+			"post": {
+				"operationId": "RefreshToken",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_RefreshTokenResponse-or-any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Refresh access token",
+				"tags": [
+					"Authentication"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/RefreshTokenRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/logout": {
+			"post": {
+				"operationId": "Logout",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_string-or-any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Logout from account",
+				"tags": [
+					"Authentication"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/LogoutRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/change-password": {
+			"post": {
+				"operationId": "ChangePassword",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_string-or-any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Change account password",
+				"tags": [
+					"Authentication"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ChangePasswordRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/admin/dashboard-stats": {
+			"get": {
+				"operationId": "GetStatisticsForDashBoard",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_DashboardStatsResponse_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get overall dashboard statistics.",
+				"tags": [
+					"Admin"
+				],
+				"security": [
+					{
+						"jwt": [
+							"Admin",
+							"Manager"
+						]
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/admin/moderators/{moderatorId}/reset-password": {
+			"put": {
+				"operationId": "ResetPasswordOfModerator",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_string-or-any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Reset moderator password.",
+				"tags": [
+					"Admin"
+				],
+				"security": [
+					{
+						"jwt": [
+							"Manager"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "moderatorId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/admin/posts/pending": {
+			"get": {
+				"operationId": "ListPostPending",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any-Array_"
+								}
+							}
+						}
+					}
+				},
+				"description": "List all pending posts for review.",
+				"tags": [
+					"Admin"
+				],
+				"security": [
+					{
+						"jwt": [
+							"Admin",
+							"Manager"
+						]
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/admin/posts/{postId}/moderate": {
+			"post": {
+				"operationId": "ModeratePost",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Moderate a post (Approve or Reject).",
+				"tags": [
+					"Admin"
+				],
+				"security": [
+					{
+						"jwt": [
+							"Admin",
+							"Manager"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "postId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ModeratePostRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/admin/posts/{postId}/history": {
+			"get": {
+				"operationId": "GetHistoryOfPost",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_PostModerationHistoryResponse-Array_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get moderation history for a specific post.",
+				"tags": [
+					"Admin"
+				],
+				"security": [
+					{
+						"jwt": [
+							"Admin",
+							"Manager"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "postId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/admin/moderators/{moderatorId}/history": {
+			"get": {
+				"operationId": "GetHistoryByModeratorId",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_ModeratorActionHistoryResponse-Array_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get moderation history for a specific moderator.",
+				"tags": [
+					"Admin"
+				],
+				"security": [
+					{
+						"jwt": [
+							"Manager"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "moderatorId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/admin/moderators": {
+			"get": {
+				"operationId": "GetModerators",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_ModeratorSummary-Array_"
+								}
+							}
+						}
+					}
+				},
+				"description": "List all moderators (excluding managers).",
+				"tags": [
+					"Admin"
+				],
+				"security": [
+					{
+						"jwt": [
+							"Manager"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "key",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			},
+			"post": {
+				"operationId": "AddModerators",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_string-or-any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Create a new moderator account.",
+				"tags": [
+					"Admin"
+				],
+				"security": [
+					{
+						"jwt": [
+							"Manager"
+						]
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/AddModeratorRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/admin/moderators/{moderatorId}/status": {
+			"put": {
+				"operationId": "UpdateModerator",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_string-or-any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Update moderator account status.",
+				"tags": [
+					"Admin"
+				],
+				"security": [
+					{
+						"jwt": [
+							"Manager"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "moderatorId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateModeratorStatusRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/admin/moderators/{moderatorId}/profile": {
+			"get": {
+				"operationId": "GetProfileModerator",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_ModeratorProfileResponse_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get detailed profile of a moderator.",
+				"tags": [
+					"Admin"
+				],
+				"security": [
+					{
+						"jwt": [
+							"Manager"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "moderatorId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/admin/me/profile": {
+			"get": {
+				"operationId": "GetMyProfile",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get current moderator's own profile.",
+				"tags": [
+					"Admin"
+				],
+				"security": [
+					{
+						"jwt": [
+							"Admin",
+							"Manager"
+						]
+					}
+				],
+				"parameters": []
+			},
+			"put": {
+				"operationId": "UpdateMyProfile",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_string-or-any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Update current moderator's own profile.",
+				"tags": [
+					"Admin"
+				],
+				"security": [
+					{
+						"jwt": [
+							"Admin",
+							"Manager"
+						]
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {}
+						}
+					}
+				}
+			}
+		},
+		"/admin/moderation-stats": {
+			"get": {
+				"operationId": "GetModerationStats",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_ModerationStatsResponse_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get moderation performance statistics.",
+				"tags": [
+					"Admin"
+				],
+				"security": [
+					{
+						"jwt": [
+							"Admin",
+							"Manager"
+						]
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/admin/export-training-data": {
+			"get": {
+				"operationId": "ExportTrainingData",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Export training data for AI retraining.",
+				"tags": [
+					"Admin"
+				],
+				"security": [
+					{
+						"jwt": [
+							"Admin",
+							"Manager"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		}
+	},
+	"servers": [
+		{
+			"url": "/api/v1"
+		}
+	]
+}

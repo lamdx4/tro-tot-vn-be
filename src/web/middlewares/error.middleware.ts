@@ -13,12 +13,22 @@ export const errorHandler = (err: Error, req: Request, res: Response, next: Next
   const statusCode = res.statusCode !== 200 ? res.statusCode : 500
 
   // Check for specific error types (can be expanded)
+  if (err.name === 'ValidateError') {
+    const status = 422
+    const fields = (err as any).fields
+    const errorMessages = Object.keys(fields).map(key => `${key}: ${fields[key].message}`)
+    res.status(status).json(new ResponseData(status, 'Validation failed', errorMessages, null))
+    return
+  }
+
   if (err.name === 'ValidationError') {
     res.status(400).json(new ResponseData(400, "", [err.message], null))
+    return
   }
 
   if (err.name === 'UnauthorizedError') {
     res.status(401).json(new ResponseData(401, "", ['Authentication error'], null))
+    return
   }
 
   // Generic error response

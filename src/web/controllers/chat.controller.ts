@@ -1,90 +1,148 @@
-import { Request, Response } from 'express'
+import {
+  Body,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Route,
+  Security,
+  SuccessResponse,
+  Tags,
+  Request,
+  Query,
+  Path,
+  Controller,
+} from '@tsoa/runtime'
 import { ChatService } from '@/services'
-import { CreateConversationInput, AddParticipantInput } from '@/utils/types/chat.types'
 import ResponseData from '@/utils/data-types/response'
+import { CreateConversationRequest, AddParticipantRequest } from './dto/chat.dto'
+import { ConversationDTO, ParticipantDTO } from '@/utils/types/chat.types'
 
-export class ConversationController {
-  private chatService: ChatService
+@Route("conversations")
+@Tags("Chat Conversations")
+@Security("jwt")
+export class ConversationController extends Controller {
+  private chatService = new ChatService()
 
   constructor() {
-    this.chatService = new ChatService()
+    super()
   }
 
-  async getConversations(req: Request, res: Response): Promise<void> {
+  /**
+   * Get all conversations for the current user
+   */
+  @Get()
+  public async getConversations(
+    @Request() req: any,
+    @Query() limit: number = 20,
+    @Query() offset: number = 0
+  ): Promise<ResponseData<ConversationDTO[]>> {
     try {
-      // JWT token contains nested customer object: req.user.customer.customerId
-      const userId = (req as any).user?.customer?.customerId || (req as any).user?.customerId || (req as any).user?.userId
+      const userId = req.user?.customer?.customerId || req.user?.customerId || req.user?.userId
       if (!userId) {
-        res.status(401).json(ResponseData.unauthorized('User not authenticated'))
-        return
+        this.setStatus(401)
+        return ResponseData.unauthorized('User not authenticated') as any
       }
-      const limit = parseInt(req.query.limit as string) || 20
-      const offset = parseInt(req.query.offset as string) || 0
       const conversations = await this.chatService.getConversationsByCustomer(userId, limit, offset)
-      res.status(200).json(ResponseData.success(conversations))
+      return ResponseData.success(conversations)
     } catch (error: any) {
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message))
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 
-  async getConversationById(req: Request, res: Response): Promise<void> {
+  /**
+   * Get conversation details by ID
+   */
+  @Get("{conversationId}")
+  public async getConversationById(
+    @Path() conversationId: number
+  ): Promise<ResponseData<ConversationDTO | null>> {
     try {
-      const { conversationId } = req.params
-      const conversation = await this.chatService.getConversationById(parseInt(conversationId))
+      const conversation = await this.chatService.getConversationById(conversationId)
       if (!conversation) {
-        res.status(404).json(ResponseData.notFound('Conversation not found'))
-        return
+        this.setStatus(404)
+        return ResponseData.notFound('Conversation not found') as any
       }
-      res.status(200).json(ResponseData.success(conversation))
+      return ResponseData.success(conversation)
     } catch (error: any) {
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message))
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 
-  async createConversation(req: Request, res: Response): Promise<void> {
+  /**
+   * Create a new conversation (Direct or Group)
+   */
+  @Post()
+  @SuccessResponse("201", "Conversation created successfully")
+  public async createConversation(
+    @Body() body: CreateConversationRequest,
+    @Request() req: any
+  ): Promise<ResponseData<ConversationDTO>> {
     try {
-      // JWT token contains nested customer object: req.user.customer.customerId
-      const userId = (req as any).user?.customer?.customerId || (req as any).user?.customerId || (req as any).user?.userId
+      const userId = req.user?.customer?.customerId || req.user?.customerId || req.user?.userId
       if (!userId) {
-        res.status(401).json(ResponseData.unauthorized('User not authenticated'))
-        return
+        this.setStatus(401)
+        return ResponseData.unauthorized('User not authenticated') as any
       }
-      const input: CreateConversationInput = req.body
-      const conversation = await this.chatService.createConversation(input, userId)
-      res.status(201).json(ResponseData.successWithCode(201, conversation))
+      const conversation = await this.chatService.createConversation(body, userId)
+      return ResponseData.successWithCode(201, conversation)
     } catch (error: any) {
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message))
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 
-  async addParticipant(req: Request, res: Response): Promise<void> {
+  /**
+   * Add a participant to a group conversation
+   */
+  @Post("{conversationId}/participants")
+  @SuccessResponse("201", "Participant added successfully")
+  public async addParticipant(
+    @Path() conversationId: number,
+    @Body() body: AddParticipantRequest
+  ): Promise<ResponseData<ParticipantDTO>> {
     try {
-      const { conversationId } = req.params
-      const input: AddParticipantInput = req.body
-      const participant = await this.chatService.addParticipant(parseInt(conversationId), input)
-      res.status(201).json(ResponseData.successWithCode(201, participant))
+      const participant = await this.chatService.addParticipant(conversationId, body)
+      return ResponseData.successWithCode(201, participant)
     } catch (error: any) {
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message))
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 
-  async removeParticipant(req: Request, res: Response): Promise<void> {
+  /**
+   * Remove a participant from a group conversation
+   */
+  @Delete("{conversationId}/participants/{customerId}")
+  @SuccessResponse("204", "Participant removed successfully")
+  public async removeParticipant(
+    @Path() conversationId: number,
+    @Path() customerId: number
+  ): Promise<void> {
     try {
-      const { conversationId, customerId } = req.params
-      await this.chatService.removeParticipant(parseInt(conversationId), parseInt(customerId))
-      res.status(204).send()
+      await this.chatService.removeParticipant(conversationId, customerId)
+      this.setStatus(204)
     } catch (error: any) {
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message))
+      this.setStatus(500)
+      throw error // Let global error handler handle it, or return ResponseData if preferred
     }
   }
 
-  async getParticipants(req: Request, res: Response): Promise<void> {
+  /**
+   * Get all participants in a conversation
+   */
+  @Get("{conversationId}/participants")
+  public async getParticipants(
+    @Path() conversationId: number
+  ): Promise<ResponseData<ParticipantDTO[]>> {
     try {
-      const { conversationId } = req.params
-      const participants = await this.chatService.getConversationParticipants(parseInt(conversationId))
-      res.status(200).json(ResponseData.success(participants))
+      const participants = await this.chatService.getConversationParticipants(conversationId)
+      return ResponseData.success(participants)
     } catch (error: any) {
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message))
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 }

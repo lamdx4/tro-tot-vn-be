@@ -1,17 +1,49 @@
-import { Request, Response } from 'express'
+import { 
+  Body, 
+  Get, 
+  Post, 
+  Route, 
+  Tags, 
+  Query, 
+  Controller,
+  SuccessResponse
+} from '@tsoa/runtime'
 import { searchService } from '../../services/search.service'
-import { HttpStatus } from '../../utils/data-types/http-status-code'
+import { 
+  SearchResponse, 
+  SearchFeedbackRequest, 
+  SearchClickRequest,
+  SearchHealthResponse
+} from './dto/search.dto'
+import ResponseData from '@/utils/data-types/response'
 
-export class SearchController {
+@Route("search")
+@Tags("Search")
+export class SearchController extends Controller {
+  
+  constructor() {
+    super()
+  }
+
   /**
-   * POST /api/search
-   * Hybrid vector search with pagination
+   * Hybrid vector search with filters and pagination
    */
-  async search(req: Request, res: Response): Promise<void> {
+  @Get("/")
+  public async search(
+    @Query() query: string,
+    @Query() city?: string,
+    @Query() district?: string,
+    @Query() ward?: string,
+    @Query() priceMin?: number,
+    @Query() priceMax?: number,
+    @Query() acreageMin?: number,
+    @Query() acreageMax?: number,
+    @Query() interiorCondition?: string,
+    @Query() page: number = 1,
+    @Query() pageSize: number = 20
+  ): Promise<SearchResponse> {
     try {
-      console.log('[Search Controller] Raw query params:', req.query)
-
-      const {
+      const searchParams = {
         query,
         city,
         district,
@@ -23,165 +55,104 @@ export class SearchController {
         interiorCondition,
         page,
         pageSize
-      } = req.query
-
-      // Validate required query parameter
-      if (!query || typeof query !== 'string') {
-        res.status(HttpStatus.BAD_REQUEST).json({
-          success: false,
-          message: 'Query parameter is required'
-        })
-        return
       }
 
-      // Parse and validate parameters
-      const searchParams = {
-        query: query as string,
-        city: city as string | undefined,
-        district: district as string | undefined,
-        ward: ward as string | undefined,
-        priceMin: priceMin ? parseInt(priceMin as string) : undefined,
-        priceMax: priceMax ? parseInt(priceMax as string) : undefined,
-        acreageMin: acreageMin ? parseInt(acreageMin as string) : undefined,
-        acreageMax: acreageMax ? parseInt(acreageMax as string) : undefined,
-        interiorCondition: interiorCondition as string | undefined,
-        page: page ? parseInt(page as string) : 1,
-        pageSize: pageSize ? parseInt(pageSize as string) : 20
-      }
-
-      console.log('[Search Controller] Parsed params:', JSON.stringify(searchParams, null, 2))
-
-      // Perform search
       const result = await searchService.search(searchParams)
 
-      res.status(HttpStatus.OK).json({
+      return {
         success: true,
-        searchLogId: result.searchLogId,  // NEW: for feedback/click tracking
+        searchLogId: result.searchLogId,
         data: result.posts,
         pagination: result.pagination,
         searchTimeMs: result.searchTimeMs
-      })
-    } catch (error) {
-      console.error('[Search Controller] Error:', error)
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      } as any
+    } catch (error: any) {
+      this.setStatus(500)
+      return {
         success: false,
-        message: error instanceof Error ? error.message : 'Search failed'
-      })
+        message: error.message || 'Search failed'
+      } as any
     }
   }
 
   /**
-   * GET /api/search/health
    * Health check for search service
    */
-  async health(req: Request, res: Response): Promise<void> {
+  @Get("health")
+  public async health(): Promise<SearchHealthResponse> {
     try {
       const isHealthy = await searchService.healthCheck()
 
       if (isHealthy) {
-        res.status(HttpStatus.OK).json({
-          success: true,
+        return {
           status: 'healthy',
           searchService: 'connected'
-        })
+        }
       } else {
-        res.status(HttpStatus.SERVICE_UNAVAILABLE).json({
-          success: false,
+        this.setStatus(503)
+        return {
           status: 'unhealthy',
           searchService: 'disconnected'
-        })
+        }
       }
-    } catch (error) {
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
+    } catch (error: any) {
+      this.setStatus(500)
+      return {
         status: 'error',
-        message: error instanceof Error ? error.message : 'Health check failed'
-      })
+        searchService: 'disconnected'
+      } as any
     }
   }
 
   /**
-   * POST /api/search/feedback
    * Submit user feedback on search quality
    */
-  async submitFeedback(req: Request, res: Response): Promise<void> {
+  @Post("feedback")
+  public async submitFeedback(
+    @Body() body: SearchFeedbackRequest
+  ): Promise<any> {
     try {
-      const { searchLogId, isHelpful, issues, comment } = req.body
-
-      // Validate required fields
-      if (!searchLogId || typeof isHelpful !== 'boolean') {
-        res.status(HttpStatus.BAD_REQUEST).json({
-          success: false,
-          message: 'searchLogId and isHelpful are required'
-        })
-        return
-      }
-
-      // Import and save feedback
       const { SearchFeedbackRepository } = await import('../../infras/repositories/search-feedback.repository')
       const feedbackRepo = new SearchFeedbackRepository()
 
-      await feedbackRepo.saveFeedback({
-        searchLogId,
-        isHelpful,
-        issues,
-        comment
-      })
+      await feedbackRepo.saveFeedback(body)
 
-      res.status(HttpStatus.OK).json({
+      return {
         success: true,
         message: 'Feedback submitted successfully'
-      })
-    } catch (error) {
-      console.error('[Search Controller] Feedback error:', error)
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      }
+    } catch (error: any) {
+      this.setStatus(500)
+      return {
         success: false,
         message: 'Failed to submit feedback'
-      })
+      }
     }
   }
 
   /**
-   * POST /api/search/click
    * Log user click on search result
    */
-  async logClick(req: Request, res: Response): Promise<void> {
+  @Post("click")
+  public async logClick(
+    @Body() body: SearchClickRequest
+  ): Promise<any> {
     try {
-      const { searchLogId, searchLogItemId } = req.body
-
-      console.log('[Search Controller] Received click tracking request:', { searchLogId, searchLogItemId })
-
-      if (!searchLogId || !searchLogItemId) {
-        console.log('[Search Controller] Missing required fields')
-        res.status(HttpStatus.BAD_REQUEST).json({
-          success: false,
-          message: 'searchLogId and searchLogItemId are required'
-        })
-        return
-      }
-
-      // Import and save click
       const { SearchClickRepository } = await import('../../infras/repositories/search-click.repository')
       const clickRepo = new SearchClickRepository()
 
-      const click = await clickRepo.logClick({
-        searchLogId,
-        searchLogItemId
-      })
+      const click = await clickRepo.logClick(body)
 
-      console.log(`[Search Controller] ✅ Successfully logged click ${click.clickId}`)
-
-      res.status(HttpStatus.OK).json({
+      return {
         success: true,
         clickId: click.clickId
-      })
-    } catch (error) {
-      console.error('[Search Controller] ❌ Click logging error:', error)
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+      }
+    } catch (error: any) {
+      this.setStatus(500)
+      return {
         success: false,
         message: 'Failed to log click'
-      })
+      }
     }
   }
 }
-

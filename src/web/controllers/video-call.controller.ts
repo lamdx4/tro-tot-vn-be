@@ -1,31 +1,45 @@
-import { Request, Response, NextFunction } from 'express'
+import { 
+  Get, 
+  Route, 
+  Tags, 
+  Controller
+} from '@tsoa/runtime'
 import ResponseData from '@/utils/data-types/response'
 import { ConfigService } from '@/services/config.service'
 import { redisClient } from '@/infras/redis/redis'
+import { IceConfigResponse, IceServer } from './dto/videocall.dto'
 
-class VideoCallController {
-
+@Route("video-call")
+@Tags("VideoCall")
+export class VideoCallController extends Controller {
   private config = ConfigService.gI()
+
+  constructor() {
+    super()
+  }
+
   /**
-   * Get ICE server configuration for WebRTC
-   * Public endpoint - no authentication required
+   * Get ICE server configuration for WebRTC.
+   * This is used by the frontend to establish peer-to-peer connections.
    */
-  async getIceConfig(req: Request, res: Response, next: NextFunction): Promise<void> {
+  @Get("ice-config")
+  public async getIceConfig(): Promise<ResponseData<IceConfigResponse>> {
     try {
       const iceServers = await this.buildIceServers()
-      res.status(200).json(ResponseData.success({ iceServers }))
-    } catch (error) {
-      next(error)
+      return ResponseData.success({ iceServers })
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 
   /**
    * Build ICE servers configuration from environment variables
    */
-  private async buildIceServers() {
-    const iceServers: { urls: string; username?: string; credential?: string }[] = [];
+  private async buildIceServers(): Promise<IceServer[]> {
+    const iceServers: IceServer[] = [];
 
-    // 1. Xử lý STUN Servers
+    // 1. Process STUN Servers
     const rawStunUrls = this.config.get("STUN_SERVER_URLS");
     if (rawStunUrls) {
       const stunServers = rawStunUrls
@@ -37,7 +51,7 @@ class VideoCallController {
       iceServers.push(...stunServers);
     }
 
-    // 2. Xử lý TURN Servers
+    // 2. Process TURN Servers
     // Try to get TURN IP from Config first, then fallback to Redis
     let turnIp = this.config.get("TURN_SERVER_IP");
     if (!turnIp) {
@@ -65,13 +79,10 @@ class VideoCallController {
         });
       }
 
-      // STUN đi kèm TURN
+      // STUN included with TURN
       iceServers.push({ urls: `stun:${turnIp}:${port}` });
     }
 
     return iceServers;
   }
 }
-
-// Create and export controller instance
-export default new VideoCallController()

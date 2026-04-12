@@ -1,213 +1,360 @@
+import {
+  Body,
+  Get,
+  Post,
+  Put,
+  Route,
+  Security,
+  SuccessResponse,
+  Tags,
+  Request,
+  Query,
+  Path,
+  Controller,
+  UploadedFiles,
+  UploadedFile,
+  FormField
+} from '@tsoa/runtime'
 import PostService from '@/services/post.service'
 import ResponseData from '@/utils/data-types/response'
 import { deleteFileFromDisk, deleteFileFromDisk2 } from '@/utils/func/delete-file'
-import { NextFunction, Request, Response } from 'express'
-import { validationResult } from 'express-validator'
-import { CreatePostDto } from './dto/create-post.dto'
 import { CursorPaging } from '@/utils/data-types/paging-response'
+import { 
+  HidePostRequest,
+  PostResponse,
+  CursorPagingResponse
+} from './dto/post.dto'
+import { CreatePostDto } from './dto/create-post.dto'
 import { UpdatePostDto } from './dto/update-post.dto'
+// Removed invalid import
 
-class PostController {
-  private postService: PostService
+@Route("posts")
+@Tags("Posts")
+export class PostController extends Controller {
+  private postService = new PostService()
+
   constructor() {
-    this.postService = new PostService()
+    super()
   }
 
-  editPost = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Create a new property post
+   * Requires images and optionally a video
+   */
+  @Post()
+  @Security("jwt")
+  @SuccessResponse("200", "Post created successfully")
+  public async createPost(
+    @FormField() title: string,
+    @FormField() description: string,
+    @FormField() price: string,
+    @FormField() acreage: string,
+    @FormField() streetNumber: string,
+    @FormField() street: string,
+    @FormField() ward: string,
+    @FormField() district: string,
+    @FormField() city: string,
+    @FormField() interiorStatus: string,
+    @UploadedFiles() images: Express.Multer.File[],
+    @UploadedFile() video: Express.Multer.File,
+    @Request() req: any
+  ): Promise<ResponseData<PostResponse | string | null>> {
     try {
-      const errors = validationResult(req)
-      if (!errors.isEmpty()) {
-        res.status(400).json(new ResponseData(400, 'Invalid Request', errors.array()))
-        return
+      const body: CreatePostDto = {
+        title,
+        price,
+        acreage,
+        interiorStatus,
+        city,
+        ward,
+        district,
+        streetNumber,
+        street,
+        description
       }
-      const dto = req.body as UpdatePostDto
-      dto.oldFiles = JSON.parse(req.body.oldFiles) as Array<number>
-      const files = req.files as { newImgs: Express.Multer.File[]; newVideo: Express.Multer.File[] }
-      let r = await this.postService.editPost(
-        req.user?.customer!.customerId!,
-        Number(req.params.postId),
-        dto,
-        files.newImgs,
-        files.newVideo[0]
+      
+      const result = await this.postService.createPost(
+        req.user?.customer!, 
+        body as any, 
+        images, 
+        video
       )
-      if (r.isSuccess) {
-        res.status(200).json(new ResponseData(200, 'Upload successfully'))
-      } else {
-        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
-      }
-    } catch (e) {
-      next(e)
-    } finally {
-      deleteFileFromDisk2(req.files as any)
-    }
-  }
 
-  createPost = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const errors = validationResult(req)
-      if (!errors.isEmpty()) {
-        res.status(400).json(new ResponseData(400, 'Invalid Request', errors.array()))
-        return
-      }
-      const dto = req.body as CreatePostDto
-      const files = req.files as { imgs: Express.Multer.File[]; video: Express.Multer.File[] }
-      let r = await this.postService.createPost(req.user?.customer!, dto, files.imgs, files.video[0])
-      if (r.isSuccess) {
-        res.status(200).json(new ResponseData(200, 'Upload successfully'))
+      if (result.isSuccess) {
+        return ResponseData.success(result.getValue())
       } else {
-        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+        this.setStatus(result.code)
+        return new ResponseData(result.code, result.error ?? '')
       }
-    } catch (e) {
-      next(e)
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     } finally {
       deleteFileFromDisk(req.files as any)
     }
   }
 
-  getMyPosts = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Edit an existing property post
+   */
+  @Put("{postId}")
+  @Security("jwt")
+  @SuccessResponse("200", "Post updated successfully")
+  public async editPost(
+    @Path() postId: number,
+    @FormField() title: string,
+    @FormField() description: string,
+    @FormField() price: string,
+    @FormField() acreage: string,
+    @FormField() streetNumber: string,
+    @FormField() street: string,
+    @FormField() ward: string,
+    @FormField() district: string,
+    @FormField() city: string,
+    @FormField() interiorStatus: string,
+    @FormField() oldFiles: any,
+    @UploadedFiles() images: Express.Multer.File[],
+    @UploadedFile() video: Express.Multer.File,
+    @Request() req: any
+  ): Promise<ResponseData<PostResponse | string | null>> {
     try {
-      let r = await this.postService.getPosts(
-        req.user?.customer!,
-        req.query.status as string,
-        isNaN(Number(req.query.cursor)) ? 0 : Number(req.query.cursor),
-        Number(req.query.limit)
+      const dto: UpdatePostDto = {
+        title,
+        price,
+        acreage,
+        interiorStatus,
+        city,
+        ward,
+        district,
+        streetNumber,
+        street,
+        description,
+        oldFiles: typeof oldFiles === 'string' && oldFiles.startsWith('[') ? JSON.parse(oldFiles) : oldFiles
+      }
+
+      const result = await this.postService.editPost(
+        req.user?.customer!.customerId!,
+        postId,
+        dto,
+        images || [],
+        video
       )
-      if (r.isSuccess) {
-        res
-          .status(200)
-          .json(
-            ResponseData.success(
-              new CursorPaging(
-                r.getValue()!,
-                r.getValue()!.length > 0 ? r.getValue()![r.getValue()!.length - 1].postId : null
-              ).toResponse()
-            )
-          )
+
+      if (result.isSuccess) {
+        return ResponseData.success(result.getValue())
       } else {
-        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+        this.setStatus(result.code)
+        return new ResponseData(result.code, result.error ?? '')
       }
-    } catch (e) {
-      next(e)
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
+    } finally {
+      deleteFileFromDisk2(req.files as any)
     }
   }
 
-  getDetailPost = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Get posts belong to current user
+   */
+  @Get("my-posts")
+  @Security("jwt")
+  public async getMyPosts(
+    @Query() status: string = 'Approved',
+    @Query() cursor: number = 0,
+    @Query() limit: number = 10,
+    @Request() req: any
+  ): Promise<ResponseData<CursorPagingResponse<PostResponse, number>>> {
     try {
-      let r = await this.postService.getPostDetail(Number(req.params.postId), req.headers['authorization'])
-      if (r.isSuccess) {
-        res.status(200).json(ResponseData.success(r.getValue()))
+      const result = await this.postService.getPosts(
+        req.user?.customer!,
+        status || '',
+        cursor || 0,
+        limit
+      )
+
+      if (result.isSuccess) {
+        const posts = result.getValue()!
+        const nextCursor = posts.length > 0 ? posts[posts.length - 1].postId : null
+        return ResponseData.success(
+          new CursorPaging(posts, nextCursor).toResponse()
+        )
       } else {
-        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+        this.setStatus(result.code)
+        return new ResponseData(result.code, result.error ?? '')
       }
-    } catch (e) {
-      next(e)
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 
-  getDetailMyPost = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Get post detail by ID (Public)
+   */
+  @Get("{postId}")
+  public async getPostDetail(
+    @Path() postId: number,
+    @Request() req: any
+  ): Promise<ResponseData<PostResponse | null>> {
     try {
-      let r = await this.postService.getDetailMyPost(Number(req.params.postId), req.user?.customer!.customerId!)
-      if (r.isSuccess) {
-        res.status(200).json(ResponseData.success(r.getValue()))
+      const authHeader = req.headers['authorization']
+      const authorizationToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null
+      const result = await this.postService.getPostDetail(postId, authorizationToken)
+      
+      if (result.isSuccess) {
+        return ResponseData.success(result.getValue())
       } else {
-        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+        this.setStatus(result.code)
+        return new ResponseData(result.code, result.error ?? '')
       }
-    } catch (e) {
-      next(e)
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 
-  getLastPost = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Get own post detail (Authorized)
+   */
+  @Get("my-posts/{postId}")
+  @Security("jwt")
+  public async getDetailMyPost(
+    @Path() postId: number,
+    @Request() req: any
+  ): Promise<ResponseData<any>> {
     try {
-      const limit = Number(req.query.limit) || 4
-      const r = await this.postService.getLastPost(limit)
-      if (r.isSuccess) {
-        res.status(200).json(ResponseData.success(r.getValue()))
+      const customerId = req.user?.customer!.customerId!
+      const result = await this.postService.getDetailMyPost(postId, customerId)
+      
+      if (result.isSuccess) {
+        return ResponseData.success(result.getValue())
       } else {
-        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+        this.setStatus(result.code)
+        return new ResponseData(result.code, result.error ?? '')
       }
-    } catch (e) {
-      next(e)
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 
-  hideMyPost = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Get latest posts (Home page)
+   */
+  @Get("latest")
+  public async getLastPost(
+    @Query() limit: number = 4
+  ): Promise<ResponseData<any>> {
     try {
-      const postId = Number(req.body.postId)
-      const customerId = Number(req.user?.customer.customerId)
-      console.log('postId', postId)
-      console.log('customerId', customerId)
-      let r = await this.postService.hidePost(postId, customerId)
-      if (r.isSuccess) {
-        res.status(200).json(ResponseData.success(r.getValue()))
+      const result = await this.postService.getLastPost(limit)
+      if (result.isSuccess) {
+        return ResponseData.success(result.getValue())
       } else {
-        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+        this.setStatus(result.code)
+        return new ResponseData(result.code, result.error ?? '')
       }
-    } catch (e) {}
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
+    }
   }
 
-  unHideMyPost = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Hide a post
+   */
+  @Post("hide")
+  @Security("jwt")
+  public async hideMyPost(
+    @Body() body: HidePostRequest,
+    @Request() req: any
+  ): Promise<ResponseData<any>> {
     try {
-      const postId = Number(req.body.postId)
-      const customerId = Number(req.user?.customer.customerId)
-      let r = await this.postService.unHidePost(postId, customerId)
-      if (r.isSuccess) {
-        res.status(200).json(ResponseData.success(r.getValue()))
+      const customerId = req.user?.customer.customerId
+      const result = await this.postService.hidePost(body.postId, customerId)
+      
+      if (result.isSuccess) {
+        return ResponseData.success(result.getValue())
       } else {
-        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+        this.setStatus(result.code)
+        return new ResponseData(result.code, result.error ?? '')
       }
-    } catch (e) {}
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
+    }
   }
 
-  searchPost = async (req: Request, res: Response, next: NextFunction) => {
+  /**
+   * Unhide a post
+   */
+  @Post("unhide")
+  @Security("jwt")
+  public async unHideMyPost(
+    @Body() body: HidePostRequest,
+    @Request() req: any
+  ): Promise<ResponseData<any>> {
     try {
-      const keyword = req.query.keyword ? String(req.query.keyword) : ''
-      const city = req.query.city ? String(req.query.city) : undefined
-      const district = req.query.district ? String(req.query.district) : undefined
-      const ward = req.query.ward ? String(req.query.ward) : undefined
-      const acreage = req.query.acreage
-        ? String(req.query.acreage)
-            .split('-')
-            .map((val: string) => Number(val))
-        : undefined
-      const price = req.query.price
-        ? String(req.query.price)
-            .split('-')
-            .map((val: string) => Number(val))
-        : undefined
-      const interiorCondition = req.query.interiorCondition ? String(req.query.interiorCondition) : undefined
-      const limit = Number(req.query.limit) || 4
-      const cursor = req.query.cursor && !isNaN(Date.parse(req.query.cursor as string)) 
-        ? new Date(req.query.cursor as string) 
-        : undefined
-      const r = await this.postService.searchPost(
+      const customerId = req.user?.customer.customerId
+      const result = await this.postService.unHidePost(body.postId, customerId)
+      
+      if (result.isSuccess) {
+        return ResponseData.success(result.getValue())
+      } else {
+        this.setStatus(result.code)
+        return new ResponseData(result.code, result.error ?? '')
+      }
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
+    }
+  }
+
+  /**
+   * Search posts with filters
+   */
+  @Get("search")
+  public async searchPost(
+    @Query() keyword: string = '',
+    @Query() city?: string,
+    @Query() district?: string,
+    @Query() ward?: string,
+    @Query() interiorCondition?: string,
+    @Query() acreage?: string,
+    @Query() price?: string,
+    @Query() cursor?: string,
+    @Query() limit: number = 10
+  ): Promise<ResponseData<CursorPagingResponse<PostResponse, any>>> {
+    try {
+      const acreageArr = acreage ? acreage.split('-').map(v => Number(v)) : undefined
+      const priceArr = price ? price.split('-').map(v => Number(v)) : undefined
+      const cursorDate = cursor && !isNaN(Date.parse(cursor)) ? new Date(cursor) : undefined
+
+      const result = await this.postService.searchPost(
         keyword,
         city,
         district,
         ward,
         interiorCondition,
-        acreage,
-        price,
-        cursor,
+        acreageArr,
+        priceArr,
+        cursorDate,
         limit
       )
-      if (r.isSuccess) {
-        res
-          .status(200)
-          .json(
-            ResponseData.success(
-              new CursorPaging(
-                r.getValue()!,
-                r.getValue()!.length > 0 ? r.getValue()![r.getValue()!.length - 1].extendedAt : null
-              ).toResponse()
-            )
-          )
+
+      if (result.isSuccess) {
+        const posts = result.getValue()!
+        const nextCursor = posts.length > 0 ? posts[posts.length - 1].extendedAt : null
+        return ResponseData.success(
+          new CursorPaging(posts, nextCursor).toResponse()
+        )
       } else {
-        res.status(r.code).json(new ResponseData(r.code, r.error ?? ''))
+        this.setStatus(result.code)
+        return new ResponseData(result.code, result.error ?? '')
       }
-    } catch (e) {
-      next(e)
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 }
-export default new PostController()
