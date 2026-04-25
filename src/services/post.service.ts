@@ -176,8 +176,8 @@ export default class PostService {
         file.fileType = id.fileType.startsWith('image/') ? MultimediaType.IMAGE : MultimediaType.VIDEO
         return file
       })
-      const deletedFileIds = post.multimediaFiles.filter((v) => {
-        return !dto.oldFiles.find((i) => Number(i) === v.fileId)
+      const deletedFileIds = post.multimediaFiles.filter((v: any) => {
+        return !dto.oldFiles.find((i: any) => Number(i) === v.fileId)
       })
       console.log(deletedFileIds)
       console.log(post.multimediaFiles)
