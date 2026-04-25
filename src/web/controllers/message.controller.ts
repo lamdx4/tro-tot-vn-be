@@ -17,7 +17,9 @@ import {
   Response,
 } from '@tsoa/runtime'
 import { MessageService } from '@/services'
+import { MultimediaFileRepository } from '@/infras/repositories'
 import CloudDriveService from '@/services/google-drive.service'
+import { MultimediaFile } from '@/domains/entities/multimedia-file.entity'
 import { SendMessageInput, EditMessageInput } from '@/utils/types/chat.types'
 import { AttachmentType } from '@/domains/entities/enum/value-object'
 import { SOCKET_EVENTS } from '@/utils/types/socket-events'
@@ -31,6 +33,7 @@ import { FileValidator } from '@/utils/validators/file.validator'
 @Security("jwt")
 export class MessageController extends Controller {
   private messageService = new MessageService()
+  private multimediaRepo = new MultimediaFileRepository()
   private cloudDriveService = CloudDriveService.gI()
 
   constructor() {
@@ -220,9 +223,20 @@ export class MessageController extends Controller {
         fileType = AttachmentType.VIDEO
       }
 
+
       // Upload to cloud storage
       const cloudFileId = await this.cloudDriveService.uploadFile(file)
-      const fileUrl = `/uploads/messages/${path.basename(file.path)}`
+      if (!cloudFileId) {
+        throw new Error('Failed to upload file to cloud')
+      }
+
+      // Create MultimediaFile record
+      const multimedia = new MultimediaFile()
+      multimedia.fileCloudId = cloudFileId
+      multimedia.fileType = fileType.startsWith('Image') ? 'Image' : 'Video'
+      const savedMultimedia = await this.multimediaRepo.save(multimedia)
+
+      const fileUrl = `/api/files/${savedMultimedia.fileId}`
 
       // 3. Send message with attachment
       const message = await this.messageService.sendMessageWithAttachments(
@@ -235,7 +249,8 @@ export class MessageController extends Controller {
           fileType: fileType as any,
           fileSize: file.size,
           mimeType: file.mimetype,
-          cloudFileId: cloudFileId || undefined
+          cloudFileId: cloudFileId,
+          fileId: savedMultimedia.fileId
         }]
       )
 
@@ -259,6 +274,9 @@ export class MessageController extends Controller {
       console.error('[MessageController] Error uploading file:', error)
       this.setStatus(500)
       return ResponseData.error(500, 'FILE_UPLOAD_ERROR', error.message) as any
+    } finally {
+      const { deleteFileFromDisk2 } = require('@/utils/func/delete-file')
+      deleteFileFromDisk2(req.files as any)
     }
   }
 

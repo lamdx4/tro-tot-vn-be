@@ -67,14 +67,14 @@ async function startApp() {
 
   // Serve test files
   app.use('/tests', express.static('tests'))
-
-  // Scalar API Reference
-  const { apiReference } = require('@scalar/express-api-reference')
   const path = require('path')
 
   app.get('/swagger.json', (req, res) => {
     res.sendFile(path.join(__dirname, 'docs', 'swagger.json'))
   })
+
+  // Scalar API Reference
+  const { apiReference } = require('@scalar/express-api-reference')
 
   app.use(
     '/api-docs',

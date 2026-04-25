@@ -86,6 +86,7 @@ export interface AttachmentDTO {
   fileUrl: string
   fileType: string // 'Image', 'Video', 'File'
   fileSize?: number
+  fileId?: number
   mimeType?: string
   cloudFileId?: string
   createdAt: Date
