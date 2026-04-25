@@ -8,9 +8,8 @@ import cors from 'cors'
 import express from 'express'
 import { createServer } from 'http'
 
-import routerConfig from '@/web/routers/router-config.js'
-
-import '@/web/routers/router-config'
+// import routerConfig from '@/web/routers/router-config.js'
+// import '@/web/routers/router-config'
 
 import AppDataSource from '@/infras/db/datasource'
 
@@ -27,7 +26,7 @@ import { SocketConfig } from '@/infras/socket'
 async function startApp() {
   try {
     await AppDataSource.initialize()
-    console.log('Database connected')
+    console.log('[Database] Connected successfully')
   } catch (e) {
     console.error(e)
     process.exit(1)
@@ -35,6 +34,7 @@ async function startApp() {
 
   // Seed initial data
   try {
+    console.log('[Seed] Seeding initial data...')
     await seedData()
   } catch (e) {
     console.error('Seed data error:', e)
@@ -67,16 +67,40 @@ async function startApp() {
 
   // Serve test files
   app.use('/tests', express.static('tests'))
+  const path = require('path')
 
-  app.use('/api', routerConfig)
+  app.get('/swagger.json', (req, res) => {
+    res.sendFile(path.join(__dirname, 'docs', 'swagger.json'))
+  })
+
+  // Scalar API Reference
+  const { apiReference } = require('@scalar/express-api-reference')
+
+  app.use(
+    '/api-docs',
+    apiReference({
+      spec: {
+        url: '/swagger.json',
+      },
+    })
+  )
+
+  // Register TSOA routes
+  const { RegisterRoutes } = require('./src/web/routers/routes')
+  const apiRouter = express.Router()
+  RegisterRoutes(apiRouter)
+  app.use('/api', apiRouter)
 
   app.use('*', notFoundHandler)
 
   app.use(errorHandler)
 
   httpServer.listen(Number(process.env.PORT), '0.0.0.0', () => {
-    console.log(`Server is running on http://localhost:${process.env.PORT}`)
-    console.log(`WebSocket available at ws://localhost:${process.env.PORT}`)
+    console.log('\n---------------------------------------------------------')
+    console.log(`[Server] Running on http://localhost:${process.env.PORT}`)
+    console.log(`[Socket] WebSocket available at ws://localhost:${process.env.PORT}`)
+    console.log(`[Docs] API Reference available at http://localhost:${process.env.PORT}/api-docs`)
+    console.log('---------------------------------------------------------\n')
   })
 }
 startApp()

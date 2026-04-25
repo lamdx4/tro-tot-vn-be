@@ -1,22 +1,41 @@
-import { Request, Response } from 'express'
-import { HttpStatus } from '../../utils/data-types/http-status-code'
+import { 
+  Get, 
+  Route, 
+  Tags, 
+  Path, 
+  Controller,
+  Response,
+  Request
+} from '@tsoa/runtime'
 import axios from 'axios'
+import { WardResponse } from './dto/location.dto'
+import { Response as ExpressResponse } from 'express'
 
-export class LocationController {
+@Route("location")
+@Tags("Location")
+export class LocationController extends Controller {
+  
+  constructor() {
+    super()
+  }
+
   /**
-   * GET /api/location/wards/:districtId
-   * Proxy to Chợ Tốt wards API to avoid CORS
+   * Proxy to Chợ Tốt wards API to avoid CORS.
+   * Fetches all wards for a given district ID.
    */
-  async getWards(req: Request, res: Response): Promise<void> {
+  @Get("wards/{districtId}")
+  @Response(500, "Internal Server Error")
+  public async getWards(
+    @Path() districtId: string,
+    @Request() req: any
+  ): Promise<any> {
+    const res = req.res as ExpressResponse
     try {
-      const { districtId } = req.params
-
       if (!districtId) {
-        res.status(HttpStatus.BAD_REQUEST).json({
-          success: false,
+        this.setStatus(400)
+        return {
           message: 'District ID is required'
-        })
-        return
+        }
       }
 
       // Proxy request to Chợ Tốt API
@@ -29,16 +48,13 @@ export class LocationController {
         }
       )
 
-      // Return the response as-is
-      res.status(HttpStatus.OK).json(response.data)
+      this.setStatus(200)
+      return response.data
     } catch (error: any) {
-      console.error('Error fetching wards:', error.message)
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: 'Failed to fetch wards',
-        error: error.message
-      })
+      this.setStatus(error.response?.status || 500)
+      return {
+        message: error.response?.data?.message || 'Failed to fetch wards'
+      }
     }
   }
 }
-

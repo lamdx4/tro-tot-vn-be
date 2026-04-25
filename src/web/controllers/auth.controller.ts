@@ -1,194 +1,373 @@
-import { email } from 'envalid'
+import {
+  Body,
+  Post,
+  Put,
+  Route,
+  Security,
+  SuccessResponse,
+  Tags,
+  Request,
+  Controller,
+  Response,
+} from '@tsoa/runtime'
 import ResponseData from '@/utils/data-types/response'
-import { Request, Response, NextFunction } from 'express'
 import AuthService from '@/services/auth.service'
+import {
+  RegisterRequest,
+  OTPRequest,
+  VerifyOTPRequest,
+  LoginRequest,
+  LogoutRequest,
+  RefreshTokenRequest,
+  ResetPasswordRequest,
+  ChangePasswordRequest,
+  LoginResponse,
+  RefreshTokenResponse,
+  OTPResponse,
+  AuthErrorResponse,
+  AuthErrorMessage
+} from '@/web/controllers/dto/auth.dto'
 
-class AuthController {
+@Route("auth")
+@Tags("Authentication")
+export class AuthController extends Controller {
   private authService = new AuthService()
 
-  async registerAccount(req: Request, res: Response, next: NextFunction) {
-    const { phone, email, firstName, lastName, birthday, gender, password, currentCity, currentDistrict, currentJob } = req.body
-    console.log('newUser', req.body)
-    const newUser = await this.authService.registerAccount(
-      phone,
-      email,
-      firstName,
-      lastName,
-      birthday,
-      gender,
-      password,
-      currentCity,
-      currentDistrict,
-      currentJob
-    )
-    if (newUser.isSuccess) {
-      res.status(201).json(ResponseData.success('User registered successfully'))
-    } else {
-      if (newUser.code == 409) {
-        res.status(409).json(ResponseData.error(409, 'USER_ALREADY_EXISTS', 'User already exists'))
-      } else {
-        res.status(402).json(ResponseData.error(402, 'ROLL_BACK_TRANSACTION', 'Roll Back Transaction'))
-      }
-    }
+  constructor() {
+    super()
   }
 
-  async sendOTPRegister(req: Request, res: Response, next: NextFunction) {
-    const { email } = req.body
-    const sendOTP = await this.authService.sendOtp('otp-register', email)
-    if (sendOTP.isSuccess) {
-      res.status(200).json(ResponseData.success(sendOTP.getValue()))
-      console.log(sendOTP.getValue())
-    } else if (sendOTP.code === 404) {
-      res.status(404).json(ResponseData.error(404, 'USER_NOT_FOUND', 'User with this email does not exist'))
-    } else if (sendOTP.code === 429) {
-      res.status(429).json(ResponseData.error(429, 'EMAIL_EXIST', sendOTP.error ?? 'Unknown error')) // Trả về số giây còn lại
-    } else {
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'An error occurred while sending OTP'))
-    }
-  }
-
-  async verifyOTPRegister(req: Request, res: Response, next: NextFunction) {
+  /**
+   * Register a new account
+   */
+  @Post("register")
+  @SuccessResponse("201", "User registered successfully")
+  @Response<AuthErrorResponse>(400, "Bad Request")
+  @Response<AuthErrorResponse>(401, "Unauthorized")
+  @Response<AuthErrorResponse>(409, "Conflict")
+  @Response<AuthErrorResponse>(500, "Internal Server Error")
+  public async registerAccount(
+    @Body() body: RegisterRequest,
+    @Request() req: any
+  ): Promise<ResponseData<string | null>> {
     try {
-      const { email, otp } = req.body
-      const result = await this.authService.verifyOtp('otp-register', email, otp)
+      const {
+        phone,
+        email,
+        firstName,
+        lastName,
+        birthday,
+        gender,
+        password,
+        currentCity,
+        currentDistrict,
+        currentJob,
+      } = body
 
-      if (result.isSuccess) {
-        const r = await this.authService.setVerifiedCustomer(email)
-        if (r.isSuccess) {
-          res.status(200).json(ResponseData.success(r.getValue()))
-        } else {
-          res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'An error occurred while verifying OTP'))
+      // Legacy validation: Birthday must be in the past
+      if (birthday) {
+        const date = new Date(birthday)
+        if (date >= new Date()) {
+          this.setStatus(400)
+          return ResponseData.error(400, 'VALIDATION_ERROR', 'Ngày sinh phải là ngày trong quá khứ') as any
         }
-        return
-      } else if (result.code === 400) {
-        res.status(400).json(ResponseData.error(400, 'INVALID_OTP', 'OTP is incorrect or expired'))
-        return
       }
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'An error occurred while verifying OTP'))
-    } catch (error) {
-      console.error('Error in verifyOtp:', error)
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'Something went wrong'))
+
+      const result = await this.authService.registerAccount(
+        phone,
+        email,
+        firstName,
+        lastName,
+        new Date(birthday || ''),
+        gender || '',
+        password || '',
+        currentCity,
+        currentDistrict,
+        currentJob
+      )
+
+      if (result.isSuccess) {
+        this.setStatus(201) // Matches res.status(201) in backup
+        return ResponseData.success('User registered successfully') // Matches ResponseData.success (200 in status field)
+      } else {
+        if (result.code === 409) {
+          this.setStatus(409)
+          return ResponseData.error(409, 'USER_ALREADY_EXISTS', 'User already exists') as any
+        } else {
+          this.setStatus(402)
+          return ResponseData.error(402, 'ROLL_BACK_TRANSACTION', 'Roll Back Transaction') as any
+        }
+      }
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 
-  async forgotPassword(req: Request, res: Response, next: NextFunction) {
-    try {
-      const { email } = req.body
-      const result = await this.authService.sendOtp('otp-forgot-password', email)
+  /**
+   * Send OTP for registration
+   */
+  @Post("send-otp-register")
+  @Response<AuthErrorResponse>(400, "Bad Request")
+  @Response<AuthErrorResponse>(404, "Not Found")
+  @Response<AuthErrorResponse>(429, "Email Exists / Rate Limit")
+  @Response<AuthErrorResponse>(500, "Internal Server Error")
+  public async sendOTPRegister(
+    @Body() body: OTPRequest
+  ): Promise<ResponseData<OTPResponse>> {
+    const result = await this.authService.sendOtp('otp-register', body.email)
+    if (result.isSuccess) {
+      this.setStatus(200)
+      const data = result.getValue()
+      if (!data) {
+        return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', 'Unexpected null response') as any
+      }
+      return ResponseData.success({
+        message: data.message,
+        ttl: data.remainingTime
+      })
+    } else if (result.code === 404) {
+      this.setStatus(404)
+      return ResponseData.error(404, 'USER_NOT_FOUND', 'User with this email does not exist') as any
+    } else if (result.code === 429) {
+      this.setStatus(429)
+      return ResponseData.error(429, 'EMAIL_EXIST', result.error ?? 'Unknown error') as any
+    } else {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', 'An error occurred while sending OTP') as any
+    }
+  }
 
+  /**
+   * Verify OTP for registration
+   */
+  @Post("verify-otp-register")
+  @Response<AuthErrorResponse>(400, "Bad Request")
+  @Response<AuthErrorResponse>(500, "Internal Server Error")
+  public async verifyOTPRegister(
+    @Body() body: VerifyOTPRequest
+  ): Promise<ResponseData<any>> {
+    try {
+      const result = await this.authService.verifyOtp('otp-register', body.email, body.otp)
       if (result.isSuccess) {
-        res.status(200).json(ResponseData.success(result.getValue()))
+        const r = await this.authService.setVerifiedCustomer(body.email)
+        if (r.isSuccess) {
+          this.setStatus(200)
+          return ResponseData.success(r.getValue())
+        } else {
+          this.setStatus(500)
+          return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', 'An error occurred while verifying OTP') as any
+        }
+      } else if (result.code === 400) {
+        this.setStatus(400)
+        return ResponseData.error(400, 'INVALID_OTP', 'OTP is incorrect or expired') as any
+      }
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', 'An error occurred while verifying OTP') as any
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', 'Something went wrong') as any
+    }
+  }
+
+  /**
+   * Request password reset OTP
+   */
+  @Post("forgot-password")
+  @Response<AuthErrorResponse>(400, "Bad Request")
+  @Response<AuthErrorResponse>(404, "Not Found")
+  @Response<AuthErrorResponse>(429, "Email exists / Rate Limit")
+  @Response<AuthErrorResponse>(500, "Internal Server Error")
+  public async forgotPassword(
+    @Body() body: OTPRequest
+  ): Promise<ResponseData<OTPResponse | any>> {
+    try {
+      const result = await this.authService.sendOtp('otp-forgot-password', body.email)
+      if (result.isSuccess) {
+        this.setStatus(200)
+        return ResponseData.success(result.getValue())
       } else if (result.code === 404) {
-        res.status(404).json(ResponseData.error(404, 'USER_NOT_FOUND', 'User with this email does not exist'))
+        this.setStatus(404)
+        return ResponseData.error(404, 'USER_NOT_FOUND', 'User with this email does not exist') as any
       } else if (result.code === 429) {
-        res.status(429).json(ResponseData.error(429, 'EMAIL_EXIST', result.error ?? 'Unknown error')) // Trả về số giây còn lại
+        this.setStatus(429)
+        return ResponseData.error(429, 'EMAIL_EXIST', result.error ?? 'Unknown error') as any
       } else {
-        res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'An error occurred while sending OTP'))
+        this.setStatus(500)
+        return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', 'An error occurred while sending OTP') as any
       }
-    } catch (error) {
-      console.error('Error in forgotPassword:', error)
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'Something went wrong'))
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', 'Something went wrong') as any
     }
   }
 
-  async verifyOtp(req: Request, res: Response, next: NextFunction) {
+  /**
+   * Verify password reset OTP
+   */
+  @Post("verify-otp")
+  @Response<AuthErrorResponse>(400, "Bad Request")
+  @Response<AuthErrorResponse>(500, "Internal Server Error")
+  public async verifyOtp(
+    @Body() body: VerifyOTPRequest
+  ): Promise<ResponseData<any>> {
     try {
-      const { email, otp } = req.body
-      const result = await this.authService.verifyOtpForgotPassword('otp-forgot-password', email, otp)
-
+      const result = await this.authService.verifyOtpForgotPassword(
+        'otp-forgot-password',
+        body.email,
+        body.otp
+      )
       if (result.isSuccess) {
-        res.status(200).json(ResponseData.success(result.getValue()))
-        return
+        this.setStatus(200)
+        return ResponseData.success(result.getValue())
       } else if (result.code === 400) {
-        res.status(400).json(ResponseData.error(400, 'INVALID_OTP', 'OTP is incorrect or expired'))
-        return
+        this.setStatus(400)
+        return ResponseData.error(400, 'INVALID_OTP', 'OTP is incorrect or expired') as any
       }
-
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'An error occurred while verifying OTP'))
-    } catch (error) {
-      console.error('Error in verifyOtp:', error)
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'Something went wrong'))
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', 'An error occurred while verifying OTP') as any
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', 'Something went wrong') as any
     }
   }
 
-  async resetPassword(req: Request, res: Response, next: NextFunction) {
+  /**
+   * Reset password with reset token
+   */
+  @Post("reset-password")
+  @Response<AuthErrorResponse>(400, "Bad Request")
+  @Response<AuthErrorResponse>(500, "Internal Server Error")
+  public async resetPassword(
+    @Body() body: ResetPasswordRequest
+  ): Promise<ResponseData<any>> {
     try {
-      const { password, resetToken } = req.body
-
+      const { resetToken, password } = body
       if (!resetToken) {
-        res.status(400).json(ResponseData.error(400, 'TOKEN_REQUIRED', 'Reset token is required'))
-        return
+        this.setStatus(400)
+        return ResponseData.error(400, 'TOKEN_REQUIRED', 'Reset token is required') as any
       }
-
-      const result = await this.authService.resetPassword(resetToken, password)
-
+      const result = await this.authService.resetPassword(resetToken, password || '')
       if (result.isSuccess) {
-        res.status(200).json(ResponseData.success('Password reset successfully'))
-        return
+        this.setStatus(200)
+        return ResponseData.success('Password reset successfully')
       } else if (result.code === 401) {
-        res.status(401).json(ResponseData.error(401, 'INVALID_TOKEN', 'Reset token is invalid or expired'))
-        return
+        this.setStatus(401)
+        return ResponseData.error(401, 'INVALID_TOKEN', 'Reset token is invalid or expired') as any
+      }
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', 'An error occurred while resetting password') as any
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', 'Something went wrong') as any
+    }
+  }
+
+  /**
+   * Login to account
+   */
+  @Post("login")
+  @Response<AuthErrorResponse>(401, "Unauthorized")
+  @Response<AuthErrorResponse>(423, "Account Inactive")
+  @Response<AuthErrorResponse>(500, "Internal Server Error")
+  public async login(
+    @Body() body: LoginRequest
+  ): Promise<ResponseData<LoginResponse | any>> {
+    try {
+      const result = await this.authService.login(body.identifier, body.password || '')
+      this.setStatus(result.code)
+      if (result.isSuccess) {
+        return ResponseData.successWithCode(result.code, result.getValue())
+      }
+      return ResponseData.error(result.code, result.error ?? '', '') as any
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', 'Something went wrong') as any
+    }
+  }
+
+  /**
+   * Refresh access token
+   */
+  @Post("refresh-token")
+  @Response<AuthErrorResponse>(401, "Unauthorized")
+  @Response<AuthErrorResponse>(500, "Internal Server Error")
+  public async refreshToken(
+    @Body() body: RefreshTokenRequest
+  ): Promise<ResponseData<RefreshTokenResponse | any>> {
+    try {
+      const result = await this.authService.refreshToken(body.refreshToken)
+      this.setStatus(result.code)
+      if (result.isSuccess) {
+        return ResponseData.successWithCode(result.code, result.getValue())
+      }
+      return ResponseData.error(result.code, 'INVALID_REFRESH_TOKEN', 'Invalid refresh token') as any
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', 'Something went wrong') as any
+    }
+  }
+
+  /**
+   * Logout from account
+   */
+  @Post("logout")
+  @Security("jwt")
+  @Response<AuthErrorResponse>(401, "Unauthorized")
+  @Response<AuthErrorResponse>(500, "Internal Server Error")
+  public async logout(
+    @Body() body: LogoutRequest
+  ): Promise<ResponseData<string | any>> {
+    try {
+      const result = await this.authService.logout(body.token)
+      this.setStatus(result.code)
+      if (result.isSuccess) {
+        return ResponseData.successWithCode(result.code, result.getValue())
+      }
+      return ResponseData.error(result.code, 'INVALID_ACCESS_TOKEN', 'Invalid access token') as any
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', 'Something went wrong') as any
+    }
+  }
+
+  /**
+   * Change account password
+   */
+  @Post("change-password")
+  @Security("jwt")
+  @Response<AuthErrorResponse>(401, "Unauthorized")
+  @Response<AuthErrorResponse>(500, "Internal Server Error")
+  public async changePassword(
+    @Body() body: ChangePasswordRequest,
+    @Request() req: any
+  ): Promise<ResponseData<string | any>> {
+    try {
+      const { oldPassword, newPassword } = body
+      const accountId = Number(req.user?.accountId)
+
+      // Legacy validation: New password must be different from old
+      if (newPassword === oldPassword) {
+        this.setStatus(400)
+        return ResponseData.error(400, 'VALIDATION_ERROR', 'Mật khẩu mới phải khác mật khẩu cũ') as any
       }
 
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'An error occurred while resetting password'))
-    } catch (error) {
-      console.error('Error in resetPassword:', error)
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_ERROR', 'Something went wrong'))
-    }
-  }
-  async login(req: Request, res: Response, next: NextFunction) {
-    const { identifier, password } = req.body
-    try {
-      const result = await this.authService.login(identifier, password)
+      const result = await this.authService.changePassword(
+        accountId,
+        oldPassword || '',
+        newPassword || ''
+      )
+
       if (result.isSuccess) {
-        res.status(result.code).json(ResponseData.successWithCode(result.code, result.getValue()))
-        return
-      }
-      res.status(result.code).json(ResponseData.error(result.code, result.error ?? '', ''))
-    } catch (error) {
-      next(error)
-    }
-  }
-  async logout(req: Request, res: Response, next: NextFunction) {
-    const { token } = req.body
-    try {
-      const result = await this.authService.logout(token)
-      if (result.isSuccess) {
-        res.status(result.code).json(ResponseData.successWithCode(result.code, result.getValue()))
-        return
-      }
-      res.status(result.code).json(ResponseData.error(result.code, 'INVALID_ACCESS_TOKEN', 'Invalid access token'))
-    } catch (error) {
-      next(error)
-    }
-  }
-  async refreshToken(req: Request, res: Response, next: NextFunction) {
-    const { refreshToken } = req.body
-    try {
-      const result = await this.authService.refreshToken(refreshToken)
-      if (result.isSuccess) {
-        res.status(result.code).json(ResponseData.successWithCode(result.code, result.getValue()))
-        return
-      }
-      res.status(result.code).json(ResponseData.error(result.code, 'INVALID_REFRESH_TOKEN', 'Invalid refresh token'))
-    } catch (error) {
-      next(error)
-    }
-  }
-  changePassword = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { oldPassword, newPassword } = req.body
-      const accountId = Number(req.user?.accountId)
-      const result = await this.authService.changePassword(accountId, oldPassword, newPassword)
-      if (result.isSuccess) {
-        res.status(200).json(ResponseData.success(result.getValue()))
+        this.setStatus(200)
+        return ResponseData.success(result.getValue())
       } else {
-        res.status(result.code).json(ResponseData.error(result.code, result.error ?? '', ''))
+        this.setStatus(result.code)
+        return ResponseData.error(result.code, result.error ?? '', '') as any
       }
-    } catch (error) {
-      next(error)
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 }
-
-export default new AuthController()

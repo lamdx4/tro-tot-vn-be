@@ -46,7 +46,7 @@ export default class JWTService {
         isValid: false,
         isExpired: false,
         errorCode: TokenErrorCode.MISSING,
-        errorMessage: 'Token is required'
+        errorMessage: 'TOKEN_REQUIRED'
       }
     }
     try {
@@ -56,7 +56,7 @@ export default class JWTService {
           isValid: false,
           isExpired: false,
           errorCode: TokenErrorCode.INVALID,
-          errorMessage: 'Invalid token format'
+          errorMessage: 'INVALID_TOKEN'
         }
       }
       return { isValid: true, isExpired: false, payload }
@@ -69,7 +69,7 @@ export default class JWTService {
           isExpired: true,
           payload: decoded ?? undefined,
           errorCode: TokenErrorCode.EXPIRED,
-          errorMessage: 'Token has expired'
+          errorMessage: 'TOKEN_EXPIRED'
         }
       }
       if (error instanceof JsonWebTokenError) {
@@ -77,14 +77,14 @@ export default class JWTService {
           isValid: false,
           isExpired: false,
           errorCode: TokenErrorCode.INVALID,
-          errorMessage: error.message || 'Invalid token'
+          errorMessage: 'INVALID_TOKEN'
         }
       }
       return {
         isValid: false,
         isExpired: false,
         errorCode: TokenErrorCode.INVALID,
-        errorMessage: 'Token verification failed'
+        errorMessage: 'INVALID_TOKEN'
       }
     }
   }

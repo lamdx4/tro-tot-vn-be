@@ -1,65 +1,52 @@
-import { Request, Response } from 'express'
+import { 
+  Body, 
+  Post, 
+  Route, 
+  Security, 
+  Tags, 
+  Controller,
+  Request,
+  Response
+} from '@tsoa/runtime'
 import InteractionLogService from '../../services/interaction-log.service'
-import { HttpStatus } from '../../utils/data-types/http-status-code'
+import { ContactLogRequest } from './dto/interaction.dto'
+import ResponseData from '@/utils/data-types/response'
 
-export class InteractionController {
-  private interactionLogService: InteractionLogService
+@Route("interactions")
+@Tags("Interaction")
+@Security("jwt")
+export class InteractionController extends Controller {
+  private interactionLogService = InteractionLogService.gI()
 
   constructor() {
-    this.interactionLogService = InteractionLogService.gI()
+    super()
   }
 
   /**
-   * POST /api/interactions/contact
-   * Log contact interaction when user views phone number
+   * Log contact interaction when user views phone number.
+   * This is used for tracking user interest and improving recommendations.
    */
-  async logContact(req: Request, res: Response): Promise<void> {
+  @Post("contact")
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
+  public async logContact(
+    @Body() body: ContactLogRequest,
+    @Request() req: any
+  ): Promise<ResponseData<null>> {
     try {
-      // Get customer ID from authenticated user
-      // @ts-ignore - customer is set by auth middleware
       const customerId = req.user?.customer?.customerId
 
       if (!customerId) {
-        res.status(HttpStatus.UNAUTHORIZED).json({
-          success: false,
-          message: 'Customer authentication required'
-        })
-        return
+        this.setStatus(401)
+        return ResponseData.error(401, 'UNAUTHORIZED', 'Customer authentication required') as any
       }
 
-      const { postId } = req.body
+      await this.interactionLogService.logContact(customerId, body.postId)
 
-      if (!postId) {
-        res.status(HttpStatus.BAD_REQUEST).json({
-          success: false,
-          message: 'postId is required'
-        })
-        return
-      }
-
-      // Validate postId is a number
-      const postIdNum = parseInt(postId)
-      if (isNaN(postIdNum)) {
-        res.status(HttpStatus.BAD_REQUEST).json({
-          success: false,
-          message: 'postId must be a number'
-        })
-        return
-      }
-
-      await this.interactionLogService.logContact(customerId, postIdNum)
-
-      res.status(HttpStatus.OK).json({
-        success: true,
-        message: 'Contact interaction logged'
-      })
-    } catch (error) {
-      console.error('[Interaction Controller] Error:', error)
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: 'Failed to log interaction'
-      })
+      return ResponseData.success(null)
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 }
-

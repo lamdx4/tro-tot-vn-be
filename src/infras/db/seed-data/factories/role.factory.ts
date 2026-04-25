@@ -128,12 +128,12 @@ export class RoleFactory {
     const permissionRepository = AppDataSource.getRepository(Permission)
     const rolePermissionRepository = AppDataSource.getRepository(RolePermission)
     
-    console.log('Seeding roles and permissions...')
+    console.log('[Seed] Seeding roles and permissions...')
     
     // Check if data already exists
     const roleCount = await roleRepository.count()
     if (roleCount > 0) {
-      console.log('Roles already seeded')
+      console.log('[Seed] Roles and permissions already seeded')
       return
     }
     

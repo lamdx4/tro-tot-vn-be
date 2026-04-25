@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm'
 import { Message } from './message.entity'
+import { MultimediaFile } from './multimedia-file.entity'
 
 @Entity('MessageAttachment')
 export class MessageAttachment {
@@ -30,7 +31,14 @@ export class MessageAttachment {
   @CreateDateColumn()
   createdAt: Date
 
+  @Column({ type: 'int', nullable: true })
+  fileId?: number
+
   // Relationships
+  @ManyToOne(() => MultimediaFile)
+  @JoinColumn({ name: 'fileId' })
+  file: MultimediaFile
+
   @ManyToOne(() => Message, (msg) => msg.attachments, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'messageId' })
   message: Message

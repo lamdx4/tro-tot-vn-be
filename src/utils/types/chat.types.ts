@@ -8,6 +8,7 @@ export interface ConversationDTO {
   participantCount?: number
   lastMessage?: string
   lastMessageAt?: Date
+  participants?: ParticipantDTO[]
 }
 
 export interface CreateConversationInput {
@@ -48,6 +49,10 @@ export interface ParticipantDTO {
   role: string
   joinedAt: Date
   leftAt?: Date | null
+  // Extra info for chat list
+  firstName?: string
+  lastName?: string
+  avatarId?: number
 }
 
 export interface AddParticipantInput {
@@ -81,6 +86,7 @@ export interface AttachmentDTO {
   fileUrl: string
   fileType: string // 'Image', 'Video', 'File'
   fileSize?: number
+  fileId?: number
   mimeType?: string
   cloudFileId?: string
   createdAt: Date

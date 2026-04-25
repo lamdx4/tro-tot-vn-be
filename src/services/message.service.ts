@@ -153,7 +153,8 @@ export class MessageService {
         fileType: attachment.fileType,
         fileSize: attachment.fileSize,
         mimeType: attachment.mimeType,
-        cloudFileId: attachment.cloudFileId
+        cloudFileId: attachment.cloudFileId,
+        fileId: attachment.fileId
       })
     }
 

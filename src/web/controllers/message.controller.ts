@@ -1,72 +1,113 @@
-import { Request, Response } from 'express'
-import { MessageService, ChatService } from '@/services'
-import { SendMessageInput, EditMessageInput, MessageQuery } from '@/utils/types/chat.types'
-import { AttachmentType } from '@/domains/entities/enum/value-object'
+import {
+  Body,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Route,
+  Security,
+  SuccessResponse,
+  Tags,
+  Request,
+  Query,
+  Path,
+  Controller,
+  UploadedFile,
+  FormField,
+  Response,
+} from '@tsoa/runtime'
+import { MessageService } from '@/services'
+import { MultimediaFileRepository } from '@/infras/repositories'
 import CloudDriveService from '@/services/google-drive.service'
+import { MultimediaFile } from '@/domains/entities/multimedia-file.entity'
+import { SendMessageInput, EditMessageInput } from '@/utils/types/chat.types'
+import { AttachmentType } from '@/domains/entities/enum/value-object'
 import { SOCKET_EVENTS } from '@/utils/types/socket-events'
 import ResponseData from '@/utils/data-types/response'
 import path from 'path'
+import { MessageDTO } from '@/utils/types/chat.types'
+import { FileValidator } from '@/utils/validators/file.validator'
 
-export class MessageController {
-  private messageService: MessageService
-  private cloudDriveService: CloudDriveService
+@Route("chat")
+@Tags("Chat Messages")
+@Security("jwt")
+export class MessageController extends Controller {
+  private messageService = new MessageService()
+  private multimediaRepo = new MultimediaFileRepository()
+  private cloudDriveService = CloudDriveService.gI()
 
   constructor() {
-    this.messageService = new MessageService()
-    this.cloudDriveService = CloudDriveService.gI()
+    super()
   }
 
-  async getMessages(req: Request, res: Response): Promise<void> {
+  /**
+   * Get messages for a conversation
+   */
+  @Get("conversations/{conversationId}/messages")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
+  public async getMessages(
+    @Path() conversationId: number,
+    @Query() limit: number = 20,
+    @Query() offset: number = 0
+  ): Promise<ResponseData<MessageDTO[]>> {
     try {
-      const { conversationId } = req.params
-      const limit = parseInt(req.query.limit as string) || 20
-      const offset = parseInt(req.query.offset as string) || 0
-
-      const query: MessageQuery = {
-        conversationId: parseInt(conversationId),
+      const messages = await this.messageService.getConversationMessages({
+        conversationId,
         limit,
         offset
-      }
-
-      const messages = await this.messageService.getConversationMessages(query)
-      res.status(200).json(ResponseData.success(messages))
+      })
+      return ResponseData.success(messages)
     } catch (error: any) {
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message))
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 
-  async getMessageById(req: Request, res: Response): Promise<void> {
+  /**
+   * Get a single message by ID
+   */
+  @Get("messages/{messageId}")
+  @Response<ResponseData<any>>(404, "Not Found")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
+  public async getMessageById(
+    @Path() messageId: number
+  ): Promise<ResponseData<MessageDTO>> {
     try {
-      const { messageId } = req.params
-      const message = await this.messageService.getMessageById(parseInt(messageId))
-
+      const message = await this.messageService.getMessageById(messageId)
       if (!message) {
-        res.status(404).json(ResponseData.notFound('Message not found'))
-        return
+        this.setStatus(404)
+        return ResponseData.notFound('Message not found') as any
       }
-
-      res.status(200).json(ResponseData.success(message))
+      return ResponseData.success(message)
     } catch (error: any) {
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message))
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 
-  async sendMessage(req: Request, res: Response): Promise<void> {
+  /**
+   * Send a new message
+   */
+  @Post("conversations/{conversationId}/messages")
+  @SuccessResponse("201", "Created")
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
+  public async sendMessage(
+    @Path() conversationId: number,
+    @Body() body: SendMessageInput,
+    @Request() req: any
+  ): Promise<ResponseData<MessageDTO>> {
     try {
-      const { conversationId } = req.params
-      // JWT token contains nested customer object: req.user.customer.customerId
-      const userId = (req as any).user?.customer?.customerId || (req as any).user?.customerId || (req as any).user?.userId
-
+      const userId = req.user?.customer?.customerId || req.user?.customerId || req.user?.userId
       if (!userId) {
-        res.status(401).json(ResponseData.unauthorized('User not authenticated'))
-        return
+        this.setStatus(401)
+        return ResponseData.unauthorized('User not authenticated') as any
       }
 
-      const input: SendMessageInput = req.body
-      const message = await this.messageService.sendMessage(parseInt(conversationId), userId, input)
+      const message = await this.messageService.sendMessage(conversationId, userId, body)
 
       // Emit Socket.IO event to conversation room
-      const io = (req as any).app?.locals?.io
+      const io = req.app?.locals?.io
       if (io) {
         const eventData = {
           messageId: message.messageId,
@@ -76,105 +117,145 @@ export class MessageController {
           messageType: message.messageType,
           createdAt: message.createdAt
         }
-        // Emit to conversation room (exclude sender)
         io.to(`conversation:${conversationId}`).emit(SOCKET_EVENTS.MESSAGE_RECEIVED, eventData)
       }
 
-      res.status(201).json(ResponseData.successWithCode(201, message))
+      return ResponseData.successWithCode(201, message)
     } catch (error: any) {
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message))
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 
-  async editMessage(req: Request, res: Response): Promise<void> {
+  /**
+   * Edit a message
+   */
+  @Put("messages/{messageId}")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
+  public async editMessage(
+    @Path() messageId: number,
+    @Body() body: EditMessageInput
+  ): Promise<ResponseData<MessageDTO>> {
     try {
-      const { messageId } = req.params
-      const input: EditMessageInput = req.body
-      const message = await this.messageService.editMessage(parseInt(messageId), input)
-
-      res.status(200).json(ResponseData.success(message))
+      const message = await this.messageService.editMessage(messageId, body)
+      return ResponseData.success(message)
     } catch (error: any) {
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message))
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 
-  async deleteMessage(req: Request, res: Response): Promise<void> {
+  /**
+   * Delete a message
+   */
+  @Delete("messages/{messageId}")
+  @SuccessResponse("204", "No Content")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
+  public async deleteMessage(
+    @Path() messageId: number
+  ): Promise<void> {
     try {
-      const { messageId } = req.params
-      await this.messageService.deleteMessage(parseInt(messageId))
-      res.status(204).send()
+      await this.messageService.deleteMessage(messageId)
+      this.setStatus(204)
     } catch (error: any) {
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message))
+      this.setStatus(500)
+      throw error
     }
   }
 
-  async markMessagesAsRead(req: Request, res: Response): Promise<void> {
+  /**
+   * Mark messages as read
+   */
+  @Post("messages/read")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
+  public async markRead(
+    @Body() body: { messageIds: number[] }
+  ): Promise<ResponseData<{ success: boolean }>> {
     try {
-      const { messageIds } = req.body
-      await this.messageService.markMessagesAsRead(messageIds)
-      res.status(200).json(ResponseData.success({ success: true }))
+      await this.messageService.markMessagesAsRead(body.messageIds)
+      return ResponseData.success({ success: true })
     } catch (error: any) {
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message))
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 
   /**
    * Upload file and send as message
-   * POST /conversations/:conversationId/files
    */
-  async uploadFile(req: Request, res: Response): Promise<void> {
+  @Post("conversations/{conversationId}/files")
+  @SuccessResponse("201", "Created")
+  @Response<ResponseData<any>>(400, "Bad Request")
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "File Upload Error")
+  public async uploadFile(
+    @Path() conversationId: number,
+    @Request() req: any,
+    @UploadedFile() file: Express.Multer.File,
+    @FormField() content?: string
+  ): Promise<ResponseData<MessageDTO>> {
     try {
-      const { conversationId } = req.params
-      // JWT token contains nested customer object: req.user.customer.customerId
-      const userId = (req as any).user?.customer?.customerId || (req as any).user?.customerId || (req as any).user?.userId
-
+      const userId = req.user?.customer?.customerId || req.user?.customerId || req.user?.userId
       if (!userId) {
-        res.status(401).json(ResponseData.unauthorized('User not authenticated'))
-        return
+        this.setStatus(401)
+        return ResponseData.unauthorized('User not authenticated') as any
       }
 
-      if (!req.file) {
-        res.status(400).json(ResponseData.badRequest('No file uploaded'))
-        return
+      if (!file) {
+        this.setStatus(400)
+        return ResponseData.error(400, 'BAD_REQUEST', 'No file uploaded') as any
       }
 
-      const file = req.file
-      const content = req.body.content || ''
+      const fileError = FileValidator.validateMessageFile(file);
+      if (fileError) {
+        this.setStatus(400);
+        return ResponseData.error(400, fileError, '') as any;
+      }
+
+      const finalContent = content || ''
 
       // Determine file type
-      let fileType: string
+      let fileType: string = AttachmentType.FILE
       const mimeType = file.mimetype
       if (mimeType.startsWith('image/')) {
         fileType = AttachmentType.IMAGE
       } else if (mimeType.startsWith('video/')) {
         fileType = AttachmentType.VIDEO
-      } else {
-        fileType = AttachmentType.FILE
       }
+
 
       // Upload to cloud storage
       const cloudFileId = await this.cloudDriveService.uploadFile(file)
+      if (!cloudFileId) {
+        throw new Error('Failed to upload file to cloud')
+      }
 
-      // Generate public URL (or use cloud storage URL)
-      const fileUrl = `/uploads/messages/${path.basename(file.path)}`
+      // Create MultimediaFile record
+      const multimedia = new MultimediaFile()
+      multimedia.fileCloudId = cloudFileId
+      multimedia.fileType = fileType.startsWith('Image') ? 'Image' : 'Video'
+      const savedMultimedia = await this.multimediaRepo.save(multimedia)
 
-      // Create message with attachment
+      const fileUrl = `/api/files/${savedMultimedia.fileId}`
+
+      // 3. Send message with attachment
       const message = await this.messageService.sendMessageWithAttachments(
-        parseInt(conversationId),
+        conversationId,
         userId,
-        { conversationId: parseInt(conversationId), content, messageType: fileType },
+        { conversationId, content: finalContent, messageType: fileType as any },
         [{
           fileName: file.originalname,
           fileUrl,
-          fileType,
+          fileType: fileType as any,
           fileSize: file.size,
           mimeType: file.mimetype,
-          cloudFileId: cloudFileId ?? undefined
+          cloudFileId: cloudFileId,
+          fileId: savedMultimedia.fileId
         }]
       )
 
       // Emit Socket.IO event to conversation room
-      const io = (req as any).app?.locals?.io
+      const io = req.app?.locals?.io
       if (io) {
         const eventData = {
           messageId: message.messageId,
@@ -185,55 +266,52 @@ export class MessageController {
           attachments: message.attachments || [],
           createdAt: message.createdAt
         }
-        // Emit to conversation room (exclude sender)
         io.to(`conversation:${conversationId}`).emit(SOCKET_EVENTS.FILE_RECEIVED, eventData)
       }
 
-      res.status(201).json(ResponseData.successWithCode(201, message))
+      return ResponseData.successWithCode(201, message)
     } catch (error: any) {
       console.error('[MessageController] Error uploading file:', error)
-      res.status(500).json(ResponseData.error(500, 'FILE_UPLOAD_ERROR', error.message))
+      this.setStatus(500)
+      return ResponseData.error(500, 'FILE_UPLOAD_ERROR', error.message) as any
+    } finally {
+      const { deleteFileFromDisk2 } = require('@/utils/func/delete-file')
+      deleteFileFromDisk2(req.files as any)
     }
   }
 
   /**
    * Get file download URL
-   * GET /files/:fileId/download
    */
-  async getFileDownloadUrl(req: Request, res: Response): Promise<void> {
+  @Get("files/{fileId}/download")
+  @Response<ResponseData<any>>(404, "Not Found")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
+  public async getFileDownloadUrl(
+    @Path() fileId: number
+  ): Promise<ResponseData<{ downloadUrl: string, fileName: string, mimeType: string, fileSize: number }>> {
     try {
-      const { fileId } = req.params
-
-      // Get file info from database
-      const attachments = await this.messageService.getMessageAttachments(parseInt(fileId))
-
+      const attachments = await this.messageService.getMessageAttachments(fileId)
       if (!attachments || attachments.length === 0) {
-        res.status(404).json(ResponseData.notFound('File not found'))
-        return
+        this.setStatus(404)
+        return ResponseData.notFound('File not found') as any
       }
 
       const attachment = attachments[0]
+      let downloadUrl = attachment.fileUrl
 
-      // If we have a cloud file ID, get download URL from cloud storage
       if (attachment.cloudFileId) {
-        const downloadUrl = await this.cloudDriveService.getFileUrl(attachment.cloudFileId)
-        res.status(200).json(ResponseData.success({
-          downloadUrl,
-          fileName: attachment.fileName,
-          mimeType: attachment.mimeType,
-          fileSize: attachment.fileSize
-        }))
-      } else {
-        // Local file
-        res.status(200).json(ResponseData.success({
-          downloadUrl: attachment.fileUrl,
-          fileName: attachment.fileName,
-          mimeType: attachment.mimeType,
-          fileSize: attachment.fileSize
-        }))
+        downloadUrl = (await this.cloudDriveService.getFileUrl(attachment.cloudFileId)) || attachment.fileUrl
       }
+
+      return ResponseData.success({
+        downloadUrl,
+        fileName: attachment.fileName,
+        mimeType: attachment.mimeType || '',
+        fileSize: attachment.fileSize || 0
+      })
     } catch (error: any) {
-      res.status(500).json(ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message))
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 }

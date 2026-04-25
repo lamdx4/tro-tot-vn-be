@@ -138,7 +138,7 @@ export default class AdminService {
       }
     })
     if (!postPending) {
-      return Result.fail(404, 'Not_Found_Post')
+      return Result.fail(404, 'POST_NOT_FOUND')
     }
     return Result.ok(postPending)
   }
@@ -153,7 +153,7 @@ export default class AdminService {
     }
     const isSuccess = await this.postModerateHistoryRepository.moderatePost(reviewerId, postId, actionType, reason)
     if (!isSuccess) {
-      return Result.fail(500, 'Failed to moderate post')
+      return Result.fail(500, 'MODERATION_FAILED')
     }
 
     // Log to ModerationLog if admin rejects for hate content
@@ -229,7 +229,7 @@ export default class AdminService {
       }
     })
     if (!history) {
-      return Result.fail(404, 'Post not found')
+      return Result.fail(404, 'POST_NOT_FOUND')
     }
     return Result.ok(history)
   }
@@ -289,7 +289,7 @@ export default class AdminService {
       }
     })
     if (!moderator) {
-      return Result.fail(404, 'User not found')
+      return Result.fail(404, 'USER_NOT_FOUND')
     }
 
     // Cập nhật trạng thái tài khoản
@@ -344,7 +344,7 @@ export default class AdminService {
       }
     })
     if (!admin) {
-      return Result.fail(404, 'User not found')
+      return Result.fail(404, 'USER_NOT_FOUND')
     }
     return Result.ok(admin)
   }
@@ -362,7 +362,7 @@ export default class AdminService {
     })
 
     if (!account) {
-      return Result.fail(404, 'User not found')
+      return Result.fail(404, 'USER_NOT_FOUND')
     }
     const isSuccess = await this.accountRepository.changeAdminProfile(
       accountId,
@@ -374,9 +374,9 @@ export default class AdminService {
       lastName
     )
     if (!isSuccess) {
-      return Result.fail(500, 'Failed to update profile')
+      return Result.fail(500, 'UPDATE_PROFILE_FAILED')
     }
-    return Result.ok('Update profile successfully')
+    return Result.ok('UPDATE_PROFILE_SUCCESS')
   }
 
   /**

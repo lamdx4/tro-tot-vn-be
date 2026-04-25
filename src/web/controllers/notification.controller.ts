@@ -1,72 +1,106 @@
-import { Request, Response } from 'express'
+import {
+  Body,
+  Get,
+  Post,
+  Route,
+  Security,
+  Tags,
+  Request,
+  Controller,
+  Response,
+} from '@tsoa/runtime'
 import { DeviceTokenRepository } from '@/infras/repositories'
 import ResponseData from '@/utils/data-types/response'
+import { 
+  RegisterTokenRequest, 
+  UnregisterTokenRequest,
+  NotificationErrorResponse
+} from './dto/notification.dto'
 
-class NotificationController {
-  private deviceTokenRepo: DeviceTokenRepository
+@Route("notifications")
+@Tags("Notifications")
+export class NotificationController extends Controller {
+  private deviceTokenRepo = new DeviceTokenRepository()
 
   constructor() {
-    this.deviceTokenRepo = new DeviceTokenRepository()
+    super()
   }
 
   /**
    * Register or update an FCM token for the current user
    */
-  async registerToken(req: Request, res: Response): Promise<void> {
+  @Post("tokens")
+  @Security("jwt")
+  @Response<NotificationErrorResponse>(400, "Bad Request")
+  @Response<NotificationErrorResponse>(500, "Internal Server Error")
+  public async registerToken(
+    @Body() body: RegisterTokenRequest,
+    @Request() req: any
+  ): Promise<ResponseData<any>> {
     try {
-      const customerId = (req as any).user?.customer?.customerId || (req as any).user?.customerId
-      const { fcmToken, platform } = req.body
+      const customerId = req.user?.customer?.customerId || req.user?.customerId
+      const { fcmToken, platform } = body
 
       if (!fcmToken) {
-        res.status(400).json(ResponseData.error(400, 'FCM token is required'))
-        return
+        this.setStatus(400)
+        return ResponseData.error(400, 'FCM_TOKEN_REQUIRED', 'FCM token is required') as any
       }
 
       const token = await this.deviceTokenRepo.upsertToken(customerId, fcmToken, platform)
 
-      res.status(200).json(new ResponseData(200, 'Token registered successfully', token))
+      this.setStatus(200)
+      return ResponseData.success(token)
     } catch (error: any) {
-      console.error('[NotificationController] Error registering token:', error)
-      res.status(500).json(ResponseData.error(500, error.message))
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 
   /**
    * Unregister an FCM token (e.g., on logout)
    */
-  async unregisterToken(req: Request, res: Response): Promise<void> {
+  @Post("tokens/unregister")
+  @Response<NotificationErrorResponse>(400, "Bad Request")
+  @Response<NotificationErrorResponse>(500, "Internal Server Error")
+  public async unregisterToken(
+    @Body() body: UnregisterTokenRequest
+  ): Promise<ResponseData<any>> {
     try {
-      const { fcmToken } = req.body
+      const { fcmToken } = body
 
       if (!fcmToken) {
-        res.status(400).json(ResponseData.error(400, 'FCM token is required'))
-        return
+        this.setStatus(400)
+        return ResponseData.error(400, 'FCM_TOKEN_REQUIRED', 'FCM token is required') as any
       }
 
       await this.deviceTokenRepo.deleteByToken(fcmToken)
 
-      res.status(200).json(new ResponseData(200, 'Token unregistered successfully'))
+      this.setStatus(200)
+      return ResponseData.success('Token unregistered successfully')
     } catch (error: any) {
-      console.error('[NotificationController] Error unregistering token:', error)
-      res.status(500).json(ResponseData.error(500, error.message))
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 
   /**
    * Get all registered tokens for the current user
    */
-  async getMyTokens(req: Request, res: Response): Promise<void> {
+  @Get("tokens")
+  @Security("jwt")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
+  public async getMyTokens(
+    @Request() req: any
+  ): Promise<ResponseData<any[]>> {
     try {
-      const customerId = (req as any).user?.customer?.customerId || (req as any).user?.customerId
+      const customerId = req.user?.customer?.customerId || req.user?.customerId
       const tokens = await this.deviceTokenRepo.findByCustomerId(customerId)
 
-      res.status(200).json(new ResponseData(200, 'Tokens retrieved successfully', tokens))
+      this.setStatus(200)
+      return ResponseData.success(tokens)
     } catch (error: any) {
-      console.error('[NotificationController] Error getting tokens:', error)
-      res.status(500).json(ResponseData.error(500, error.message))
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     }
   }
 }
-
-// Create and export controller instance
-export default new NotificationController()

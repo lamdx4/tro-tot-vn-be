@@ -34,7 +34,7 @@ export class FCMService {
             privateKey,
           }),
         })
-        console.log('[FCMService] Firebase Admin SDK initialized successfully')
+        console.log('[FCM] Firebase Admin SDK initialized successfully')
       }
     } catch (error) {
       console.error('[FCMService] Failed to initialize Firebase Admin SDK:', error)
