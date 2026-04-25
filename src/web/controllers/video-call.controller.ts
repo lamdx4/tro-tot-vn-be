@@ -2,7 +2,8 @@ import {
   Get, 
   Route, 
   Tags, 
-  Controller
+  Controller,
+  Response
 } from '@tsoa/runtime'
 import ResponseData from '@/utils/data-types/response'
 import { ConfigService } from '@/services/config.service'
@@ -23,6 +24,7 @@ export class VideoCallController extends Controller {
    * This is used by the frontend to establish peer-to-peer connections.
    */
   @Get("ice-config")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async getIceConfig(): Promise<ResponseData<IceConfigResponse>> {
     try {
       const iceServers = await this.buildIceServers()

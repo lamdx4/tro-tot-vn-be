@@ -6,7 +6,8 @@ import {
   Tags, 
   Query, 
   Controller,
-  SuccessResponse
+  SuccessResponse,
+  Response
 } from '@tsoa/runtime'
 import { searchService } from '../../services/search.service'
 import { 
@@ -29,6 +30,7 @@ export class SearchController extends Controller {
    * Hybrid vector search with filters and pagination
    */
   @Get("/")
+  @Response(500, "Internal Server Error")
   public async search(
     @Query() query: string,
     @Query() city?: string,
@@ -79,6 +81,8 @@ export class SearchController extends Controller {
    * Health check for search service
    */
   @Get("health")
+  @Response(500, "Internal Server Error")
+  @Response(503, "Service Unavailable")
   public async health(): Promise<SearchHealthResponse> {
     try {
       const isHealthy = await searchService.healthCheck()
@@ -108,6 +112,7 @@ export class SearchController extends Controller {
    * Submit user feedback on search quality
    */
   @Post("feedback")
+  @Response(500, "Internal Server Error")
   public async submitFeedback(
     @Body() body: SearchFeedbackRequest
   ): Promise<any> {
@@ -134,6 +139,7 @@ export class SearchController extends Controller {
    * Log user click on search result
    */
   @Post("click")
+  @Response(500, "Internal Server Error")
   public async logClick(
     @Body() body: SearchClickRequest
   ): Promise<any> {

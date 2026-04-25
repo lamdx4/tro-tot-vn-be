@@ -115,7 +115,7 @@ export class UserFactory {
   static async seedUsers(customerCount = 20, adminCount = 4): Promise<void> {
     const accountRepository = AppDataSource.getRepository(Account)
     if ((await accountRepository.count()) > 0) {
-      console.log('Users already seeded')
+      console.log('[Seed] Accounts already seeded')
       return
     }
 

@@ -12,6 +12,7 @@ import {
   Query,
   Path,
   Controller,
+  Response,
 } from '@tsoa/runtime'
 import { ChatService } from '@/services'
 import ResponseData from '@/utils/data-types/response'
@@ -32,18 +33,21 @@ export class ConversationController extends Controller {
    * Get all conversations for the current user
    */
   @Get()
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async getConversations(
     @Request() req: any,
     @Query() limit: number = 20,
     @Query() offset: number = 0
   ): Promise<ResponseData<ConversationDTO[]>> {
     try {
-      const userId = req.user?.customer?.customerId || req.user?.customerId || req.user?.userId
+      const userId = (req as any).user?.customer?.customerId || (req as any).user?.customerId || (req as any).user?.userId
       if (!userId) {
         this.setStatus(401)
         return ResponseData.unauthorized('User not authenticated') as any
       }
       const conversations = await this.chatService.getConversationsByCustomer(userId, limit, offset)
+      this.setStatus(200)
       return ResponseData.success(conversations)
     } catch (error: any) {
       this.setStatus(500)
@@ -55,6 +59,8 @@ export class ConversationController extends Controller {
    * Get conversation details by ID
    */
   @Get("{conversationId}")
+  @Response<ResponseData<any>>(404, "Not Found")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async getConversationById(
     @Path() conversationId: number
   ): Promise<ResponseData<ConversationDTO | null>> {
@@ -64,6 +70,7 @@ export class ConversationController extends Controller {
         this.setStatus(404)
         return ResponseData.notFound('Conversation not found') as any
       }
+      this.setStatus(200)
       return ResponseData.success(conversation)
     } catch (error: any) {
       this.setStatus(500)
@@ -76,17 +83,20 @@ export class ConversationController extends Controller {
    */
   @Post()
   @SuccessResponse("201", "Conversation created successfully")
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async createConversation(
     @Body() body: CreateConversationRequest,
     @Request() req: any
   ): Promise<ResponseData<ConversationDTO>> {
     try {
-      const userId = req.user?.customer?.customerId || req.user?.customerId || req.user?.userId
+      const userId = (req as any).user?.customer?.customerId || (req as any).user?.customerId || (req as any).user?.userId
       if (!userId) {
         this.setStatus(401)
         return ResponseData.unauthorized('User not authenticated') as any
       }
-      const conversation = await this.chatService.createConversation(body, userId)
+      const conversation = await this.chatService.createConversation(body as any, userId)
+      this.setStatus(201)
       return ResponseData.successWithCode(201, conversation)
     } catch (error: any) {
       this.setStatus(500)
@@ -99,12 +109,14 @@ export class ConversationController extends Controller {
    */
   @Post("{conversationId}/participants")
   @SuccessResponse("201", "Participant added successfully")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async addParticipant(
     @Path() conversationId: number,
     @Body() body: AddParticipantRequest
   ): Promise<ResponseData<ParticipantDTO>> {
     try {
-      const participant = await this.chatService.addParticipant(conversationId, body)
+      const participant = await this.chatService.addParticipant(conversationId, body as any)
+      this.setStatus(201)
       return ResponseData.successWithCode(201, participant)
     } catch (error: any) {
       this.setStatus(500)
@@ -117,6 +129,7 @@ export class ConversationController extends Controller {
    */
   @Delete("{conversationId}/participants/{customerId}")
   @SuccessResponse("204", "Participant removed successfully")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async removeParticipant(
     @Path() conversationId: number,
     @Path() customerId: number
@@ -126,7 +139,7 @@ export class ConversationController extends Controller {
       this.setStatus(204)
     } catch (error: any) {
       this.setStatus(500)
-      throw error // Let global error handler handle it, or return ResponseData if preferred
+      throw error 
     }
   }
 
@@ -134,11 +147,13 @@ export class ConversationController extends Controller {
    * Get all participants in a conversation
    */
   @Get("{conversationId}/participants")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async getParticipants(
     @Path() conversationId: number
   ): Promise<ResponseData<ParticipantDTO[]>> {
     try {
       const participants = await this.chatService.getConversationParticipants(conversationId)
+      this.setStatus(200)
       return ResponseData.success(participants)
     } catch (error: any) {
       this.setStatus(500)

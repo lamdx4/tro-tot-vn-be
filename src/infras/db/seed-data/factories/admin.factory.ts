@@ -67,8 +67,9 @@ export class ManagerFactory {
    */
   static async seedManager(): Promise<void> {
     const accountRepository = AppDataSource.getRepository(Account)
-    if ((await accountRepository.count()) > 0) {
-      console.log('Users already seeded')
+    const existing = await accountRepository.findOne({ where: { email: 'manager1@trotot.vn' } })
+    if (existing) {
+      console.log('[Seed] Manager account already seeded')
       return
     }
 

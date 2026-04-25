@@ -26,7 +26,7 @@ import { SocketConfig } from '@/infras/socket'
 async function startApp() {
   try {
     await AppDataSource.initialize()
-    console.log('Database connected')
+    console.log('[Database] Connected successfully')
   } catch (e) {
     console.error(e)
     process.exit(1)
@@ -34,6 +34,7 @@ async function startApp() {
 
   // Seed initial data
   try {
+    console.log('[Seed] Seeding initial data...')
     await seedData()
   } catch (e) {
     console.error('Seed data error:', e)
@@ -86,15 +87,20 @@ async function startApp() {
 
   // Register TSOA routes
   const { RegisterRoutes } = require('./src/web/routers/routes')
-  RegisterRoutes(app)
+  const apiRouter = express.Router()
+  RegisterRoutes(apiRouter)
+  app.use('/api', apiRouter)
 
   app.use('*', notFoundHandler)
 
   app.use(errorHandler)
 
   httpServer.listen(Number(process.env.PORT), '0.0.0.0', () => {
-    console.log(`Server is running on http://localhost:${process.env.PORT}`)
-    console.log(`WebSocket available at ws://localhost:${process.env.PORT}`)
+    console.log('\n---------------------------------------------------------')
+    console.log(`[Server] Running on http://localhost:${process.env.PORT}`)
+    console.log(`[Socket] WebSocket available at ws://localhost:${process.env.PORT}`)
+    console.log(`[Docs] API Reference available at http://localhost:${process.env.PORT}/api-docs`)
+    console.log('---------------------------------------------------------\n')
   })
 }
 startApp()

@@ -53,10 +53,10 @@ export class SocketConfig {
     // Set Socket.IO instance for VideoCallHandler to emit to user rooms
     this.videoCallHandler.setIO(this.io)
 
-    console.log('[SocketConfig] Initializing Socket.IO server...')
+    console.log('[Socket] Initializing server...')
     this.setupMiddleware()
     this.setupEventHandlers()
-    console.log('[SocketConfig] Socket.IO setup complete')
+    console.log('[Socket] Setup complete')
   }
 
   /**

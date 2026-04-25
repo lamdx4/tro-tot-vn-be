@@ -19,3 +19,24 @@ export interface RecommendHealthResponse {
   status: 'healthy' | 'unhealthy' | 'error'
   recommendService: 'connected' | 'disconnected'
 }
+
+/**
+ * Union type for all possible Recommendation error messages
+ */
+export type RecommendErrorMessage = 
+  | 'Page must be >= 1'
+  | 'PageSize must be between 1 and 50'
+  | 'No recommendation history yet. Browse some posts first!'
+  | 'Recommendation service is temporarily unavailable'
+  | 'recommendationLogId and recommendationLogItemId are required'
+  | 'Failed to get recommendations'
+  | 'Failed to log click'
+  | '';
+
+/**
+ * Error response structure for Recommendation API (Legacy format)
+ */
+export interface RecommendErrorResponse {
+  success: boolean;
+  message: RecommendErrorMessage;
+}

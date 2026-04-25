@@ -149,7 +149,8 @@ export class ChatService {
       updatedAt: conversation.updatedAt,
       participantCount: conversation.participants?.filter(p => !p.leftAt).length || 0,
       lastMessage: lastMessage?.content,
-      lastMessageAt: lastMessage?.createdAt
+      lastMessageAt: lastMessage?.createdAt,
+      participants: conversation.participants?.map(p => this.toParticipantDTO(p))
     }
   }
 
@@ -163,7 +164,10 @@ export class ChatService {
       customerId: participant.customerId,
       role: participant.role,
       joinedAt: participant.joinedAt,
-      leftAt: participant.leftAt
+      leftAt: participant.leftAt,
+      firstName: participant.customer?.firstName,
+      lastName: participant.customer?.lastName,
+      avatarId: participant.customer?.avatar
     }
   }
 }

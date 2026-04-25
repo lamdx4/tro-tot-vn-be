@@ -9,6 +9,8 @@ export class ConversationRepository extends BaseRepository<Conversation> {
   async findConversationsByUser(customerId: number, limit: number = 20, offset: number = 0) {
     return this.createQueryBuilder('conv')
       .leftJoinAndSelect('conv.participants', 'participant')
+      .leftJoinAndSelect('participant.customer', 'customer')
+      .leftJoinAndSelect('customer.avatarFile', 'avatarFile')
       .leftJoinAndSelect('conv.messages', 'message')
       .leftJoinAndSelect('conv.creator', 'creator')
       .where('participant.customerId = :customerId', { customerId })
@@ -56,6 +58,8 @@ export class ConversationRepository extends BaseRepository<Conversation> {
   async findById(conversationId: number) {
     return this.createQueryBuilder('conv')
       .leftJoinAndSelect('conv.participants', 'participant')
+      .leftJoinAndSelect('participant.customer', 'customer')
+      .leftJoinAndSelect('customer.avatarFile', 'avatarFile')
       .leftJoinAndSelect('conv.creator', 'creator')
       .where('conv.conversationId = :conversationId', { conversationId })
       .getOne()

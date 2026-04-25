@@ -5,7 +5,8 @@ import {
   Security, 
   Tags, 
   Controller,
-  Request
+  Request,
+  Response
 } from '@tsoa/runtime'
 import InteractionLogService from '../../services/interaction-log.service'
 import { ContactLogRequest } from './dto/interaction.dto'
@@ -13,6 +14,7 @@ import ResponseData from '@/utils/data-types/response'
 
 @Route("interactions")
 @Tags("Interaction")
+@Security("jwt")
 export class InteractionController extends Controller {
   private interactionLogService = InteractionLogService.gI()
 
@@ -25,7 +27,8 @@ export class InteractionController extends Controller {
    * This is used for tracking user interest and improving recommendations.
    */
   @Post("contact")
-  @Security("jwt")
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async logContact(
     @Body() body: ContactLogRequest,
     @Request() req: any

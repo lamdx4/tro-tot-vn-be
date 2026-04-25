@@ -15,11 +15,11 @@ export default class FileService {
       fileId: fileId
     })
     if (!fileIdInCloud) {
-      return Result.fail(404, 'File not found')
+      return Result.fail(404, 'FILE_NOT_FOUND')
     }
     const file = await this.ggloudService.downloadFileToStream(fileIdInCloud.fileCloudId)
     if (!file) {
-      return Result.fail(404, 'File not found')
+      return Result.fail(404, 'FILE_NOT_FOUND')
     }
     return Result.ok(file)
   }

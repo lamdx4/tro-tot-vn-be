@@ -5,10 +5,12 @@ import {
   Path, 
   Controller,
   Request,
-  Produces
+  Produces,
+  Response
 } from '@tsoa/runtime'
 import FileService from '@/services/file.service'
 import { Response as ExpressResponse } from 'express'
+import ResponseData from '@/utils/data-types/response'
 
 @Route("files")
 @Tags("Multimedia")
@@ -25,6 +27,8 @@ export class MultimediaController extends Controller {
    */
   @Get("{fileId}")
   @Produces("image/*")
+  @Response(404, "File Not Found")
+  @Response(500, "Internal Server Error")
   public async getFile(
     @Path() fileId: number,
     @Request() req: any
@@ -33,22 +37,33 @@ export class MultimediaController extends Controller {
     try {
       const r = await this.fileService.getFile(fileId)
       if (r.isSuccess) {
-        res.setHeader('Content-Type', r.getValue()!.metaData ?? 'application/octet-stream')
-        r.getValue()!.data.pipe(res)
+        const streamData = r.getValue()!
+        res.setHeader('Content-Type', streamData.metaData ?? 'application/octet-stream')
+        
+        await new Promise<void>((resolve, reject) => {
+          streamData.data.pipe(res)
+          streamData.data.on('end', () => {
+            res.end()
+            resolve()
+          })
+          streamData.data.on('error', (err: any) => {
+            reject(err)
+          })
+        })
         return
       }
       
+      if (r.code === 404) {
+        this.setStatus(404)
+        res.status(404).json(ResponseData.notFound('File not found'))
+        return
+      }
+
       this.setStatus(r.code)
-      res.status(r.code).json({
-        success: false,
-        message: r.error || 'File not found'
-      })
+      res.status(r.code).json(ResponseData.error(r.code, r.error ?? '', ''))
     } catch (error: any) {
       this.setStatus(500)
-      res.status(500).json({
-        success: false,
-        message: error.message || 'Internal server error'
-      })
+      res.status(500).json(ResponseData.error(500, 'Internal Server Error', error.message))
     }
   }
 }

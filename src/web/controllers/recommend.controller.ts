@@ -7,13 +7,15 @@ import {
   Query, 
   Controller,
   Security,
-  Request
+  Request,
+  Response
 } from '@tsoa/runtime'
 import { recommendService } from '../../services/recommend.service'
 import { 
   RecommendationResponse, 
   RecommendationClickRequest,
-  RecommendHealthResponse
+  RecommendHealthResponse,
+  RecommendErrorResponse
 } from './dto/recommend.dto'
 
 @Route("recommend")
@@ -29,6 +31,8 @@ export class RecommendController extends Controller {
    */
   @Get("/")
   @Security("jwt")
+  @Response<RecommendErrorResponse>(401, "Unauthorized")
+  @Response<RecommendErrorResponse>(500, "Internal Server Error")
   public async getRecommendations(
     @Request() req: any,
     @Query() page: number = 1,
@@ -93,6 +97,8 @@ export class RecommendController extends Controller {
    * Health check for recommend service
    */
   @Get("health")
+  @Response<RecommendErrorResponse>(500, "Internal Server Error")
+  @Response<RecommendErrorResponse>(503, "Service Unavailable")
   public async health(): Promise<RecommendHealthResponse> {
     try {
       const isHealthy = await recommendService.healthCheck()
@@ -123,6 +129,8 @@ export class RecommendController extends Controller {
    */
   @Post("click")
   @Security("jwt")
+  @Response<RecommendErrorResponse>(401, "Unauthorized")
+  @Response<RecommendErrorResponse>(500, "Internal Server Error")
   public async logClick(
     @Body() body: RecommendationClickRequest
   ): Promise<any> {

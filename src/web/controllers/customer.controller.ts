@@ -13,7 +13,8 @@ import {
   Path, 
   Controller,
   UploadedFile,
-  FormField
+  FormField,
+  Response
 } from '@tsoa/runtime'
 import { CustomerService } from '@/services/customer.service'
 import ResponseData from '@/utils/data-types/response'
@@ -24,7 +25,9 @@ import {
   RateResponse,
   SavePostRequest,
   CreateSubscriptionRequest,
-  SubscriptionResponse
+  SubscriptionResponse,
+  CustomerErrorResponse,
+  CustomerErrorMessage
 } from './dto/customer.dto'
 import { CursorPagingResponse } from './dto/post.dto'
 
@@ -41,6 +44,8 @@ export class CustomerController extends Controller {
    * Get public profile information for a customer
    */
   @Get("{customerId}/profile")
+  @Response<CustomerErrorResponse>(404, "Not Found")
+  @Response<CustomerErrorResponse>(500, "Internal Server Error")
   public async getInformation(
     @Path() customerId: number
   ): Promise<ResponseData<CustomerProfileResponse | any>> {
@@ -62,6 +67,8 @@ export class CustomerController extends Controller {
    */
   @Get("me")
   @Security("jwt")
+  @Response<CustomerErrorResponse>(401, "Unauthorized")
+  @Response<CustomerErrorResponse>(500, "Internal Server Error")
   public async getMyProfile(
     @Request() req: any
   ): Promise<ResponseData<CustomerProfileResponse | null>> {
@@ -84,6 +91,8 @@ export class CustomerController extends Controller {
    */
   @Post("me")
   @Security("jwt")
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async updateMyProfile(
     @Request() req: any,
     @UploadedFile() avatar?: Express.Multer.File,
@@ -120,10 +129,39 @@ export class CustomerController extends Controller {
   }
 
   /**
+   * Get the current user's rating for a specific post
+   */
+  @Get("posts/{postId}/rate")
+  @Security("jwt")
+  @Response<CustomerErrorResponse>(401, "Unauthorized")
+  @Response<CustomerErrorResponse>(404, "Not Found")
+  @Response<CustomerErrorResponse>(500, "Internal Server Error")
+  public async getMyRate(
+    @Path() postId: number,
+    @Request() req: any
+  ): Promise<ResponseData<any>> {
+    try {
+      const customerId = req.user?.customer?.customerId
+      const result = await this.customerService.getMyRateOnPost(customerId, postId)
+      if (result.isSuccess) {
+        return ResponseData.success(result.getValue())
+      }
+      this.setStatus(result.code)
+      return ResponseData.error(result.code, result.error ?? '', '') as any
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
+    }
+  }
+
+  /**
    * Add or update a rating for a post
    */
   @Post("posts/{postId}/rate")
   @Security("jwt")
+  @Response<CustomerErrorResponse>(401, "Unauthorized")
+  @Response<CustomerErrorResponse>(404, "Not Found")
+  @Response<CustomerErrorResponse>(500, "Internal Server Error")
   public async addRate(
     @Path() postId: number,
     @Body() body: RateRequest,
@@ -131,7 +169,7 @@ export class CustomerController extends Controller {
   ): Promise<ResponseData<any>> {
     try {
       const customerId = req.user?.customer?.customerId
-      const result = await this.customerService.addRate(customerId, postId, body.numStar, body.comment)
+      const result = await this.customerService.addRate(customerId, postId, body.numStar, body.comment ?? '')
       if (result.isSuccess) {
         return ResponseData.success(result.getValue())
       }
@@ -147,6 +185,8 @@ export class CustomerController extends Controller {
    * Get all ratings for a specific post (Paginated)
    */
   @Get("posts/{postId}/rates")
+  @Response<ResponseData<any>>(404, "Not Found")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async getRateFromPost(
     @Path() postId: number,
     @Query() cursor?: string,
@@ -178,6 +218,8 @@ export class CustomerController extends Controller {
    * Get avg rating and total count for a post
    */
   @Get("posts/{postId}/rate-avg")
+  @Response<ResponseData<any>>(404, "Not Found")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async getAvgRateFromPost(
     @Path() postId: number
   ): Promise<ResponseData<{ avgRate: number, countRate: number } | any>> {
@@ -197,15 +239,18 @@ export class CustomerController extends Controller {
   /**
    * Save a post to bookmarks
    */
-  @Post("saved-posts")
+  @Post("saved-posts/{postId}")
   @Security("jwt")
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(404, "Not Found")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async savePost(
-    @Body() body: SavePostRequest,
+    @Path() postId: number,
     @Request() req: any
   ): Promise<ResponseData<any>> {
     try {
       const customerId = req.user?.customer?.customerId
-      const result = await this.customerService.savePost(customerId, body.postId)
+      const result = await this.customerService.savePost(customerId, postId)
       if (result.isSuccess) {
         return ResponseData.success(result.getValue())
       }
@@ -222,6 +267,8 @@ export class CustomerController extends Controller {
    */
   @Get("saved-posts")
   @Security("jwt")
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async getSavedPost(
     @Request() req: any
   ): Promise<ResponseData<any[]>> {
@@ -244,6 +291,9 @@ export class CustomerController extends Controller {
    */
   @Delete("saved-posts/{postId}")
   @Security("jwt")
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(404, "Not Found")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async deleteSavedPost(
     @Path() postId: number,
     @Request() req: any
@@ -267,6 +317,8 @@ export class CustomerController extends Controller {
    */
   @Get("subscriptions")
   @Security("jwt")
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async getSubscription(
     @Request() req: any
   ): Promise<ResponseData<SubscriptionResponse[]>> {
@@ -289,6 +341,8 @@ export class CustomerController extends Controller {
    */
   @Post("subscriptions")
   @Security("jwt")
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async createSubscription(
     @Body() body: CreateSubscriptionRequest,
     @Request() req: any
@@ -312,6 +366,9 @@ export class CustomerController extends Controller {
    */
   @Delete("subscriptions/{subscriptionId}")
   @Security("jwt")
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(404, "Not Found")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async deleteSubscription(
     @Path() subscriptionId: number,
     @Request() req: any
@@ -335,6 +392,8 @@ export class CustomerController extends Controller {
    */
   @Get("view-history")
   @Security("jwt")
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async getHistoryViewPost(
     @Request() req: any
   ): Promise<ResponseData<any[]>> {

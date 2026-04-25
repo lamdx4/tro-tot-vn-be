@@ -23,14 +23,14 @@ export default class AuthService {
   async refreshToken(refreshToken: string) {
     const result = this.jwtService.verifyRefreshToken(refreshToken)
     if (!result.isSuccess) {
-      return Result.fail(401, 'Token is not valid')
+      return Result.fail(401, 'INVALID_TOKEN')
     }
     const account = await this.accountRepository.findOne({
       where: { accountId: result.getValue()!.accountId },
       relations: ['role', 'customer', 'admin']
     })
     if (!account) {
-      return Result.fail(401, 'Token is not valid')
+      return Result.fail(401, 'INVALID_TOKEN')
     }
     return Result.ok({
       accessToken: this.jwtService.generateAccessToken(Object.assign({}, account))
@@ -83,7 +83,7 @@ export default class AuthService {
     const remainingTime = await redisClient.ttl(key)
 
     if (remainingTime && remainingTime > 0) {
-      return Result.fail(429, `OTP đã được gửi. Vui lòng thử lại sau ${remainingTime} giây.`)
+      return Result.fail(429, 'OTP_SENT_RECENTLY')
     }
     // Tạo và lưu OTP mới (hiệu lực 5 phút)
     const otp = generateRandomNumber(6)
@@ -177,7 +177,7 @@ export default class AuthService {
       where: [{ phone: phone }, { email: email }]
     })
     if (existAccount) {
-      return Result.fail(409, 'User already exists')
+      return Result.fail(409, 'USER_ALREADY_EXISTS')
     }
 
     const createUser = this.accountRepository.createAccount(
@@ -196,7 +196,7 @@ export default class AuthService {
     if ((await createUser).isSuccess) {
       return Result.ok(true)
     } else {
-      return Result.fail(402, 'Roll Back Transaction')
+      return Result.fail(402, 'ROLLBACK_FAILED')
     }
   }
 
@@ -252,7 +252,7 @@ export default class AuthService {
       }
     })
     if (!account) {
-      throw new Error('Account not found')
+      return Result.fail(404, 'ACCOUNT_NOT_FOUND')
     }
     if (account.password !== password) {
       return Result.fail(401, 'PASSWORD_NOT_MATCH')

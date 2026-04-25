@@ -197,12 +197,12 @@ export default class PostService {
       const isSuccess = await this.postRepository.editPost(post, mediaFile)
       console.log(isSuccess)
       if (!isSuccess) {
-        return Result.fail(500, '"Uploaded failure"')
+        return Result.fail(500, 'UPLOAD_FAILED')
       }
-      return Result.ok('Upload successfully')
+      return Result.ok('UPLOAD_SUCCESS')
     } catch (e) {
       console.log(e)
-      return Result.fail(500, 'Uploaded failure')
+      return Result.fail(500, 'UPLOAD_FAILED')
     }
   }
 
@@ -300,7 +300,7 @@ export default class PostService {
       return Result.ok(posts)
     } catch (e) {
       console.log(e)
-      return Result.fail(500, 'Get post failure')
+      return Result.fail(500, 'FETCH_POSTS_FAILED')
     }
   }
 
@@ -357,7 +357,7 @@ export default class PostService {
         }
       })
       if (!post) {
-        return Result.fail(404, 'Post not found')
+        return Result.fail(404, 'POST_NOT_FOUND')
       }
 
       try {
@@ -407,7 +407,7 @@ export default class PostService {
       return Result.ok(post)
     } catch (e) {
       console.log(e)
-      return Result.fail(500, 'Get post failure')
+      return Result.fail(500, 'FETCH_POSTS_FAILED')
     }
   }
 
@@ -454,7 +454,7 @@ export default class PostService {
       return Result.ok(posts)
     } catch (e) {
       console.log(e)
-      return Result.fail(500, 'Get post failure')
+      return Result.fail(500, 'FETCH_POSTS_FAILED')
     }
   }
 
@@ -504,13 +504,13 @@ export default class PostService {
       post.acreage = Number(dto.acreage)
       post.aiModerationScore = moderationResult.prob_invalid
       await this.postRepository.createPost(post, mediaFile)
-      return Result.ok('Upload successfully')
+      return Result.ok('UPLOAD_SUCCESS')
     } catch (e) {
       console.log(e)
       for (const id of listId) {
         this.cloudService.delete(id.fileId)
       }
-      return Result.fail(500, 'Uploaded failure')
+      return Result.fail(500, 'UPLOAD_FAILED')
     }
   }
 }

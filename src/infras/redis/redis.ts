@@ -13,7 +13,7 @@ function getRedis(): Redis {
 
     // Listen for successful connection
     redis.on('connect', () => {
-      console.log('Successfully connected to Redis');
+      console.log('[Redis] Connected successfully');
     });
 
     // Listen for connection errors

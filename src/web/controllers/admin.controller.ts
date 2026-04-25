@@ -9,7 +9,8 @@ import {
   Query, 
   Path, 
   Controller,
-  Request
+  Request,
+  Response
 } from '@tsoa/runtime'
 import AdminService from '@/services/admin.service'
 import { 
@@ -21,7 +22,8 @@ import {
   AddModeratorRequest, 
   UpdateModeratorStatusRequest, 
   ModerationStatsResponse,
-  ModeratorSummary
+  ModeratorSummary,
+  AdminErrorResponse
 } from './dto/admin.dto'
 import ResponseData from '@/utils/data-types/response'
 
@@ -39,6 +41,8 @@ export class AdminController extends Controller {
    */
   @Get("dashboard-stats")
   @Security("jwt", ["Admin", "Manager"])
+  @Response<AdminErrorResponse>(401, "Unauthorized")
+  @Response<AdminErrorResponse>(500, "Internal Server Error")
   public async getStatisticsForDashBoard(): Promise<ResponseData<DashboardStatsResponse>> {
     const result = await this.adminService.getStatisticsForDashBoard()
     if (result.isSuccess) {
@@ -53,6 +57,9 @@ export class AdminController extends Controller {
    */
   @Put("moderators/{moderatorId}/reset-password")
   @Security("jwt", ["Manager"])
+  @Response<AdminErrorResponse>(401, "Unauthorized")
+  @Response<AdminErrorResponse>(404, "Not Found")
+  @Response<AdminErrorResponse>(500, "Internal Server Error")
   public async resetPasswordOfModerator(
     @Path() moderatorId: number
   ): Promise<ResponseData<string | any>> {
@@ -69,6 +76,8 @@ export class AdminController extends Controller {
    */
   @Get("posts/pending")
   @Security("jwt", ["Admin", "Manager"])
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async listPostPending(): Promise<ResponseData<any[]>> {
     const result = await this.adminService.listPostPending()
     if (result.isSuccess) {
@@ -83,11 +92,20 @@ export class AdminController extends Controller {
    */
   @Post("posts/{postId}/moderate")
   @Security("jwt", ["Admin", "Manager"])
+  @Response<AdminErrorResponse>(401, "Unauthorized")
+  @Response<AdminErrorResponse>(404, "Not Found")
+  @Response<AdminErrorResponse>(500, "Internal Server Error")
   public async moderatePost(
     @Path() postId: number,
     @Body() body: ModeratePostRequest,
     @Request() req: any
   ): Promise<ResponseData<any>> {
+    // Legacy validation: Reason required if Rejected
+    if (body.actionType === 'Rejected' && (!body.reason || body.reason.trim() === '')) {
+      this.setStatus(400)
+      return ResponseData.error(400, 'REJECTION_REASON_REQUIRED', 'Rejection reason is required') as any
+    }
+
     const reviewerId = req.user?.admin?.adminId
     const result = await this.adminService.moderatePost(
       reviewerId,
@@ -108,6 +126,9 @@ export class AdminController extends Controller {
    */
   @Get("posts/{postId}/history")
   @Security("jwt", ["Admin", "Manager"])
+  @Response<AdminErrorResponse>(401, "Unauthorized")
+  @Response<AdminErrorResponse>(404, "Not Found")
+  @Response<AdminErrorResponse>(500, "Internal Server Error")
   public async getHistoryOfPost(
     @Path() postId: number
   ): Promise<ResponseData<PostModerationHistoryResponse[]>> {
@@ -124,6 +145,9 @@ export class AdminController extends Controller {
    */
   @Get("moderators/{moderatorId}/history")
   @Security("jwt", ["Manager"])
+  @Response<AdminErrorResponse>(401, "Unauthorized")
+  @Response<AdminErrorResponse>(404, "Not Found")
+  @Response<AdminErrorResponse>(500, "Internal Server Error")
   public async getHistoryByModeratorId(
     @Path() moderatorId: number
   ): Promise<ResponseData<ModeratorActionHistoryResponse[]>> {
@@ -140,6 +164,8 @@ export class AdminController extends Controller {
    */
   @Get("moderators")
   @Security("jwt", ["Manager"])
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async getModerators(
     @Query() key?: string
   ): Promise<ResponseData<ModeratorSummary[]>> {
@@ -156,6 +182,9 @@ export class AdminController extends Controller {
    */
   @Post("moderators")
   @Security("jwt", ["Manager"])
+  @Response<ResponseData<any>>(400, "Bad Request")
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async addModerators(
     @Body() body: AddModeratorRequest
   ): Promise<ResponseData<string | any>> {
@@ -179,6 +208,9 @@ export class AdminController extends Controller {
    */
   @Put("moderators/{moderatorId}/status")
   @Security("jwt", ["Manager"])
+  @Response<AdminErrorResponse>(401, "Unauthorized")
+  @Response<AdminErrorResponse>(404, "Not Found")
+  @Response<AdminErrorResponse>(500, "Internal Server Error")
   public async updateModerator(
     @Path() moderatorId: number,
     @Body() body: UpdateModeratorStatusRequest
@@ -196,6 +228,9 @@ export class AdminController extends Controller {
    */
   @Get("moderators/{moderatorId}/profile")
   @Security("jwt", ["Manager"])
+  @Response<AdminErrorResponse>(401, "Unauthorized")
+  @Response<AdminErrorResponse>(404, "Not Found")
+  @Response<AdminErrorResponse>(500, "Internal Server Error")
   public async getProfileModerator(
     @Path() moderatorId: number
   ): Promise<ResponseData<ModeratorProfileResponse>> {
@@ -212,6 +247,8 @@ export class AdminController extends Controller {
    */
   @Get("me/profile")
   @Security("jwt", ["Admin", "Manager"])
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async getMyProfile(
     @Request() req: any
   ): Promise<ResponseData<any>> {
@@ -229,6 +266,8 @@ export class AdminController extends Controller {
    */
   @Put("me/profile")
   @Security("jwt", ["Admin", "Manager"])
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async updateMyProfile(
     @Request() req: any,
     @Body() body: any
@@ -255,6 +294,8 @@ export class AdminController extends Controller {
    */
   @Get("moderation-stats")
   @Security("jwt", ["Admin", "Manager"])
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async getModerationStats(): Promise<ResponseData<ModerationStatsResponse>> {
     const result = await this.adminService.getModerationStats()
     if (result.isSuccess) {
@@ -269,6 +310,8 @@ export class AdminController extends Controller {
    */
   @Get("export-training-data")
   @Security("jwt", ["Admin", "Manager"])
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
   public async exportTrainingData(
     @Query() limit?: number
   ): Promise<ResponseData<any>> {
