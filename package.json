@@ -9,7 +9,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "build": "tsc && tsc-alias",
+    "build": "npm run tsoa:gen && tsc && tsc-alias",
     "lint": "eslint"
   },
   "author": "lamdx4",
