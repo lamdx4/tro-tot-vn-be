@@ -76,11 +76,12 @@ async function startApp() {
   // Scalar API Reference
   const { apiReference } = require('@scalar/express-api-reference')
 
+  const swaggerSpec = require('./docs/swagger.json')
   app.use(
     '/api-docs',
     apiReference({
       spec: {
-        url: '/swagger.json',
+        content: swaggerSpec,
       },
     })
   )

@@ -623,6 +623,10 @@
 						"type": "number",
 						"format": "double"
 					},
+					"fileId": {
+						"type": "number",
+						"format": "double"
+					},
 					"mimeType": {
 						"type": "string"
 					},

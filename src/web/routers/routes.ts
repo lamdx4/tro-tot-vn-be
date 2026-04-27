@@ -266,6 +266,7 @@ const models: TsoaRoute.Models = {
             "fileUrl": {"dataType":"string","required":true},
             "fileType": {"dataType":"string","required":true},
             "fileSize": {"dataType":"double"},
+            "fileId": {"dataType":"double"},
             "mimeType": {"dataType":"string"},
             "cloudFileId": {"dataType":"string"},
             "createdAt": {"dataType":"datetime","required":true},
