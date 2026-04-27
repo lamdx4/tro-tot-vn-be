@@ -20,20 +20,18 @@ jobs:
             echo "--- Bắt đầu Workflow Deploy ---"
 
             # 1. Điều hướng vào thư mục root của dự án
-            cd ~/projects/tro-tot-vn
+            cd ~/projects/tro-tot-vn          
 
-            # 2. Cập nhật code mới nhất từ Git
-            git pull origin main
-
-            # 3. Di chuyển vào thư mục backend và build lại container
+            # 2. Di chuyển vào thư mục backend và build lại container
             # (Lưu ý: dùng file compose tại infras/compose/)
             cd tro-tot-vn-be
+            git pull origin
 
             echo "--- Đang build và restart container backend ---"
             docker compose -f ../infras/compose/docker-compose.dev.yaml build backend
             docker compose -f ../infras/compose/docker-compose.dev.yaml up -d backend
 
-            # 4. Dọn dẹp các ảnh cũ để tiết kiệm dung lượng server
+            # 3. Dọn dẹp các ảnh cũ để tiết kiệm dung lượng server
             docker image prune -f
 
             echo "--- Deploy hoàn tất thành công! ---"
