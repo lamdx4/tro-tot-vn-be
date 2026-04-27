@@ -38,6 +38,7 @@ RUN addgroup -g 1001 -S nodejs && \
 
 # Copy only the compiled code and production dependencies from the builder
 COPY --from=builder --chown=nodeuser:nodejs /app/dist ./dist
+COPY --from=builder --chown=nodeuser:nodejs /app/docs ./docs
 COPY --from=builder --chown=nodeuser:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodeuser:nodejs /app/package.json ./
 COPY --from=builder --chown=nodeuser:nodejs /app/.env* ./

@@ -70,7 +70,7 @@ async function startApp() {
   const path = require('path')
 
   app.get('/swagger.json', (req, res) => {
-    res.sendFile(path.join(__dirname, 'docs', 'swagger.json'))
+    res.sendFile(path.join(process.cwd(), 'docs', 'swagger.json'))
   })
 
   // Scalar API Reference
