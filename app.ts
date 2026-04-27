@@ -69,14 +69,13 @@ async function startApp() {
   app.use('/tests', express.static('tests'))
   const path = require('path')
 
-  app.get('/swagger.json', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'docs', 'swagger.json'))
-  })
-
   // Scalar API Reference
   const { apiReference } = require('@scalar/express-api-reference')
 
-  const swaggerSpec = require('./docs/swagger.json')
+  // Load Swagger Spec
+  const fs = require('fs')
+  const swaggerSpec = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'docs', 'swagger.json'), 'utf8'))
+
   app.use(
     '/api-docs',
     apiReference({
