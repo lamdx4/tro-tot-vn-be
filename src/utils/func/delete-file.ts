@@ -33,4 +33,27 @@ const deleteFileFromDisk2 = (files: { [fieldname: string]: Express.Multer.File[]
     }
   }
 }
-export { deleteFileFromDisk, deleteFileFromDisk2 }
+const cleanupFiles = (req: any) => {
+  try {
+    // Handle single file (req.file)
+    if (req.file && req.file.path) {
+      deleteFile(req.file.path)
+    }
+    // Handle multiple files (req.files)
+    if (req.files) {
+      if (Array.isArray(req.files)) {
+        req.files.forEach((f: any) => f.path && deleteFile(f.path))
+      } else {
+        Object.values(req.files).forEach((fileArray: any) => {
+          if (Array.isArray(fileArray)) {
+            fileArray.forEach((f: any) => f.path && deleteFile(f.path))
+          }
+        })
+      }
+    }
+  } catch (err) {
+    console.error('❌ Lỗi khi dọn dẹp file tạm:', err)
+  }
+}
+
+export { deleteFileFromDisk, deleteFileFromDisk2, cleanupFiles }

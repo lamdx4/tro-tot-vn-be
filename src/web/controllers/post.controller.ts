@@ -18,7 +18,7 @@ import {
 } from '@tsoa/runtime'
 import PostService from '@/services/post.service'
 import ResponseData from '@/utils/data-types/response'
-import { deleteFileFromDisk, deleteFileFromDisk2 } from '@/utils/func/delete-file'
+import { cleanupFiles } from '@/utils/func/delete-file'
 import { CursorPaging } from '@/utils/data-types/paging-response'
 import { 
   HidePostRequest,
@@ -106,7 +106,7 @@ export class PostController extends Controller {
       this.setStatus(500)
       return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     } finally {
-      deleteFileFromDisk(req.files as any)
+      cleanupFiles(req)
     }
   }
 
@@ -181,7 +181,7 @@ export class PostController extends Controller {
       this.setStatus(500)
       return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
     } finally {
-      deleteFileFromDisk2(req.files as any)
+      cleanupFiles(req)
     }
   }
 

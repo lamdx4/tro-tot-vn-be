@@ -27,6 +27,7 @@ import ResponseData from '@/utils/data-types/response'
 import path from 'path'
 import { MessageDTO } from '@/utils/types/chat.types'
 import { FileValidator } from '@/utils/validators/file.validator'
+import { cleanupFiles } from '@/utils/func/delete-file'
 
 @Route("chat")
 @Tags("Chat Messages")
@@ -275,8 +276,7 @@ export class MessageController extends Controller {
       this.setStatus(500)
       return ResponseData.error(500, 'FILE_UPLOAD_ERROR', error.message) as any
     } finally {
-      const { deleteFileFromDisk2 } = require('@/utils/func/delete-file')
-      deleteFileFromDisk2(req.files as any)
+      cleanupFiles(req)
     }
   }
 

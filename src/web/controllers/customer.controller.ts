@@ -18,6 +18,7 @@ import {
 } from '@tsoa/runtime'
 import { CustomerService } from '@/services/customer.service'
 import ResponseData from '@/utils/data-types/response'
+import { cleanupFiles } from '@/utils/func/delete-file'
 import { 
   CustomerProfileResponse, 
   UpdateProfileRequest, 
@@ -125,6 +126,8 @@ export class CustomerController extends Controller {
     } catch (error: any) {
       this.setStatus(500)
       return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
+    } finally {
+      cleanupFiles(req)
     }
   }
 
