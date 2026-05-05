@@ -9,7 +9,7 @@ export class ConversationRepository extends BaseRepository<Conversation> {
   async findConversationsByUser(customerId: number, limit: number = 20, offset: number = 0) {
     // 1. Get conversation IDs the user is part of
     const userConvs = await this.createQueryBuilder('c')
-      .select('c.conversationId')
+      .select(['c.conversationId', 'c.updatedAt'])
       .innerJoin('c.participants', 'p')
       .where('p.customerId = :customerId', { customerId })
       .andWhere('p.leftAt IS NULL')
