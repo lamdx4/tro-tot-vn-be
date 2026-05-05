@@ -63,7 +63,7 @@ async function startApp() {
 
   app.use(express.json())
 
-  app.use(express.urlencoded({extended:true})) //*******
+  app.use(express.urlencoded({ extended: true })) //*******
 
   // Serve test files
   app.use('/tests', express.static('tests'))
@@ -88,15 +88,11 @@ async function startApp() {
     })
   )
 
-  // Configure Multer for TSOA
-  const multer = require('multer')
-  const upload = multer({ dest: 'uploads/' })
-  app.set('multer', upload)
-
   // Register TSOA routes
+  const { uploadConfig } = require('./src/infras/multer/multer-config')
   const { RegisterRoutes } = require('./src/web/routers/routes')
   const apiRouter = express.Router()
-  RegisterRoutes(apiRouter)
+  RegisterRoutes(apiRouter, { multer: uploadConfig })
   app.use('/api', apiRouter)
 
   app.use('*', notFoundHandler)
