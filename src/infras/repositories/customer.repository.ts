@@ -58,8 +58,19 @@ export class CustomerRepository extends BaseRepository<Customer> {
           email: data.email
         })
 
-        if (data.avatarFile && customer.avatarFile?.fileCloudId)
-          callbackRemoveOldAvatarFile(customer.avatarFile?.fileCloudId)
+        if (data.avatarFile && customer.avatarFile) {
+          const oldAvatarFileId = customer.avatarFile.fileId
+          const oldCloudId = customer.avatarFile.fileCloudId
+          
+          // Clear the reference first to avoid foreign key issues
+          await transactionalEntityManager.update(Customer, { customerId }, { avatar: undefined as any })
+          
+          // Delete the old MultimediaFile record
+          await transactionalEntityManager.delete(MultimediaFile, { fileId: oldAvatarFileId })
+          
+          // Delete from Drive
+          if (oldCloudId) await callbackRemoveOldAvatarFile(oldCloudId)
+        }
         return true
       })
     } catch (error) {

@@ -232,11 +232,11 @@ export class CustomerService {
 
     const data = { ...customer, posts }
 
-    if (!data) {
-      console.log(data)
-      return Result.fail(404, 'CUSTOMER_NOT_FOUND')
-    }
-    return Result.ok(data)
+    return Result.ok({
+      ...customer,
+      avatarUrl: customer?.avatar ? `/api/files/${customer.avatar}` : undefined,
+      posts
+    })
   }
 
   async getMyProfile(customerId: number) {
@@ -263,7 +263,10 @@ export class CustomerService {
     if (!customer) {
       return Result.fail(404, 'CUSTOMER_NOT_FOUND')
     }
-    return Result.ok(customer)
+    return Result.ok({
+      ...customer,
+      avatarUrl: customer?.avatar ? `/api/files/${customer.avatar}` : undefined
+    })
   }
 
   async savePost(customerId: number, postId: number) {

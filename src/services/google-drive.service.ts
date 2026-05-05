@@ -121,20 +121,16 @@ export default class CloudDriveService {
    */
   async uploadFile(file: Express.Multer.File): Promise<string | null> {
     try {
-      let passThroughStream: PassThrough | Readable
+      let mediaBody: Readable
 
       if (file.path) {
         const filePath = path.resolve(file.path)
         if (!fs.existsSync(filePath)) {
           return null
         }
-        const fileStream = createReadStream(filePath)
-        passThroughStream = new PassThrough()
-        fileStream.pipe(passThroughStream)
+        mediaBody = createReadStream(filePath)
       } else if (file.buffer) {
-        passThroughStream = new Readable()
-        passThroughStream.push(file.buffer)
-        passThroughStream.push(null)
+        mediaBody = Readable.from(file.buffer)
       } else {
         console.error('File has neither path nor buffer')
         return null
@@ -142,7 +138,7 @@ export default class CloudDriveService {
 
       const createResponse = await this.drive.files.create({
         requestBody: { name: file.originalname, mimeType: file.mimetype },
-        media: { body: passThroughStream, mimeType: file.mimetype }
+        media: { body: mediaBody, mimeType: file.mimetype }
       })
 
       const fileId = createResponse.data.id
@@ -180,27 +176,23 @@ export default class CloudDriveService {
     const listId = []
     try {
       for (const file of files) {
-        let passThroughStream: PassThrough | Readable
+        let mediaBody: Readable
 
         if (file.path) {
           const filePath = path.resolve(file.path)
           if (!fs.existsSync(filePath)) {
             continue
           }
-          const fileStream = createReadStream(filePath)
-          passThroughStream = new PassThrough()
-          fileStream.pipe(passThroughStream)
+          mediaBody = createReadStream(filePath)
         } else if (file.buffer) {
-          passThroughStream = new Readable()
-          passThroughStream.push(file.buffer)
-          passThroughStream.push(null)
+          mediaBody = Readable.from(file.buffer)
         } else {
           continue
         }
 
         const createResponse = await this.drive.files.create({
           requestBody: { name: file.originalname, mimeType: file.mimetype },
-          media: { body: passThroughStream, mimeType: file.mimetype }
+          media: { body: mediaBody, mimeType: file.mimetype }
         })
 
         const fileId = createResponse.data.id
