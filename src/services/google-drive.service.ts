@@ -171,9 +171,9 @@ export default class CloudDriveService {
 
   async uploadFiles(files: Express.Multer.File[]): Promise<
     | {
-        fileId: string
-        fileType: string
-      }[]
+      fileId: string
+      fileType: string
+    }[]
     | null
   > {
     console.log('Uploading files:', files)
