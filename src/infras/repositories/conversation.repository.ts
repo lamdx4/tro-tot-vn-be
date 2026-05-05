@@ -7,17 +7,29 @@ export class ConversationRepository extends BaseRepository<Conversation> {
   }
 
   async findConversationsByUser(customerId: number, limit: number = 20, offset: number = 0) {
+    // 1. Get conversation IDs the user is part of
+    const userConvs = await this.createQueryBuilder('c')
+      .select('c.conversationId')
+      .innerJoin('c.participants', 'p')
+      .where('p.customerId = :customerId', { customerId })
+      .andWhere('p.leftAt IS NULL')
+      .orderBy('c.updatedAt', 'DESC')
+      .skip(offset)
+      .take(limit)
+      .getMany()
+
+    if (userConvs.length === 0) return []
+
+    const convIds = userConvs.map(c => c.conversationId)
+
+    // 2. Fetch full data for those conversations (including ALL participants)
     return this.createQueryBuilder('conv')
       .leftJoinAndSelect('conv.participants', 'participant')
       .leftJoinAndSelect('participant.customer', 'customer')
-      .leftJoinAndSelect('customer.avatarFile', 'avatarFile')
       .leftJoinAndSelect('conv.messages', 'message')
       .leftJoinAndSelect('conv.creator', 'creator')
-      .where('participant.customerId = :customerId', { customerId })
-      .andWhere('participant.leftAt IS NULL')
+      .where('conv.conversationId IN (:...convIds)', { convIds })
       .orderBy('conv.updatedAt', 'DESC')
-      .skip(offset)
-      .take(limit)
       .getMany()
   }
 

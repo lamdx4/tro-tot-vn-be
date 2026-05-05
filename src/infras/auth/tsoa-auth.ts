@@ -15,10 +15,13 @@ export async function expressAuthentication(
 ): Promise<any> {
   if (securityName === 'jwt') {
     const authHeader = request.headers['authorization']
+    console.log('[Auth] Header received:', authHeader)
     const token =
       (authHeader && authHeader.startsWith('Bearer '))
         ? authHeader.split(' ')[1]
         : undefined
+
+    console.log('[Auth] Token extracted:', token)
 
     if (!token) {
       throw new Error('Token is required')

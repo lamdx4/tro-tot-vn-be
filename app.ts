@@ -82,6 +82,9 @@ async function startApp() {
       spec: {
         content: swaggerSpec,
       },
+      authentication: {
+        preferredSecurityScheme: 'jwt',
+      }
     })
   )
 
