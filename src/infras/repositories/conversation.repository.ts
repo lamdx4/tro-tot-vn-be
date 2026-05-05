@@ -22,12 +22,13 @@ export class ConversationRepository extends BaseRepository<Conversation> {
 
     const convIds = userConvs.map(c => c.conversationId)
 
-    // 2. Fetch full data for those conversations (including ALL participants)
+    // 2. Fetch full data for those conversations (including ALL participants and ONLY the LATEST message)
     return this.createQueryBuilder('conv')
       .leftJoinAndSelect('conv.participants', 'participant')
       .leftJoinAndSelect('participant.customer', 'customer')
-      .leftJoinAndSelect('conv.messages', 'message')
       .leftJoinAndSelect('conv.creator', 'creator')
+      // Join only the latest message
+      .leftJoinAndSelect('conv.messages', 'message', 'message.messageId = (SELECT TOP 1 m2.messageId FROM Message m2 WHERE m2.conversationId = conv.conversationId ORDER BY m2.createdAt DESC)')
       .where('conv.conversationId IN (:...convIds)', { convIds })
       .orderBy('conv.updatedAt', 'DESC')
       .getMany()
