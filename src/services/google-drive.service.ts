@@ -121,14 +121,24 @@ export default class CloudDriveService {
    */
   async uploadFile(file: Express.Multer.File): Promise<string | null> {
     try {
-      const filePath = path.resolve(file.path)
-      // Check if the file exists before attempting to upload
-      if (!fs.existsSync(filePath)) {
+      let passThroughStream: PassThrough | Readable
+
+      if (file.path) {
+        const filePath = path.resolve(file.path)
+        if (!fs.existsSync(filePath)) {
+          return null
+        }
+        const fileStream = createReadStream(filePath)
+        passThroughStream = new PassThrough()
+        fileStream.pipe(passThroughStream)
+      } else if (file.buffer) {
+        passThroughStream = new Readable()
+        passThroughStream.push(file.buffer)
+        passThroughStream.push(null)
+      } else {
+        console.error('File has neither path nor buffer')
         return null
       }
-      const fileStream = createReadStream(filePath)
-      const passThroughStream = new PassThrough()
-      fileStream.pipe(passThroughStream)
 
       const createResponse = await this.drive.files.create({
         requestBody: { name: file.originalname, mimeType: file.mimetype },
@@ -137,7 +147,7 @@ export default class CloudDriveService {
 
       const fileId = createResponse.data.id
       if (!fileId) {
-        throw new Error()
+        throw new Error('Failed to create file on Google Drive')
       }
       // Set file permissions for public access
       await this.drive.permissions.create({
@@ -170,14 +180,23 @@ export default class CloudDriveService {
     const listId = []
     try {
       for (const file of files) {
-        const filePath = path.resolve(file.path)
-        // Check if the file exists before attempting to upload
-        if (!fs.existsSync(filePath)) {
+        let passThroughStream: PassThrough | Readable
+
+        if (file.path) {
+          const filePath = path.resolve(file.path)
+          if (!fs.existsSync(filePath)) {
+            continue
+          }
+          const fileStream = createReadStream(filePath)
+          passThroughStream = new PassThrough()
+          fileStream.pipe(passThroughStream)
+        } else if (file.buffer) {
+          passThroughStream = new Readable()
+          passThroughStream.push(file.buffer)
+          passThroughStream.push(null)
+        } else {
           continue
         }
-        const fileStream = createReadStream(filePath)
-        const passThroughStream = new PassThrough()
-        fileStream.pipe(passThroughStream)
 
         const createResponse = await this.drive.files.create({
           requestBody: { name: file.originalname, mimeType: file.mimetype },
@@ -186,7 +205,7 @@ export default class CloudDriveService {
 
         const fileId = createResponse.data.id
         if (!fileId) {
-          throw new Error()
+          throw new Error('Failed to create file on Google Drive')
         }
         // Set file permissions for public access
         await this.drive.permissions.create({
