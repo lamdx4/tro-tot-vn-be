@@ -89,6 +89,7 @@ export interface AttachmentDTO {
   fileId?: number
   mimeType?: string
   cloudFileId?: string
+  fileId?: number
   createdAt: Date
 }
 
