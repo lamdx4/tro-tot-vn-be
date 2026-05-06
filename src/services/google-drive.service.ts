@@ -121,22 +121,31 @@ export default class CloudDriveService {
    */
   async uploadFile(file: Express.Multer.File): Promise<string | null> {
     try {
-      let mediaBody: Readable
+      if (!file.path && !file.buffer) {
+        console.error('[GoogleDriveService] File object is invalid: no path or buffer found')
+        return null
+      }
 
+      let mediaBody: Readable
       if (file.path) {
         const filePath = path.resolve(file.path)
+        console.log(`[GoogleDriveService] Attempting to upload from path: ${filePath}`)
+        
         if (fs.existsSync(filePath)) {
           mediaBody = createReadStream(filePath)
-        } else if (file.buffer) {
-          mediaBody = Readable.from(file.buffer)
         } else {
-          return null
+          console.error(`[GoogleDriveService] File NOT found at path: ${filePath}. Current directory: ${process.cwd()}`)
+          // Fallback to buffer only if path exists but file is missing (unlikely but safe)
+          if (file.buffer) {
+            console.log('[GoogleDriveService] Falling back to buffer because file at path was missing')
+            mediaBody = Readable.from(file.buffer)
+          } else {
+            return null
+          }
         }
-      } else if (file.buffer) {
-        mediaBody = Readable.from(file.buffer)
       } else {
-        console.error('File has neither path nor buffer')
-        return null
+        console.log('[GoogleDriveService] No path found, uploading directly from buffer')
+        mediaBody = Readable.from(file.buffer)
       }
 
       const createResponse = await this.drive.files.create({
