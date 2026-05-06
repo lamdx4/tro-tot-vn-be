@@ -89,8 +89,8 @@ async function startApp() {
   )
 
   // Register TSOA routes
-  const { uploadConfig } = require('./src/infras/multer/multer-config')
-  const { RegisterRoutes } = require('./src/web/routers/routes')
+  const { uploadConfig } = await import('./src/infras/multer/multer-config')
+  const { RegisterRoutes } = await import('./src/web/routers/routes')
   const apiRouter = express.Router()
   RegisterRoutes(apiRouter, { multer: uploadConfig })
   app.use('/api', apiRouter)

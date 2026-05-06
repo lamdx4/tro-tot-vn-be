@@ -125,10 +125,13 @@ export default class CloudDriveService {
 
       if (file.path) {
         const filePath = path.resolve(file.path)
-        if (!fs.existsSync(filePath)) {
+        if (fs.existsSync(filePath)) {
+          mediaBody = createReadStream(filePath)
+        } else if (file.buffer) {
+          mediaBody = Readable.from(file.buffer)
+        } else {
           return null
         }
-        mediaBody = createReadStream(filePath)
       } else if (file.buffer) {
         mediaBody = Readable.from(file.buffer)
       } else {
@@ -180,10 +183,13 @@ export default class CloudDriveService {
 
         if (file.path) {
           const filePath = path.resolve(file.path)
-          if (!fs.existsSync(filePath)) {
+          if (fs.existsSync(filePath)) {
+            mediaBody = createReadStream(filePath)
+          } else if (file.buffer) {
+            mediaBody = Readable.from(file.buffer)
+          } else {
             continue
           }
-          mediaBody = createReadStream(filePath)
         } else if (file.buffer) {
           mediaBody = Readable.from(file.buffer)
         } else {
