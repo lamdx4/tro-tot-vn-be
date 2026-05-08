@@ -82,5 +82,16 @@ export class ConversationRepository extends BaseRepository<Conversation> {
     const conversation = this.create(data)
     return this.save(conversation)
   }
+
+  async getUserActiveConversationIds(customerId: number): Promise<number[]> {
+    const results = await this.createQueryBuilder('conv')
+      .select('conv.conversationId')
+      .innerJoin('conv.participants', 'p')
+      .where('p.customerId = :customerId', { customerId })
+      .andWhere('p.leftAt IS NULL')
+      .getRawMany()
+
+    return results.map(r => r.conv_conversationId)
+  }
 }
 

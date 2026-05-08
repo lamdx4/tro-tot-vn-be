@@ -49,4 +49,19 @@ export class MessageRepository extends BaseRepository<Message> {
       .where('msg.messageId = :messageId', { messageId })
       .getOne()
   }
+
+  async findMessagesSince(customerId: number, since: Date, limit: number = 100) {
+    return this.createQueryBuilder('msg')
+      .innerJoin('msg.conversation', 'conv')
+      .innerJoin('conv.participants', 'p')
+      .leftJoinAndSelect('msg.sender', 'sender')
+      .leftJoinAndSelect('msg.attachments', 'attachments')
+      .where('p.customerId = :customerId', { customerId })
+      .andWhere('p.leftAt IS NULL')
+      .andWhere('msg.createdAt > :since', { since })
+      .andWhere('msg.deletedAt IS NULL')
+      .orderBy('msg.createdAt', 'ASC')
+      .take(limit)
+      .getMany()
+  }
 }

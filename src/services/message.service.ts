@@ -53,6 +53,14 @@ export class MessageService {
   }
 
   /**
+   * Get messages since a specific timestamp for a user across all conversations
+   */
+  async getMessagesSince(customerId: number, since: Date, limit: number = 100): Promise<MessageDTO[]> {
+    const messages = await this.messageRepo.findMessagesSince(customerId, since, limit)
+    return messages.map(msg => this.toMessageDTO(msg))
+  }
+
+  /**
    * Get a single message by ID
    */
   async getMessageById(messageId: number): Promise<MessageDTO | null> {
