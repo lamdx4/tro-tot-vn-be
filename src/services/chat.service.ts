@@ -26,6 +26,13 @@ export class ChatService {
   }
 
   /**
+   * Get only conversation IDs for a customer (lightweight)
+   */
+  async getUserActiveConversationIds(customerId: number): Promise<number[]> {
+    return this.conversationRepo.getUserActiveConversationIds(customerId)
+  }
+
+  /**
    * Get a conversation by ID
    */
   async getConversationById(conversationId: number): Promise<ConversationDTO | null> {

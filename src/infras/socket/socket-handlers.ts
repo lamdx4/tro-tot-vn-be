@@ -41,13 +41,25 @@ export class SocketHandlers {
   /**
    * Handle user connection
    */
-  handleConnection(socket: Socket): void {
+  async handleConnection(socket: Socket): Promise<void> {
     const userId = socket.data.userId as string
 
     console.log(`[Socket] User connected: ${userId}`)
 
     // Join user's personal room
     socket.join(`user:${userId}`)
+
+    // Auto-join all conversation rooms for this user
+    try {
+      const convIds = await this.chatService.getUserActiveConversationIds(Number(userId))
+      if (convIds && convIds.length > 0) {
+        const rooms = convIds.map(id => `conversation:${id}`)
+        socket.join(rooms)
+        console.log(`[Socket] User ${userId} joined ${convIds.length} conversation rooms`)
+      }
+    } catch (error) {
+      console.error(`[Socket] Error auto-joining rooms for user ${userId}:`, error)
+    }
 
     // Emit online status
     socket.broadcast.emit(SOCKET_EVENTS.USER_ONLINE, {

@@ -14,7 +14,7 @@ import {
   Controller,
   Response,
 } from '@tsoa/runtime'
-import { ChatService } from '@/services'
+import { ChatService, MessageService } from '@/services'
 import ResponseData from '@/utils/data-types/response'
 import { CreateConversationRequest, AddParticipantRequest } from './dto/chat.dto'
 import { ConversationDTO, ParticipantDTO } from '@/utils/types/chat.types'
@@ -24,9 +24,44 @@ import { ConversationDTO, ParticipantDTO } from '@/utils/types/chat.types'
 @Security("jwt")
 export class ConversationController extends Controller {
   private chatService = new ChatService()
+  private messageService = new MessageService()
 
   constructor() {
     super()
+  }
+
+  /**
+   * Sync missed messages since a timestamp across all conversations
+   */
+  @Get("sync")
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
+  public async syncMessages(
+    @Request() req: any,
+    @Query() since: string,
+    @Query() limit: number = 100
+  ): Promise<ResponseData<import('@/utils/types/chat.types').MessageDTO[]>> {
+    try {
+      const userId = (req as any).user?.customer?.customerId || (req as any).user?.customerId || (req as any).user?.userId
+      if (!userId) {
+        this.setStatus(401)
+        return ResponseData.unauthorized('User not authenticated') as any
+      }
+
+      const sinceDate = new Date(since)
+      if (isNaN(sinceDate.getTime())) {
+        this.setStatus(400)
+        return ResponseData.error(400, 'Invalid timestamp format', 'INVALID_TIMESTAMP') as any
+      }
+
+      const messages = await this.messageService.getMessagesSince(userId, sinceDate, limit)
+      this.setStatus(200)
+      return ResponseData.success(messages)
+    } catch (error: any) {
+      console.error('[ConversationController] Sync error:', error)
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
+    }
   }
 
   /**
