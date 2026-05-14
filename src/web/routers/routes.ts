@@ -266,9 +266,9 @@ const models: TsoaRoute.Models = {
             "fileUrl": {"dataType":"string","required":true},
             "fileType": {"dataType":"string","required":true},
             "fileSize": {"dataType":"double"},
-            "fileId": {"dataType":"double"},
             "mimeType": {"dataType":"string"},
             "cloudFileId": {"dataType":"string"},
+            "fileId": {"dataType":"double"},
             "createdAt": {"dataType":"datetime","required":true},
         },
         "additionalProperties": false,
@@ -2500,6 +2500,39 @@ export function RegisterRoutes(app: Router,opts?:{multer?:ReturnType<typeof mult
 
               await templateService.apiHandler({
                 methodName: 'getHistoryViewPost',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsConversationController_syncMessages: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                since: {"in":"query","name":"since","required":true,"dataType":"string"},
+                limit: {"default":100,"in":"query","name":"limit","dataType":"double"},
+        };
+        app.get('/conversations/sync',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(ConversationController)),
+            ...(fetchMiddlewares<RequestHandler>(ConversationController.prototype.syncMessages)),
+
+            async function ConversationController_syncMessages(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsConversationController_syncMessages, request, response });
+
+                const controller = new ConversationController();
+
+              await templateService.apiHandler({
+                methodName: 'syncMessages',
                 controller,
                 response,
                 next,

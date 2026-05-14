@@ -52,17 +52,31 @@ export class NotificationService {
     
     // 1. Get all registered tokens for user
     const dbTokens = await this.deviceTokenRepo.findByCustomerId(Number(userId))
+    console.log(`[NotificationService] Found ${dbTokens.length} tokens in DB for user ${userId}`)
     if (dbTokens.length === 0) return
 
     const allTokens = dbTokens.map(t => t.fcmToken)
 
     // 2. Filter out tokens that have active Socket connections (Using Device-level mapping)
     const offlineTokens = await this.filterOfflineTokens(strUserId, allTokens)
-    if (offlineTokens.length === 0) return
+    console.log(`[NotificationService] User ${userId}: AllTokens=[${allTokens.length}], OfflineTokens=[${offlineTokens.length}]`)
+    
+    if (offlineTokens.length === 0) {
+      console.log(`[NotificationService] User ${userId} is considered fully ONLINE. Skipping FCM.`)
+      return
+    }
 
     // 3. Prepare FCM message
+    // Firebase data payload MUST be Record<string, string>
+    const stringData: Record<string, string> = {}
+    if (payload.data) {
+      Object.entries(payload.data).forEach(([key, value]) => {
+        stringData[key] = String(value)
+      })
+    }
+
     const message: any = {
-      data: payload.data,
+      data: stringData,
       android: {
         priority: payload.priority || 'normal',
       },
@@ -87,12 +101,20 @@ export class NotificationService {
     if (payload.androidTag) {
       message.android.notification = {
         tag: payload.androidTag,
-        clickAction: 'FLUTTER_NOTIFICATION_CLICK'
+        channelId: 'chat_channel', // Mandatory for Android 8.0+
+        clickAction: 'OPEN_CHAT_ACTIVITY' // Generic action name
       }
     }
 
     // 4. Send via FCMService
+    console.log(`[NotificationService] Sending FCM to ${offlineTokens.length} tokens...`)
     const response = await this.fcmService.sendMulticast(offlineTokens, message)
+
+    if (response) {
+      console.log(`[NotificationService] FCM Result: Success=${response.successCount}, Failure=${response.failureCount}`)
+    } else {
+      console.error(`[NotificationService] FCM Result: No response from FCMService`)
+    }
 
     // 5. Cleanup stale tokens if any
     if (response && response.failureCount > 0) {
@@ -108,15 +130,11 @@ export class NotificationService {
    */
   async notifyChatMessage(recipientId: number, data: any): Promise<void> {
     await this.notifyUser(recipientId, {
-      notification: {
-        title: 'Bạn có tin nhắn mới',
-        body: `${data.senderName}: ${data.content}`,
-      },
       data: {
-        type: 'CHAT_MESSAGE',
+        type: 'chat',
         ...data,
       },
-      androidTag: `chat_${data.conversationId}`,
+      priority: 'high',
     })
   }
 

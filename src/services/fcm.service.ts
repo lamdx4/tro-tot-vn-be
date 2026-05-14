@@ -1,5 +1,7 @@
 import * as admin from 'firebase-admin'
 import { ConfigService } from './config.service'
+import * as path from 'path'
+import * as fs from 'fs'
 
 /**
  * FCMService - Infrastructure layer for Firebase Cloud Messaging
@@ -21,12 +23,33 @@ export class FCMService {
    * Initialize Firebase Admin SDK
    */
   private initializeFirebase(): void {
+    if (admin.apps.length) return
+
     try {
+      // 1. Ưu tiên load từ file JSON nếu được cấu hình
+      const jsonPath = this.config.get('FIREBASE_SERVICE_ACCOUNT_PATH')
+      const absolutePath = jsonPath ? path.resolve(process.cwd(), jsonPath) : null
+
+      if (absolutePath && fs.existsSync(absolutePath)) {
+        admin.initializeApp({
+          credential: admin.credential.cert(absolutePath),
+        })
+        console.log(`[FCM] Initialized successfully using JSON file at: ${absolutePath}`)
+        return
+      }
+
+      // 2. Fallback: Load từ các biến ENV cá lẻ
       const projectId = this.config.get('FIREBASE_PROJECT_ID')
       const clientEmail = this.config.get('FIREBASE_CLIENT_EMAIL')
-      const privateKey = this.config.get('FIREBASE_PRIVATE_KEY').replace(/\\n/g, '\n')
+      let privateKey = this.config.get('FIREBASE_PRIVATE_KEY')
 
-      if (!admin.apps.length) {
+      if (projectId && clientEmail && privateKey) {
+        // Làm sạch Private Key (Xử lý lỗi JWT Signature)
+        privateKey = privateKey.replace(/\\n/g, '\n')
+        if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+          privateKey = privateKey.substring(1, privateKey.length - 1)
+        }
+
         admin.initializeApp({
           credential: admin.credential.cert({
             projectId,
@@ -34,26 +57,23 @@ export class FCMService {
             privateKey,
           }),
         })
-        console.log('[FCM] Firebase Admin SDK initialized successfully')
+        console.log('[FCM] Initialized successfully using individual ENV variables')
+      } else {
+        console.warn('[FCM] Skipping initialization: No Firebase credentials provided')
       }
     } catch (error) {
-      console.error('[FCMService] Failed to initialize Firebase Admin SDK:', error)
+      console.error('[FCMService] Initialization failed:', error)
     }
   }
 
   /**
    * Send a multicast message to multiple tokens
-   * 
-   * @param tokens - Array of FCM tokens
-   * @param message - FCM multicast message object
    */
   async sendMulticast(
     tokens: string[],
     message: Omit<admin.messaging.MulticastMessage, 'tokens'>
   ): Promise<admin.messaging.BatchResponse | null> {
-    if (!tokens || tokens.length === 0) {
-      return null
-    }
+    if (!tokens || tokens.length === 0) return null
 
     try {
       const multicastMessage: admin.messaging.MulticastMessage = {
@@ -61,15 +81,16 @@ export class FCMService {
         tokens,
       }
 
+      // FCM v1 API - Send messages to multiple devices
       return await admin.messaging().sendEachForMulticast(multicastMessage)
     } catch (error) {
-      console.error('[FCMService] Error sending FCM notification:', error)
+      console.error('[FCMService] Error sending multicast notification:', error)
       return null
     }
   }
 
   /**
-   * Extract tokens that failed due to being invalid or not registered
+   * Extract invalid tokens from response
    */
   getInvalidTokens(tokens: string[], response: admin.messaging.BatchResponse): string[] {
     const invalidTokens: string[] = []

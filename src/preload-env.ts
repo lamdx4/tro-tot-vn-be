@@ -73,7 +73,5 @@ export const env = cleanEnv(process.env, {
   TURN_CREDENTIAL: str(),
 
   // Firebase
-  FIREBASE_PROJECT_ID: str(),
-  FIREBASE_CLIENT_EMAIL: str(),
-  FIREBASE_PRIVATE_KEY: str(),
+  FIREBASE_SERVICE_ACCOUNT_PATH: str(),
 })
