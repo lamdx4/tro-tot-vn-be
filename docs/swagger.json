@@ -623,15 +623,15 @@
 						"type": "number",
 						"format": "double"
 					},
-					"fileId": {
-						"type": "number",
-						"format": "double"
-					},
 					"mimeType": {
 						"type": "string"
 					},
 					"cloudFileId": {
 						"type": "string"
+					},
+					"fileId": {
+						"type": "number",
+						"format": "double"
 					},
 					"createdAt": {
 						"type": "string",
@@ -5461,6 +5461,72 @@
 					}
 				],
 				"parameters": []
+			}
+		},
+		"/conversations/sync": {
+			"get": {
+				"operationId": "SyncMessages",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any-Array_"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal Server Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "Sync missed messages since a timestamp across all conversations",
+				"tags": [
+					"Chat Conversations"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "since",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"default": 100,
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
 			}
 		},
 		"/conversations": {
