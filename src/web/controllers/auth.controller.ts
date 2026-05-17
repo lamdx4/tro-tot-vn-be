@@ -288,6 +288,12 @@ export class AuthController extends Controller {
 
   /**
    * Refresh access token
+   * 
+   * **Xác thực / Phân quyền - Mã lỗi tĩnh (401 Unauthorized):**
+   * - `ACCESS_TOKEN_EXPIRED`: Access token hết hạn (trả về từ các endpoint yêu cầu xác thực -> gọi API refresh này).
+   * - `INVALID_ACCESS_TOKEN`: Access token không hợp lệ/sai chữ ký (trả về từ các endpoint yêu cầu xác thực -> logout ngay).
+   * - `REF_TOKEN_EXPIRED`: Refresh token hết hạn (trả về từ API refresh này -> logout ngay).
+   * - `INVALID_REFRESH_TOKEN`: Refresh token không hợp lệ (trả về từ API refresh này -> logout ngay).
    */
   @Post("refresh-token")
   @Response<AuthErrorResponse>(401, "Unauthorized")
@@ -301,7 +307,7 @@ export class AuthController extends Controller {
       if (result.isSuccess) {
         return ResponseData.successWithCode(result.code, result.getValue())
       }
-      return ResponseData.error(result.code, 'INVALID_REFRESH_TOKEN', 'Invalid refresh token') as any
+      return ResponseData.error(result.code, result.error || 'INVALID_REFRESH_TOKEN', result.error === 'REF_TOKEN_EXPIRED' ? 'Refresh token has expired' : 'Invalid refresh token') as any
     } catch (error: any) {
       this.setStatus(500)
       return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', 'Something went wrong') as any

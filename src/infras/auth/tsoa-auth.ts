@@ -32,9 +32,9 @@ export async function expressAuthentication(
 
     if (!result.isValid) {
       if (result.isExpired) {
-        throw { status: 401, message: 'Token has expired' }
+        throw { status: 401, message: 'ACCESS_TOKEN_EXPIRED' }
       }
-      throw { status: 401, message: 'Invalid token' }
+      throw { status: 401, message: 'INVALID_ACCESS_TOKEN' }
     }
 
     const payload = result.payload

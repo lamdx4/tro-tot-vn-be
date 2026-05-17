@@ -110,6 +110,9 @@ export default class JWTService {
       return Result.ok(payload as Account)
     } catch (error) {
       console.log(error)
+      if (error instanceof TokenExpiredError) {
+        return Result.fail(401, 'REF_TOKEN_EXPIRED')
+      }
       return Result.fail(401, 'INVALID_REFRESH_TOKEN')
     }
   }

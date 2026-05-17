@@ -23,7 +23,7 @@ export default class AuthService {
   async refreshToken(refreshToken: string) {
     const result = this.jwtService.verifyRefreshToken(refreshToken)
     if (!result.isSuccess) {
-      return Result.fail(401, 'INVALID_TOKEN')
+      return Result.fail(401, result.error ?? 'INVALID_TOKEN')
     }
     const account = await this.accountRepository.findOne({
       where: { accountId: result.getValue()!.accountId },
