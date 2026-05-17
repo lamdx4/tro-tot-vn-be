@@ -32,7 +32,7 @@ export async function expressAuthentication(
 
     if (!result.isValid) {
       if (result.isExpired) {
-        throw { status: 403, message: 'Token has expired' }
+        throw { status: 401, message: 'Token has expired' }
       }
       throw { status: 401, message: 'Invalid token' }
     }
