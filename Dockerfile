@@ -42,6 +42,8 @@ COPY --from=builder --chown=nodeuser:nodejs /app/docs ./docs
 COPY --from=builder --chown=nodeuser:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodeuser:nodejs /app/package.json ./
 COPY --from=builder --chown=nodeuser:nodejs /app/.env* ./
+COPY --from=builder --chown=nodeuser:nodejs /app/trot-tot-firebase-adminsdk*.json ./
+
 
 # Create uploads directory for user files
 RUN mkdir -p uploads && chown nodeuser:nodejs uploads
