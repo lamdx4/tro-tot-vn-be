@@ -26,40 +26,36 @@ export class FCMService {
     if (admin.apps.length) return
 
     try {
-      // 1. Ưu tiên load từ file JSON nếu được cấu hình
       const jsonPath = this.config.get('FIREBASE_SERVICE_ACCOUNT_PATH')
-      const absolutePath = jsonPath ? path.resolve(process.cwd(), jsonPath) : null
+      if (!jsonPath) {
+        console.error('[FCM] FIREBASE_SERVICE_ACCOUNT_PATH is not configured in environment variables')
+        return
+      }
+
+      // Xác định đường dẫn tuyệt đối
+      let absolutePath = path.isAbsolute(jsonPath) ? jsonPath : null
+
+      if (!absolutePath) {
+        // Thử tìm tương đối so với process.cwd()
+        const path1 = path.resolve(process.cwd(), jsonPath)
+        if (fs.existsSync(path1)) {
+          absolutePath = path1
+        } else {
+          // Thử tìm tương đối so với thư mục chứa code hiện tại (__dirname là src/services/ nên lùi 2 cấp về root)
+          const path2 = path.resolve(__dirname, '../../', jsonPath)
+          if (fs.existsSync(path2)) {
+            absolutePath = path2
+          }
+        }
+      }
 
       if (absolutePath && fs.existsSync(absolutePath)) {
         admin.initializeApp({
           credential: admin.credential.cert(absolutePath),
         })
         console.log(`[FCM] Initialized successfully using JSON file at: ${absolutePath}`)
-        return
-      }
-
-      // 2. Fallback: Load từ các biến ENV cá lẻ
-      const projectId = this.config.get('FIREBASE_PROJECT_ID')
-      const clientEmail = this.config.get('FIREBASE_CLIENT_EMAIL')
-      let privateKey = this.config.get('FIREBASE_PRIVATE_KEY')
-
-      if (projectId && clientEmail && privateKey) {
-        // Làm sạch Private Key (Xử lý lỗi JWT Signature)
-        privateKey = privateKey.replace(/\\n/g, '\n')
-        if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
-          privateKey = privateKey.substring(1, privateKey.length - 1)
-        }
-
-        admin.initializeApp({
-          credential: admin.credential.cert({
-            projectId,
-            clientEmail,
-            privateKey,
-          }),
-        })
-        console.log('[FCM] Initialized successfully using individual ENV variables')
       } else {
-        console.warn('[FCM] Skipping initialization: No Firebase credentials provided')
+        console.error(`[FCM] Service account file not found. Configured path was: "${jsonPath}". Searched locations: [${path.resolve(process.cwd(), jsonPath)}] and [${path.resolve(__dirname, '../../', jsonPath)}]`)
       }
     } catch (error) {
       console.error('[FCMService] Initialization failed:', error)
