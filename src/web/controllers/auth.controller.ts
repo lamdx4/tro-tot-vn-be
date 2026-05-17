@@ -288,6 +288,12 @@ export class AuthController extends Controller {
 
   /**
    * Refresh access token
+   * 
+   * **Xác thực / Phân quyền - Mã lỗi tĩnh (401 Unauthorized):**
+   * - `ACCESS_TOKEN_EXPIRED`: Access token hết hạn (trả về từ các endpoint yêu cầu xác thực -> gọi API refresh này).
+   * - `INVALID_ACCESS_TOKEN`: Access token không hợp lệ/sai chữ ký (trả về từ các endpoint yêu cầu xác thực -> logout ngay).
+   * - `REF_TOKEN_EXPIRED`: Refresh token hết hạn (trả về từ API refresh này -> logout ngay).
+   * - `INVALID_REFRESH_TOKEN`: Refresh token không hợp lệ (trả về từ API refresh này -> logout ngay).
    */
   @Post("refresh-token")
   @Response<AuthErrorResponse>(401, "Unauthorized")

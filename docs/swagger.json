@@ -6336,7 +6336,7 @@
 						}
 					}
 				},
-				"description": "Refresh access token",
+				"description": "Refresh access token\n\n**Xác thực / Phân quyền - Mã lỗi tĩnh (401 Unauthorized):**\n- `ACCESS_TOKEN_EXPIRED`: Access token hết hạn (trả về từ các endpoint yêu cầu xác thực -> gọi API refresh này).\n- `INVALID_ACCESS_TOKEN`: Access token không hợp lệ/sai chữ ký (trả về từ các endpoint yêu cầu xác thực -> logout ngay).\n- `REF_TOKEN_EXPIRED`: Refresh token hết hạn (trả về từ API refresh này -> logout ngay).\n- `INVALID_REFRESH_TOKEN`: Refresh token không hợp lệ (trả về từ API refresh này -> logout ngay).",
 				"tags": [
 					"Authentication"
 				],
