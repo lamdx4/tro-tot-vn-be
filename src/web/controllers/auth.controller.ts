@@ -301,7 +301,7 @@ export class AuthController extends Controller {
       if (result.isSuccess) {
         return ResponseData.successWithCode(result.code, result.getValue())
       }
-      return ResponseData.error(result.code, 'INVALID_REFRESH_TOKEN', 'Invalid refresh token') as any
+      return ResponseData.error(result.code, result.error || 'INVALID_REFRESH_TOKEN', result.error === 'REF_TOKEN_EXPIRED' ? 'Refresh token has expired' : 'Invalid refresh token') as any
     } catch (error: any) {
       this.setStatus(500)
       return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', 'Something went wrong') as any
