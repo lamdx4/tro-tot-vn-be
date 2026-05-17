@@ -31,7 +31,9 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
 
   // Handle other specific errors
   if (err.name === 'UnauthorizedError' || err.status === 401) {
-    res.status(401).json(new ResponseData(401, 'UNAUTHORIZED', [{ msg: err.message || 'Authentication error' }], null))
+    const errorMsg = err.message || 'Authentication error'
+    const mainMessage = (errorMsg === 'ACCESS_TOKEN_EXPIRED' || errorMsg === 'INVALID_ACCESS_TOKEN') ? errorMsg : 'UNAUTHORIZED'
+    res.status(401).json(new ResponseData(401, mainMessage, [{ msg: errorMsg }], null))
     return
   }
 
