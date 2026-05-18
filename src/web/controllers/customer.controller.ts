@@ -99,6 +99,8 @@ export class CustomerController extends Controller {
     @UploadedFile() avatar?: Express.Multer.File,
     @FormField() firstName?: string,
     @FormField() lastName?: string,
+    @FormField() email?: string,
+    @FormField() bio?: string,
     @FormField() gender?: string,
     @FormField() birthday?: string,
     @FormField() currentCity?: string,
@@ -110,8 +112,10 @@ export class CustomerController extends Controller {
       const dto = { 
         firstName, 
         lastName, 
+        email,
+        bio,
         gender, 
-        birthday, 
+        birthDate: birthday, 
         currentCity, 
         currentDistrict, 
         currentJob,
@@ -173,6 +177,32 @@ export class CustomerController extends Controller {
     try {
       const customerId = req.user?.customer?.customerId
       const result = await this.customerService.addRate(customerId, postId, body.numStar, body.comment ?? '')
+      if (result.isSuccess) {
+        return ResponseData.success(result.getValue())
+      }
+      this.setStatus(result.code)
+      return ResponseData.error(result.code, result.error ?? '', '') as any
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
+    }
+  }
+
+  /**
+   * Delete current user's rating on a post
+   */
+  @Delete("posts/{postId}/rate")
+  @Security("jwt")
+  @Response<CustomerErrorResponse>(401, "Unauthorized")
+  @Response<CustomerErrorResponse>(404, "Not Found")
+  @Response<CustomerErrorResponse>(500, "Internal Server Error")
+  public async deleteRate(
+    @Path() postId: number,
+    @Request() req: any
+  ): Promise<ResponseData<any>> {
+    try {
+      const customerId = req.user?.customer?.customerId
+      const result = await this.customerService.delMyRateOnPost(customerId, postId)
       if (result.isSuccess) {
         return ResponseData.success(result.getValue())
       }

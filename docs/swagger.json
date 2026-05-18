@@ -4780,6 +4780,12 @@
 									"lastName": {
 										"type": "string"
 									},
+									"email": {
+										"type": "string"
+									},
+									"bio": {
+										"type": "string"
+									},
 									"gender": {
 										"type": "string"
 									},
@@ -4942,6 +4948,71 @@
 						}
 					}
 				}
+			},
+			"delete": {
+				"operationId": "DeleteRate",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ResponseData_any_"
+								}
+							}
+						}
+					},
+					"401": {
+						"description": "Unauthorized",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CustomerErrorResponse"
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not Found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CustomerErrorResponse"
+								}
+							}
+						}
+					},
+					"500": {
+						"description": "Internal Server Error",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/CustomerErrorResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Delete current user's rating on a post",
+				"tags": [
+					"Customer"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "postId",
+						"required": true,
+						"schema": {
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
 			}
 		},
 		"/customer/posts/{postId}/rates": {

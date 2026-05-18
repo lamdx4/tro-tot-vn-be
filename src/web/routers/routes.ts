@@ -2123,6 +2123,8 @@ export function RegisterRoutes(app: Router,opts?:{multer?:ReturnType<typeof mult
                 avatar: {"in":"formData","name":"avatar","dataType":"file"},
                 firstName: {"in":"formData","name":"firstName","dataType":"string"},
                 lastName: {"in":"formData","name":"lastName","dataType":"string"},
+                email: {"in":"formData","name":"email","dataType":"string"},
+                bio: {"in":"formData","name":"bio","dataType":"string"},
                 gender: {"in":"formData","name":"gender","dataType":"string"},
                 birthday: {"in":"formData","name":"birthday","dataType":"string"},
                 currentCity: {"in":"formData","name":"currentCity","dataType":"string"},
@@ -2217,6 +2219,38 @@ export function RegisterRoutes(app: Router,opts?:{multer?:ReturnType<typeof mult
 
               await templateService.apiHandler({
                 methodName: 'addRate',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsCustomerController_deleteRate: Record<string, TsoaRoute.ParameterSchema> = {
+                postId: {"in":"path","name":"postId","required":true,"dataType":"double"},
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+        };
+        app.delete('/customer/posts/:postId/rate',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(CustomerController)),
+            ...(fetchMiddlewares<RequestHandler>(CustomerController.prototype.deleteRate)),
+
+            async function CustomerController_deleteRate(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsCustomerController_deleteRate, request, response });
+
+                const controller = new CustomerController();
+
+              await templateService.apiHandler({
+                methodName: 'deleteRate',
                 controller,
                 response,
                 next,

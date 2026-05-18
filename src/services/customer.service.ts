@@ -189,6 +189,15 @@ export class CustomerService {
     if (!customer) {
       return Result.fail(404, 'CUSTOMER_NOT_FOUND')
     }
+
+    // Merge / default fields to support partial updates safely
+    const emailToUpdate = data.email !== undefined ? data.email : customer.account.email
+    data.email = emailToUpdate
+    data.firstName = data.firstName !== undefined ? data.firstName : customer.firstName
+    data.lastName = data.lastName !== undefined ? data.lastName : customer.lastName
+    data.bio = data.bio !== undefined ? data.bio : customer.bio
+    data.gender = data.gender !== undefined ? data.gender : customer.gender
+
     if (customer.account.email !== data.email) {
       const account = await this.accountRepository.findOne({
         where: { email: data.email }
