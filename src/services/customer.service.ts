@@ -190,41 +190,38 @@ export class CustomerService {
       return Result.fail(404, 'CUSTOMER_NOT_FOUND')
     }
 
-    // Clean and validate email to handle undefined, null, empty strings, or string placeholders like "null"/"undefined"
-    const isValidEmail = data.email !== undefined && 
-                         data.email !== null && 
-                         data.email.trim() !== '' && 
-                         data.email !== 'null' && 
-                         data.email !== 'undefined';
-
-    const emailToUpdate = isValidEmail ? data.email.trim() : customer.account.email
-    data.email = emailToUpdate
-
-    const cleanString = (val: any, fallback: string) => {
-      if (val === undefined || val === null || val === 'null' || val === 'undefined') {
-        return fallback
-      }
-      return val
+    // Helper nội bộ làm sạch string an toàn, tránh crash và xử lý placeholder rác (Ý 2, 3, 4, 5)
+    const cleanString = (val: unknown, fallback: string): string => {
+      if (typeof val !== 'string') return fallback
+      const trimmed = val.trim()
+      return (trimmed === '' || trimmed === 'null' || trimmed === 'undefined') ? fallback : trimmed
     }
 
-    data.firstName = cleanString(data.firstName, customer.firstName)
-    data.lastName = cleanString(data.lastName, customer.lastName)
-    data.bio = cleanString(data.bio, customer.bio)
-    data.gender = cleanString(data.gender, customer.gender)
+    // Tạo payload mới để tránh side-effect Mutate trực tiếp DTO đầu vào (Ý 1)
+    const updatePayload = {
+      ...data,
+      email: cleanString(data.email, customer.account.email),
+      firstName: cleanString(data.firstName, customer.firstName),
+      lastName: cleanString(data.lastName, customer.lastName),
+      bio: cleanString(data.bio, customer.bio),
+      gender: cleanString(data.gender, customer.gender)
+    }
 
-    if (customer.account.email !== data.email) {
+    // Chỉ kiểm tra trùng lặp email khi email mới khác email hiện tại
+    if (customer.account.email !== updatePayload.email) {
       const account = await this.accountRepository.findOne({
-        where: { email: data.email }
+        where: { email: updatePayload.email }
       })
       if (account) {
         return Result.fail(400, 'EMAIL_ALREADY_EXISTS')
       }
     }
+
     const isSuccess = await this.customerRepository.updateProfile(
       customerId,
-      data,
+      updatePayload,
       () => {
-        if (data.avatarFile) return CloudDriveService.gI().uploadFile(data.avatarFile)
+        if (updatePayload.avatarFile) return CloudDriveService.gI().uploadFile(updatePayload.avatarFile)
         return Promise.resolve(null)
       },
       async (fileCloudId: string) => {
@@ -232,6 +229,7 @@ export class CustomerService {
         return Promise.resolve()
       }
     )
+
     if (!isSuccess) {
       return Result.fail(400, 'UPDATE_PROFILE_FAILED')
     }
