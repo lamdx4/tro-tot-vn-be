@@ -189,6 +189,29 @@ export class CustomerService {
     if (!customer) {
       return Result.fail(404, 'CUSTOMER_NOT_FOUND')
     }
+
+    // Clean and validate email to handle undefined, null, empty strings, or string placeholders like "null"/"undefined"
+    const isValidEmail = data.email !== undefined && 
+                         data.email !== null && 
+                         data.email.trim() !== '' && 
+                         data.email !== 'null' && 
+                         data.email !== 'undefined';
+
+    const emailToUpdate = isValidEmail ? data.email.trim() : customer.account.email
+    data.email = emailToUpdate
+
+    const cleanString = (val: any, fallback: string) => {
+      if (val === undefined || val === null || val === 'null' || val === 'undefined') {
+        return fallback
+      }
+      return val
+    }
+
+    data.firstName = cleanString(data.firstName, customer.firstName)
+    data.lastName = cleanString(data.lastName, customer.lastName)
+    data.bio = cleanString(data.bio, customer.bio)
+    data.gender = cleanString(data.gender, customer.gender)
+
     if (customer.account.email !== data.email) {
       const account = await this.accountRepository.findOne({
         where: { email: data.email }
