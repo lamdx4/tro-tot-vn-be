@@ -62,9 +62,6 @@ export class CustomerRepository extends BaseRepository<Customer> {
           const oldAvatarFileId = customer.avatarFile.fileId
           const oldCloudId = customer.avatarFile.fileCloudId
           
-          // Clear the reference first to avoid foreign key issues
-          await transactionalEntityManager.update(Customer, { customerId }, { avatar: undefined as any })
-          
           // Delete the old MultimediaFile record
           await transactionalEntityManager.delete(MultimediaFile, { fileId: oldAvatarFileId })
           
