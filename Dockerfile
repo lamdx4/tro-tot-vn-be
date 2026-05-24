@@ -1,7 +1,7 @@
 # ============================================
 # Stage 1: Builder
 # ============================================
-FROM node:20-alpine AS builder
+FROM node:24-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -23,7 +23,7 @@ RUN npm prune --omit=dev
 # ============================================
 # Stage 2: Runtime (Trọng lượng siêu nhẹ)
 # ============================================
-FROM node:20-alpine AS runner
+FROM node:24-bookworm-slim AS runner
 
 WORKDIR /app
 
@@ -31,10 +31,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # ---------------------------------------------------------
-# Security: Run as a non-root user
+# Security: Run as a non-root user (Debian syntax)
 # ---------------------------------------------------------
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodeuser -u 1001 -G nodejs
+RUN groupadd -g 1001 nodejs && \
+    useradd -u 1001 -g nodejs -s /bin/bash -m nodeuser
 
 # Copy only the compiled code and production dependencies from the builder
 COPY --from=builder --chown=nodeuser:nodejs /app/dist ./dist
