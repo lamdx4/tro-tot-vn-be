@@ -1,10 +1,11 @@
 import { Customer } from '@/domains/entities/customer.entity'
+import { DeviceToken } from '@/domains/entities/device-token.entity'
 import { PostStatus } from '@/domains/entities/enum/value-object'
 import { Post } from '@/domains/entities/post.entity'
 import { SubscriptionAreaPost } from '@/domains/entities/subscription-area-post.entity'
-import { MailService } from '@/services'
+import { MailService, FCMService } from '@/services'
 import { ConfigService } from '@/services/config.service'
-import { EntitySubscriberInterface, EventSubscriber, UpdateEvent } from 'typeorm'
+import { EntitySubscriberInterface, EventSubscriber, UpdateEvent, In } from 'typeorm'
 
 @EventSubscriber()
 export class CreateParticipantCustomerSubscriber implements EntitySubscriberInterface<Post> {
@@ -40,6 +41,7 @@ export class CreateParticipantCustomerSubscriber implements EntitySubscriberInte
             
             const mailService = new MailService()
             await mailService.createTransporter()
+            
             for (const subscription of subscriptions) {
               const customerRepository = event.manager.getRepository(Customer)
               const customer = await customerRepository.findOne({
@@ -73,6 +75,43 @@ export class CreateParticipantCustomerSubscriber implements EntitySubscriberInte
                 <p>Ngày đăng: ${post.createdAt}</p>`
                 })
                 console.log('send mail to', customer.account.email)
+
+                // Truy vấn danh sách token thiết bị đã đăng ký của khách hàng (FCM)
+                const deviceTokenRepository = event.manager.getRepository(DeviceToken)
+                const deviceTokens = await deviceTokenRepository.find({
+                  where: {
+                    customerId: subscription.customerId
+                  }
+                })
+
+                if (deviceTokens.length > 0) {
+                  const tokens = deviceTokens.map(dt => dt.fcmToken)
+                  const fcmService = FCMService.gI()
+                  
+                  const response = await fcmService.sendMulticast(tokens, {
+                    notification: {
+                      title: 'Tin trọ mới từ TroTotVN',
+                      body: `Có bài viết mới trong khu vực mà bạn đã đăng ký: ${post.title}`
+                    },
+                    data: {
+                      postId: post.postId.toString(),
+                      type: 'new_post_subscription'
+                    }
+                  })
+
+                  if (response) {
+                    console.log(`[FCM] Sent successfully: ${response.successCount}, failed: ${response.failureCount}`)
+                    
+                    // Tự động quét sạch các token không hợp lệ hoặc hết hạn mà Firebase báo về
+                    const invalidTokens = fcmService.getInvalidTokens(tokens, response)
+                    if (invalidTokens.length > 0) {
+                      console.log(`[FCM] Purging ${invalidTokens.length} expired tokens for customer ID: ${subscription.customerId}`)
+                      await deviceTokenRepository.delete({
+                        fcmToken: In(invalidTokens)
+                      })
+                    }
+                  }
+                }
               }
             }
           }
