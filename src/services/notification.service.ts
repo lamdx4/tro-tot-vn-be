@@ -122,6 +122,9 @@ export class NotificationService {
 
     if (response) {
       console.log(`[NotificationService] 🟢 FCM Dispatch Completed: Success=${response.successCount}, Failure=${response.failureCount}`)
+      if (response.failureCount > 0) {
+        console.log(`[NotificationService] ⚠️ Detailed Failure Responses:`, JSON.stringify(response.responses.filter(r => !r.success), null, 2))
+      }
     } else {
       console.error(`[NotificationService] 🔴 FCM Dispatch Error: No response received from FCMService`)
     }

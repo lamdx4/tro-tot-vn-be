@@ -94,7 +94,8 @@ export class FCMService {
       if (!resp.success && resp.error) {
         const errorCode = resp.error.code
         if (errorCode === 'messaging/invalid-registration-token' ||
-            errorCode === 'messaging/registration-token-not-registered') {
+            errorCode === 'messaging/registration-token-not-registered' ||
+            errorCode === 'messaging/invalid-argument') {
           invalidTokens.push(tokens[index])
         }
       }

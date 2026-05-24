@@ -15,17 +15,17 @@ async function testChatFCM() {
     // Lấy instance của NotificationService
     const notificationService = NotificationService.gI();
 
-    const recipientId = 3; // Customer ID 3 (Tiểu Mi Trương - Thiết bị debug hiện tại)
+    const recipientId = 1; // Customer ID 1 (Ken Kennedy)
     
     // Giả lập nội dung chat thực tế
     const chatPayload = {
-      messageId: 9010,
-      conversationId: 99,
-      senderId: 1,
-      content: 'Tin nhắn chẩn đoán luồng nghiệp vụ thực tế!',
+      messageId: 2118,
+      conversationId: 2,
+      senderId: 3,
+      content: 'a',
       messageType: 'TEXT',
       createdAt: new Date(),
-      senderName: 'Ken Kennedy'
+      senderName: 'Tiểu Mi Trương'
     };
 
     console.log(`\n================ SIMULATING CHAT FCM FOR CUSTOMER ${recipientId} ================`);
