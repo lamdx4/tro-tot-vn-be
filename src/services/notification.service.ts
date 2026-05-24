@@ -59,7 +59,16 @@ export class NotificationService {
 
     // 2. Filter out tokens that have active Socket connections (Using Device-level mapping)
     const offlineTokens = await this.filterOfflineTokens(strUserId, allTokens)
-    console.log(`[NotificationService] User ${userId}: AllTokens=[${allTokens.length}], OfflineTokens=[${offlineTokens.length}]`)
+    console.log(`[NotificationService] USER ${userId} CONNECTION PROFILE:`)
+    console.log(`  - Total Tokens in DB: ${allTokens.length}`)
+    console.log(`  - Target Offline Tokens to Send: ${offlineTokens.length}`)
+    
+    // Debugging active Socket.IO connections in Redis
+    const { redisClient } = await import('@/infras/redis/redis')
+    const deviceSockets = await redisClient.hgetall(`user:device:socket:${userId}`).catch(() => ({}))
+    const generalSocket = await redisClient.get(`user:socket:${userId}`).catch(() => null)
+    console.log(`  - Active Socket Device Hashes:`, deviceSockets)
+    console.log(`  - Active General Socket ID:`, generalSocket)
     
     if (offlineTokens.length === 0) {
       console.log(`[NotificationService] User ${userId} is considered fully ONLINE. Skipping FCM.`)
@@ -107,28 +116,35 @@ export class NotificationService {
     }
 
     // 4. Send via FCMService
-    console.log(`[NotificationService] Sending FCM to ${offlineTokens.length} tokens...`)
+    console.log(`[NotificationService] 🚀 Dispatching FCM Multicast to ${offlineTokens.length} tokens...`)
+    console.log(`  - Payload data:`, JSON.stringify(stringData, null, 2))
     const response = await this.fcmService.sendMulticast(offlineTokens, message)
 
     if (response) {
-      console.log(`[NotificationService] FCM Result: Success=${response.successCount}, Failure=${response.failureCount}`)
+      console.log(`[NotificationService] 🟢 FCM Dispatch Completed: Success=${response.successCount}, Failure=${response.failureCount}`)
     } else {
-      console.error(`[NotificationService] FCM Result: No response from FCMService`)
+      console.error(`[NotificationService] 🔴 FCM Dispatch Error: No response received from FCMService`)
     }
 
     // 5. Cleanup stale tokens if any
     if (response && response.failureCount > 0) {
       const invalidTokens = this.fcmService.getInvalidTokens(offlineTokens, response)
+      console.log(`[NotificationService] 🧹 Stale token cleanup started. Found ${invalidTokens.length} expired tokens.`)
       for (const token of invalidTokens) {
-        await this.deviceTokenRepo.deleteByToken(token).catch(console.error)
+        await this.deviceTokenRepo.deleteByToken(token)
+          .then(() => console.log(`  - Deleted expired token: "${token.substring(0, 20)}..."`))
+          .catch(err => console.error(`  - Failed to delete expired token:`, err))
       }
     }
   }
 
-  /**
-   * Specific helper for Chat Message
-   */
   async notifyChatMessage(recipientId: number, data: any): Promise<void> {
+    console.log(`\n[NotificationService] 💬 Incoming Chat Notification Request:`)
+    console.log(`  - Recipient ID: ${recipientId}`)
+    console.log(`  - Sender Name: "${data.senderName}"`)
+    console.log(`  - Message Content: "${data.content ? data.content.substring(0, 30) : ''}${data.content && data.content.length > 30 ? '...' : ''}"`)
+    console.log(`  - Message ID: ${data.messageId}`)
+    
     await this.notifyUser(recipientId, {
       data: {
         type: 'chat',

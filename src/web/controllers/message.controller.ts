@@ -16,7 +16,7 @@ import {
   FormField,
   Response,
 } from '@tsoa/runtime'
-import { MessageService } from '@/services'
+import { MessageService, ChatService, NotificationService } from '@/services'
 import { MultimediaFileRepository } from '@/infras/repositories'
 import CloudDriveService from '@/services/google-drive.service'
 import { MultimediaFile } from '@/domains/entities/multimedia-file.entity'
@@ -34,6 +34,8 @@ import { cleanupFiles } from '@/utils/func/delete-file'
 @Security("jwt")
 export class MessageController extends Controller {
   private messageService = new MessageService()
+  private chatService = new ChatService()
+  private notificationService = NotificationService.gI()
   private multimediaRepo = new MultimediaFileRepository()
   private cloudDriveService = CloudDriveService.gI()
 
@@ -109,17 +111,33 @@ export class MessageController extends Controller {
 
       // Emit Socket.IO event to conversation room
       const io = req.app?.locals?.io
+      const eventData = {
+        messageId: message.messageId,
+        conversationId: message.conversationId,
+        senderId: message.senderId,
+        content: message.content,
+        messageType: message.messageType,
+        createdAt: message.createdAt
+      }
       if (io) {
-        const eventData = {
-          messageId: message.messageId,
-          conversationId: message.conversationId,
-          senderId: message.senderId,
-          content: message.content,
-          messageType: message.messageType,
-          createdAt: message.createdAt
-        }
         io.to(`conversation:${conversationId}`).emit(SOCKET_EVENTS.MESSAGE_RECEIVED, eventData)
       }
+
+      // Send Push Notifications (via FCM for offline devices)
+      const customer = req.user?.customer
+      const senderName = customer ? `${customer.firstName} ${customer.lastName}`.trim() : 'Người dùng'
+      
+      this.chatService.getConversationParticipants(conversationId).then(participants => {
+        participants.forEach(participant => {
+          if (participant.customerId !== Number(userId)) {
+            console.log(`[MessageController] HTTP message received. Dispatching FCM to participant: customerId=${participant.customerId}, senderName="${senderName}"`)
+            this.notificationService.notifyChatMessage(participant.customerId, {
+              ...eventData,
+              senderName
+            }).catch(err => console.error(`[MessageController] Failed to send FCM for user ${participant.customerId}:`, err))
+          }
+        })
+      }).catch(err => console.error('[MessageController] Failed to get participants for FCM:', err))
 
       return ResponseData.successWithCode(201, message)
     } catch (error: any) {
@@ -257,18 +275,34 @@ export class MessageController extends Controller {
 
       // Emit Socket.IO event to conversation room
       const io = req.app?.locals?.io
+      const eventData = {
+        messageId: message.messageId,
+        conversationId: message.conversationId,
+        senderId: message.senderId,
+        content: message.content,
+        messageType: message.messageType,
+        attachments: message.attachments || [],
+        createdAt: message.createdAt
+      }
       if (io) {
-        const eventData = {
-          messageId: message.messageId,
-          conversationId: message.conversationId,
-          senderId: message.senderId,
-          content: message.content,
-          messageType: message.messageType,
-          attachments: message.attachments || [],
-          createdAt: message.createdAt
-        }
         io.to(`conversation:${conversationId}`).emit(SOCKET_EVENTS.FILE_RECEIVED, eventData)
       }
+
+      // Send Push Notifications (via FCM for offline devices)
+      const customer = req.user?.customer
+      const senderName = customer ? `${customer.firstName} ${customer.lastName}`.trim() : 'Người dùng'
+      
+      this.chatService.getConversationParticipants(conversationId).then(participants => {
+        participants.forEach(participant => {
+          if (participant.customerId !== Number(userId)) {
+            console.log(`[MessageController] HTTP file message uploaded. Dispatching FCM to participant: customerId=${participant.customerId}, senderName="${senderName}"`)
+            this.notificationService.notifyChatMessage(participant.customerId, {
+              ...eventData,
+              senderName
+            }).catch(err => console.error(`[MessageController] Failed to send FCM for user ${participant.customerId}:`, err))
+          }
+        })
+      }).catch(err => console.error('[MessageController] Failed to get participants for FCM:', err))
 
       return ResponseData.successWithCode(201, message)
     } catch (error: any) {

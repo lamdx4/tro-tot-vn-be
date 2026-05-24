@@ -20,7 +20,7 @@ if (!admin.apps.length) {
 }
 
 async function testFCM() {
-  const targetToken = 'eSSoYDBlShOKBvukbJiqnF:APA91bEruNInhWJa83fMODvBqUfGzOs07evCqKkhY6GJtzaWqA6R-caK6BsFQKkIw0S0t8yijnajvkTbvar6HqAhvG203wT-0TFWhmWNQx0b10kKK0QTH7c';
+  const targetToken = 'cSeeLqddQryax191amqdqC:APA91bHeJOqXsAZsEir-zvHvSgjUy6JEYK0AfizBrdomiUoA1e6Mf3of7KWvkmaV0wJ6wu8f7CkCXngzzEwqt8itsxlIkDSTDg1VjZOjzejck3jSjLlB6Sc';
 
   console.log('\n--- SENDING PURE DATA PAYLOAD (SYNC WITH ADR FE) ---');
   
