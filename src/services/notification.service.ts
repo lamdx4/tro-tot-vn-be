@@ -80,7 +80,16 @@ export class NotificationService {
     const stringData: Record<string, string> = {}
     if (payload.data) {
       Object.entries(payload.data).forEach(([key, value]) => {
-        stringData[key] = String(value)
+        if (value instanceof Date) {
+          // Chuẩn hóa Date object thành Unix timestamp miliseconds
+          stringData[key] = value.getTime().toString()
+        } else if (key === 'createdAt' && typeof value === 'string') {
+          // Nếu là chuỗi ngày tháng, chuyển đổi sang Unix timestamp để Client dễ xử lý
+          const parsedTime = Date.parse(value)
+          stringData[key] = !isNaN(parsedTime) ? parsedTime.toString() : value
+        } else {
+          stringData[key] = String(value)
+        }
       })
     }
 
