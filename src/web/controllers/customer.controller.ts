@@ -346,6 +346,31 @@ export class CustomerController extends Controller {
   }
 
   /**
+   * Check if a post is saved by current user
+   */
+  @Get("saved-posts/{postId}/check")
+  @Security("jwt")
+  @Response<ResponseData<any>>(401, "Unauthorized")
+  @Response<ResponseData<any>>(500, "Internal Server Error")
+  public async checkIfSaved(
+    @Path() postId: number,
+    @Request() req: any
+  ): Promise<ResponseData<boolean>> {
+    try {
+      const customerId = req.user?.customer?.customerId
+      const result = await this.customerService.isCustomerSavedPost(customerId, postId)
+      if (result.isSuccess) {
+        return ResponseData.success(result.getValue())
+      }
+      this.setStatus(result.code)
+      return ResponseData.error(result.code, result.error ?? '', '') as any
+    } catch (error: any) {
+      this.setStatus(500)
+      return ResponseData.error(500, 'INTERNAL_SERVER_ERROR', error.message) as any
+    }
+  }
+
+  /**
    * Get user's search subscriptions
    */
   @Get("subscriptions")
