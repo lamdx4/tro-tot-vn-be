@@ -42,7 +42,7 @@ export class NotificationService {
     userId: string | number,
     payload: {
       notification?: { title: string; body: string };
-      data?: Record<string, string | Date>;
+      data?: Record<string, unknown>;
       priority?: 'high' | 'normal';
       ttl?: number;
       androidTag?: string;

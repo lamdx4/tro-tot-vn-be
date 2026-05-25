@@ -17,7 +17,7 @@ import {
 import { ChatService, MessageService } from '@/services'
 import ResponseData from '@/utils/data-types/response'
 import { CreateConversationRequest, AddParticipantRequest } from './dto/chat.dto'
-import { ConversationDTO, ParticipantDTO } from '@/utils/types/chat.types'
+import { ConversationDTO, ParticipantDTO, MessageDTO } from '@/utils/types/chat.types'
 
 @Route("conversations")
 @Tags("Chat Conversations")
@@ -40,7 +40,7 @@ export class ConversationController extends Controller {
     @Request() req: any,
     @Query() since: string,
     @Query() limit: number = 100
-  ): Promise<ResponseData<import('@/utils/types/chat.types').MessageDTO[]>> {
+  ): Promise<ResponseData<MessageDTO[]>> {
     try {
       const userId = (req as any).user?.customer?.customerId || (req as any).user?.customerId || (req as any).user?.userId
       if (!userId) {

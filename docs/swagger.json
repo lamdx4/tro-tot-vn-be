@@ -5627,7 +5627,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/ResponseData_any-Array_"
+									"$ref": "#/components/schemas/ResponseData_MessageDTO-Array_"
 								}
 							}
 						}
