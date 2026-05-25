@@ -358,7 +358,8 @@ export class CustomerController extends Controller {
   ): Promise<ResponseData<boolean>> {
     try {
       const customerId = req.user?.customer?.customerId
-      const result = await this.customerService.isCustomerSavedPost(customerId, postId)
+      console.log('=== checkIfSaved Controller ===', { customerId, postId })
+      const result = await this.customerService.isCustomerSavedPost(Number(customerId), Number(postId))
       if (result.isSuccess) {
         return ResponseData.success(result.getValue())
       }

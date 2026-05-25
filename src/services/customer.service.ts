@@ -316,9 +316,13 @@ export class CustomerService {
   }
 
   async isCustomerSavedPost(customerId: number, postId: number) {
+    const pId = Number(postId)
+    const cId = Number(customerId)
+    console.log('=== isCustomerSavedPost ===', { cId, pId })
     const savedPost = await this.savedPostRepository.findOne({
-      where: { customerId, postId }
+      where: { customerId: cId, postId: pId }
     })
+    console.log('=== savedPost Result ===', savedPost)
     if (savedPost) {
       return Result.ok(true)
     } else {
