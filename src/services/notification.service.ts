@@ -80,8 +80,8 @@ export class NotificationService {
     const stringData: Record<string, string> = {}
     if (payload.data) {
       Object.entries(payload.data).forEach(([key, value]) => {
-        if (value instanceof Date) {
-          stringData[key] = value.toISOString()
+        if ((value as any) instanceof Date) {
+          stringData[key] = (value as any).toISOString()
         } else {
           stringData[key] = String(value)
         }
