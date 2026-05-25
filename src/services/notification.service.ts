@@ -82,14 +82,6 @@ export class NotificationService {
       Object.entries(payload.data).forEach(([key, value]) => {
         if (value instanceof Date) {
           stringData[key] = value.toISOString()
-        } else if (key === 'createdAt' || key === 'updatedAt') {
-          // Ép kiểu các trường ngày tháng chủ động (đề phòng chuỗi thô từ Raw SQL hoặc DTO)
-          const parsedDate = new Date(value as any)
-          if (!isNaN(parsedDate.getTime())) {
-            stringData[key] = parsedDate.toISOString()
-          } else {
-            stringData[key] = String(value)
-          }
         } else {
           stringData[key] = String(value)
         }
