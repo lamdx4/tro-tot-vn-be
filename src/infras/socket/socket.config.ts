@@ -35,13 +35,8 @@ export class SocketConfig {
     this.io = new SocketIOServer(httpServer, {
       cors: {
         origin: (origin, callback) => {
-          const allowedOrigins = [this.config.get('FRONTEND_URL')]
-          // !origin allows mobile apps, postman, and other non-browser clients
-          if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true)
-          } else {
-            callback(new Error('Not allowed by CORS'))
-          }
+          // Bypass CORS hoàn toàn: Cho phép mọi domain, App, Postman (kể cả DDNS)
+          callback(null, true)
         },
         methods: ['GET', 'POST'],
         credentials: true
