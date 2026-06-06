@@ -55,7 +55,8 @@ export enum ConversationType {
 export enum MessageType {
   TEXT = 'Text',
   IMAGE = 'Image',
-  FILE = 'File'
+  FILE = 'File',
+  CALL = 'Call'
 }
 
 export enum MessageStatus {

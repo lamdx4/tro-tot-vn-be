@@ -41,6 +41,9 @@ import {
 import { ConfigService } from '@/services/config.service'
 import { NotificationService } from '@/services/notification.service'
 import { redisClient } from '@/infras/redis/redis'
+import { ChatService } from '@/services/chat.service'
+import { MessageService } from '@/services/message.service'
+import { MessageType } from '@/domains/entities/enum/value-object'
 
 /**
  * VideoCallHandler - Handles 1-on-1 video call signaling via Socket.IO
@@ -51,6 +54,8 @@ export class VideoCallHandler {
   private io: SocketIOServer | null = null
   private config = ConfigService.gI()
   private notificationService = NotificationService.gI()
+  private chatService = new ChatService()
+  private messageService = new MessageService()
 
   constructor() {
     this.isDebug = this.config.get('NODE_ENV') !== 'production'
@@ -595,6 +600,9 @@ export class VideoCallHandler {
       ttl: 60
     }).catch(err => console.error(`[VideoCall] Failed to send FCM call rejected to ${room.createdBy}:`, err))
 
+    // Lưu tin nhắn "Cuộc gọi nhỡ" vào Database
+    await this.saveCallMessageToDb(room.createdBy, userId, 'Cuộc gọi nhỡ')
+
     // Mark room as inactive in Redis
     try {
       await deactivateRoom(roomId)
@@ -660,6 +668,10 @@ export class VideoCallHandler {
         console.error(`[VideoCall] Failed to send FCM call ended to ${participantId}:`, err)
       )
     }
+
+    // Lưu tin nhắn "Cuộc gọi thoại" vào Database
+    const calleeId = room.participants.find(p => p !== room.createdBy) || room.participants[0];
+    await this.saveCallMessageToDb(room.createdBy, calleeId, 'Cuộc gọi thoại')
   }
 
   /**
@@ -796,6 +808,63 @@ export class VideoCallHandler {
    */
   async getRoom(roomId: string): Promise<VideoCallRoom | null> {
     return await getVideoCallRoom(roomId)
+  }
+
+  /**
+   * Tự động lưu lịch sử cuộc gọi dưới dạng Tin nhắn Chat (Message)
+   */
+  private async saveCallMessageToDb(callerId: string, calleeId: string, content: string): Promise<void> {
+    try {
+      const cId = parseInt(callerId, 10);
+      const ceId = parseInt(calleeId, 10);
+
+      if (isNaN(cId) || isNaN(ceId)) return;
+
+      // 1. Tạo hoặc lấy Direct Conversation giữa 2 người
+      const conversation = await this.chatService.createConversation({
+        conversationType: 'Direct',
+        participantIds: [cId, ceId]
+      }, cId);
+
+      // 2. Tạo bản ghi tin nhắn mới
+      const message = await this.messageService.sendMessage(
+        conversation.conversationId,
+        cId,
+        {
+          conversationId: conversation.conversationId,
+          content,
+          messageType: MessageType.CALL
+        }
+      );
+
+      const eventData = {
+        messageId: message.messageId,
+        conversationId: message.conversationId,
+        senderId: message.senderId,
+        content: message.content,
+        messageType: message.messageType,
+        createdAt: message.createdAt
+      };
+
+      // 3. Emit qua Socket.IO tới phòng Chat để app tự động nảy tin nhắn
+      if (this.io) {
+        this.io.to(`conversation:${conversation.conversationId}`).emit('message:received', eventData);
+      }
+
+      // 4. Lấy thông tin người gọi để làm tiêu đề Push Notification
+      const participants = await this.chatService.getConversationParticipants(conversation.conversationId);
+      const caller = participants.find(p => p.customerId === cId);
+      const senderName = caller ? `${caller.firstName} ${caller.lastName}`.trim() : 'Người dùng';
+
+      // 5. Gửi FCM Push Notification offline
+      this.notificationService.notifyChatMessage(ceId, {
+        ...eventData,
+        senderName
+      }).catch(err => console.error('[VideoCallHandler] Failed to send FCM call message:', err));
+
+    } catch (error) {
+      console.error('[VideoCallHandler] Failed to save call message to DB:', error);
+    }
   }
 
   /**
