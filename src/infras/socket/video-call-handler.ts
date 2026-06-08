@@ -69,7 +69,7 @@ export class VideoCallHandler {
    * Wrap payload in REST-style envelope: { status, data }
    */
   private wrap<T>(data: any, status = 200): ResponseData<T> {
-    return new ResponseData<T>(status, 'success', data)
+    return new ResponseData<T>(status, 'success', [], data)
   }
 
   /**
