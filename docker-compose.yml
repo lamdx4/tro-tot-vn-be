@@ -45,17 +45,35 @@ services:
     ports:
       - "3478:3478/udp"
       - "3478:3478/tcp"
+      - "5349:5349/tcp"
       - "49152-49172:49152-49172/udp"  # RTP media ports range
+    environment:
+      # Coturn will use CLI arguments via command
+      - LISTENING_PORT=3478
+      - TLS_LISTENING_PORT=5349
+      - MIN_PORT=49152
+      - MAX_PORT=49172
+      - REALM=tro-tot.local
+      # Use long-term credentials mechanism
+      - LT_CRED_MECH
+      # Use authentication secret (TURN_SECRET env var for dynamic passwords)
+      - USE_AUTH_SECRET
+      - STATIC_AUTH_SECRET=tro-tot-secret-2024
     command: >
       -n
       --listening-port=3478
+      --tls-listening-port=5349
       --min-port=49152
       --max-port=49172
+      --server-name=tro-tot.local
       --realm=tro-tot.local
       --lt-cred-mech
       --use-auth-secret
       --static-auth-secret=tro-tot-secret-2024
+      --user=testuser:tro-tot-secret-2024
       --log-file=stdout
+      --syslog
+      --stun-only
     volumes:
       - coturn_data:/var/lib/turn
     networks:
