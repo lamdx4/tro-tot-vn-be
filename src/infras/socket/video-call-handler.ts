@@ -128,11 +128,8 @@ export class VideoCallHandler {
       }
     }
 
-    // Try to get TURN IP from Config first, then fallback to Redis
-    let turnIp = this.config.get('TURN_SERVER_IP')
-    if (!turnIp) {
-      turnIp = (await redisClient.get('coturn:ip')) || ''
-    }
+    // Get TURN IP from Config (Domain or Static IP)
+    const turnIp = this.config.get('TURN_SERVER_IP')
 
     const turnUser = this.config.get('TURN_USERNAME')
     const turnCred = this.config.get('TURN_CREDENTIAL')
