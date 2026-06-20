@@ -2008,11 +2008,14 @@
 						"description": "Phone or Email"
 					},
 					"password": {
-						"type": "string"
+						"type": "string",
+						"description": "Password",
+						"minLength": 6
 					}
 				},
 				"required": [
-					"identifier"
+					"identifier",
+					"password"
 				],
 				"type": "object",
 				"additionalProperties": false
