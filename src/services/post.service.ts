@@ -267,8 +267,9 @@ export default class PostService {
     return Result.ok({})
   }
 
-  async getLastPost(limit: number) {
+  async getLastPost(page: number = 1, limit: number) {
     try {
+      const skip = (page - 1) * limit
       const posts = await this.postRepository.find({
         select: {
           postId: true,
@@ -295,6 +296,7 @@ export default class PostService {
         },
         where: { status: 'Approved' },
         order: { createdAt: 'DESC' },
+        skip: skip,
         take: limit
       })
       return Result.ok(posts)

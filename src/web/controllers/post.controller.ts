@@ -285,11 +285,13 @@ export class PostController extends Controller {
   @Get("latest")
   @Response<ResponseData<any>>(500, "Internal Server Error")
   public async getLastPost(
-    @Query() limit: number = 4
+    @Query() page: number = 1,
+    @Query() limit: number = 10
   ): Promise<ResponseData<any>> {
     try {
-      const rLimit = Number(limit) || 4
-      const result = await this.postService.getLastPost(rLimit)
+      const rPage = Number(page) || 1
+      const rLimit = Number(limit) || 10
+      const result = await this.postService.getLastPost(rPage, rLimit)
       if (result.isSuccess) {
         this.setStatus(200)
         return ResponseData.success(result.getValue())
