@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io'
-import { SOCKET_EVENTS, MessageSentEvent, MessageReadEvent, TypingEvent, FileUploadEvent, FileSentEvent, FileSentEventInput } from '@/utils/types/socket-events'
+import { SOCKET_EVENTS, MessageSentEvent, MessageReadEvent, MessageDeliveredEvent, TypingEvent, FileUploadEvent, FileSentEvent, FileSentEventInput } from '@/utils/types/socket-events'
 import { ChatService, MessageService, FileService, NotificationService } from '@/services'
 import ResponseData from '@/utils/data-types/response'
 
@@ -173,6 +173,34 @@ export class SocketHandlers {
     } catch (error: any) {
       console.error('[Socket] Error marking message as read:', error)
       this.emitError(socket, 'MESSAGE_READ_ERROR', error.message)
+    }
+  }
+
+  /**
+   * Handle marking a message as delivered
+   */
+  async handleMessageDelivered(socket: Socket, data: MessageDeliveredEvent): Promise<void> {
+    try {
+      const userId = socket.data.userId as string
+      const { messageId, conversationId } = data
+      const numericUserId = Number(userId)
+
+      // Mark as delivered
+      await this.messageService.markMessageAsDelivered(messageId)
+
+      // Notify other participants in conversation (broadcast — raw, no wrap)
+      socket.to(`conversation:${conversationId}`).emit(
+        SOCKET_EVENTS.MESSAGE_DELIVERED,
+        {
+          messageId,
+          conversationId,
+          deliveredTo: numericUserId,
+          deliveredAt: new Date()
+        }
+      )
+    } catch (error: any) {
+      console.error('[Socket] Error marking message as delivered:', error)
+      this.emitError(socket, 'MESSAGE_DELIVERED_ERROR', error.message)
     }
   }
 

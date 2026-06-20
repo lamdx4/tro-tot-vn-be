@@ -81,6 +81,13 @@ export class MessageService {
   }
 
   /**
+   * Mark a message as delivered
+   */
+  async markMessageAsDelivered(messageId: number): Promise<void> {
+    await this.messageRepo.markMessageAsDelivered(messageId)
+  }
+
+  /**
    * Mark multiple messages as read
    */
   async markMessagesAsRead(messageIds: number[]): Promise<void> {

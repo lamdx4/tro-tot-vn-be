@@ -26,6 +26,7 @@ export const SOCKET_EVENTS = {
   FILE_RECEIVED: 'file:received',
 
   // Read receipt events
+  MESSAGE_DELIVERED: 'message:delivered',
   MESSAGE_READ: 'message:read',
   MESSAGES_READ: 'messages:read',
 
@@ -57,6 +58,13 @@ export interface MessageReadEvent {
   conversationId: number
   readBy: number
   readAt: Date
+}
+
+export interface MessageDeliveredEvent {
+  messageId: number
+  conversationId: number
+  deliveredTo: number
+  deliveredAt: Date
 }
 
 export interface TypingEvent {

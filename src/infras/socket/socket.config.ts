@@ -153,6 +153,10 @@ export class SocketConfig {
         this.handlers.handleMessageRead(socket, data)
       )
 
+      socket.on(SOCKET_EVENTS.MESSAGE_DELIVERED, (data) =>
+        this.handlers.handleMessageDelivered(socket, data)
+      )
+
       // Typing events
       socket.on(SOCKET_EVENTS.TYPING_START, (data) =>
         this.handlers.handleTypingStart(socket, data)

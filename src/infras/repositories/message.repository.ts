@@ -28,6 +28,10 @@ export class MessageRepository extends BaseRepository<Message> {
     return this.update({ messageId }, { status: 'Read' })
   }
 
+  async markMessageAsDelivered(messageId: number) {
+    return this.update({ messageId }, { status: 'Delivered' })
+  }
+
   async softDeleteMessage(messageId: number) {
     return this.update({ messageId }, { deletedAt: new Date() })
   }
