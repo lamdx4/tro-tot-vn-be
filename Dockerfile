@@ -1,7 +1,7 @@
 # ============================================
 # Stage 1: Builder
 # ============================================
-FROM node:22-bookworm-slim AS builder
+FROM node:22.12-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -23,7 +23,7 @@ RUN npm prune --omit=dev
 # ============================================
 # Stage 2: Runtime (Trọng lượng siêu nhẹ)
 # ============================================
-FROM node:22-bookworm-slim AS runner
+FROM node:22.12-bookworm-slim AS runner
 
 WORKDIR /app
 
