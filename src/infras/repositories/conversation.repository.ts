@@ -1,26 +1,42 @@
 import { BaseRepository } from './base.repository'
 import { Conversation } from '@/domains/entities/conversation.entity'
+import { Brackets } from 'typeorm'
 
 export class ConversationRepository extends BaseRepository<Conversation> {
   constructor() {
     super(Conversation)
   }
 
-  async findConversationsByUser(customerId: number, limit: number = 20, offset: number = 0) {
+  async findConversationsByUser(customerId: number, search?: string, limit: number = 20, offset: number = 0) {
     // 1. Get conversation IDs the user is part of
-    const userConvs = await this.createQueryBuilder('c')
+    const qb = this.createQueryBuilder('c')
       .select(['c.conversationId', 'c.updatedAt'])
       .innerJoin('c.participants', 'p')
       .where('p.customerId = :customerId', { customerId })
       .andWhere('p.leftAt IS NULL')
+
+    if (search) {
+      qb.leftJoin('c.participants', 'other_p')
+        .leftJoin('other_p.customer', 'customer')
+        .andWhere(
+          new Brackets(b => {
+            b.where('c.groupName LIKE :search', { search: `%${search}%` })
+             .orWhere('(customer.firstName LIKE :search AND customer.customerId != :customerId)', { search: `%${search}%`, customerId })
+             .orWhere('(customer.lastName LIKE :search AND customer.customerId != :customerId)', { search: `%${search}%`, customerId })
+          })
+        )
+    }
+
+    const userConvs = await qb
+      .groupBy('c.conversationId, c.updatedAt')
       .orderBy('c.updatedAt', 'DESC')
       .skip(offset)
       .take(limit)
-      .getMany()
+      .getRawMany()
 
     if (userConvs.length === 0) return []
 
-    const convIds = userConvs.map(c => c.conversationId)
+    const convIds = userConvs.map(c => c.conversationId || c.c_conversationId)
 
     // 2. Fetch full data for those conversations (including ALL participants and ONLY the LATEST message)
     return this.createQueryBuilder('conv')

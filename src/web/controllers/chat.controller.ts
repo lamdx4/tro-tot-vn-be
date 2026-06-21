@@ -72,6 +72,7 @@ export class ConversationController extends Controller {
   @Response<ResponseData<any>>(500, "Internal Server Error")
   public async getConversations(
     @Request() req: any,
+    @Query() search?: string,
     @Query() limit: number = 20,
     @Query() offset: number = 0
   ): Promise<ResponseData<ConversationDTO[]>> {
@@ -81,7 +82,7 @@ export class ConversationController extends Controller {
         this.setStatus(401)
         return ResponseData.unauthorized('User not authenticated') as any
       }
-      const conversations = await this.chatService.getConversationsByCustomer(userId, limit, offset)
+      const conversations = await this.chatService.getConversationsByCustomer(userId, search, limit, offset)
       this.setStatus(200)
       return ResponseData.success(conversations)
     } catch (error: any) {

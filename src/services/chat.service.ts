@@ -15,9 +15,10 @@ export class ChatService {
   /**
    * Get all conversations for a customer
    */
-  async getConversationsByCustomer(customerId: number, limit: number = 20, offset: number = 0) {
+  async getConversationsByCustomer(customerId: number, search?: string, limit: number = 20, offset: number = 0) {
     const conversations = await this.conversationRepo.findConversationsByUser(
       customerId,
+      search,
       limit,
       offset
     )
