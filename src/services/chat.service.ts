@@ -49,7 +49,9 @@ export class ChatService {
    * Create a new conversation
    */
   async createConversation(input: CreateConversationInput, createdBy: number): Promise<ConversationDTO> {
-    const { conversationType, participantIds, name } = input
+    const { conversationType, name } = input
+    // Ensure the creator is in the participant list and there are no duplicates
+    const participantIds = Array.from(new Set([...input.participantIds, createdBy]))
 
     // For direct conversations, check if one already exists
     if (conversationType === 'Direct' && participantIds.length === 2) {
